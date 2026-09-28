@@ -20,9 +20,12 @@ jobs:
 
       - name: Apply city systems upgrade
         run: |
-          # Correct one renderer expression in the generated JS payload before applying.
-          sed -i 's/p\.area\/\/2/Math.floor(p.area\/2)/g' tools/apply_city_systems_upgrade.py
-          python tools/apply_city_systems_upgrade.py
+          if grep -q "class TerrainSystem" MetroForge-2000.html; then
+            echo 'City systems upgrade already present; validating current game.'
+          else
+            sed -i 's/p\.area\/\/2/Math.floor(p.area\/2)/g' tools/apply_city_systems_upgrade.py
+            python tools/apply_city_systems_upgrade.py
+          fi
 
       - name: Check embedded JavaScript syntax
         run: |
@@ -90,5 +93,3 @@ jobs:
           fi
           git commit -m 'Add commercial industrial parcels and terraforming'
           git push
-
-# Trigger revision 2
