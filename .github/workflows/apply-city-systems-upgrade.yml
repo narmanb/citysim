@@ -1,0 +1,95 @@
+name: Apply MetroForge city systems upgrade
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'tools/apply_city_systems_upgrade.py'
+      - '.github/workflows/apply-city-systems-upgrade.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Apply city systems upgrade
+        run: |
+          # Correct one renderer expression in the generated JS payload before applying.
+          sed -i 's/p\.area\/\/2/Math.floor(p.area\/2)/g' tools/apply_city_systems_upgrade.py
+          python tools/apply_city_systems_upgrade.py
+
+      - name: Check embedded JavaScript syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text=Path('MetroForge-2000.html').read_text()
+          start=text.index('<script>')+len('<script>')
+          end=text.rindex('</script>')
+          Path('/tmp/metroforge.js').write_text(text[start:end])
+          PY
+          node --check /tmp/metroforge.js
+
+      - name: Validate upgraded systems markers
+        run: |
+          grep -q "shop:{zone:'com',type:'shop'}" MetroForge-2000.html
+          grep -q "logistics:{zone:'ind',type:'logistics'}" MetroForge-2000.html
+          grep -q "class TerrainSystem" MetroForge-2000.html
+          grep -q "drawParcelZoneTile" MetroForge-2000.html
+          grep -q "drawCommercialParcel" MetroForge-2000.html
+          grep -q "drawIndustrialParcel" MetroForge-2000.html
+
+      - name: Smoke test terrain and parcels
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text=Path('MetroForge-2000.html').read_text()
+          start=text.index('<script>')+len('<script>')
+          end=text.index('class UIClass{',start)
+          sim=text[start:end]
+          sim += r'''
+          const w=new World();
+          // commercial 2x2 parcel
+          const c=[I(20,20),I(21,20),I(20,21),I(21,21)];
+          for(const i of c)Object.assign(w.tiles[i],blank('grass'),{zone:'com',zoneType:'shop',parcel:7001,level:1});
+          Object.assign(w.tiles[I(22,20)],blank('grass'),{road:true});
+          // logistics 1x2 parcel
+          const l=[I(25,20),I(25,21)];
+          for(const i of l)Object.assign(w.tiles[i],blank('grass'),{zone:'ind',zoneType:'logistics',parcel:7002,level:1});
+          Object.assign(w.tiles[I(26,20)],blank('grass'),{road:true});
+          ParcelSystem.invalidate(w);w.recalculate();
+          const cp=ParcelSystem.info(w,c[0]),lp=ParcelSystem.info(w,l[0]);
+          if(!cp||cp.area!==4||cp.zone!=='com'||cp.type!=='shop')throw Error('commercial parcel failed');
+          if(!lp||lp.area!==2||lp.type!=='logistics')throw Error('logistics parcel failed');
+          if(!(ParcelSystem.capacity(w,lp,1)>0))throw Error('industrial parcel capacity failed');
+          // dry channel does not fill until connected to source water
+          const dry=I(35,35),edge=I(35,34);
+          Object.assign(w.tiles[dry],blank('grass'),{channel:true,elev:-1});
+          TerrainSystem.reflow(w);
+          if(w.tiles[dry].terrain==='water')throw Error('isolated channel incorrectly filled');
+          Object.assign(w.tiles[edge],blank('water'),{waterSource:true});
+          TerrainSystem.reflow(w);
+          if(w.tiles[dry].terrain!=='water')throw Error('connected channel did not fill');
+          console.log('City systems smoke test passed');
+          })();
+          '''
+          Path('/tmp/metroforge-sim.js').write_text(sim)
+          PY
+          node /tmp/metroforge-sim.js
+
+      - name: Commit upgraded game
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add MetroForge-2000.html
+          if git diff --cached --quiet; then
+            echo 'No game file changes.'
+            exit 0
+          fi
+          git commit -m 'Add commercial industrial parcels and terraforming'
+          git push
