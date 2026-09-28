@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# Follow-up patch is intentionally idempotent so CI can rerun it safely.
 path = Path('MetroForge-2000.html')
 text = path.read_text()
 changes = 0
