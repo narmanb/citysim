@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'tools/apply_parcel_upgrade.py'
+      - 'tools/fix_parcel_patch.py'
 
 permissions:
   contents: write
@@ -15,7 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Apply parcel-development patch
-        run: python tools/apply_parcel_upgrade.py
+        run: |
+          python tools/apply_parcel_upgrade.py
+          python tools/fix_parcel_patch.py
       - name: Check embedded JavaScript syntax
         shell: bash
         run: |
