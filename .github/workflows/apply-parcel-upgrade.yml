@@ -16,8 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Apply parcel-development patch
+        shell: bash
         run: |
-          python tools/apply_parcel_upgrade.py
+          if grep -q 'class ParcelSystem' MetroForge-2000.html; then
+            echo 'Parcel upgrade already present; applying follow-up fixes only.'
+          else
+            python tools/apply_parcel_upgrade.py
+          fi
           python tools/fix_parcel_patch.py
       - name: Check embedded JavaScript syntax
         shell: bash
@@ -30,6 +35,39 @@ jobs:
           Path('/tmp/metroforge.js').write_text(text[start:end])
           PY
           node --check /tmp/metroforge.js
+      - name: Smoke-test parcel simulation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('MetroForge-2000.html').read_text()
+          start = text.index('<script>') + len('<script>')
+          end = text.index('class UIClass{', start)
+          sim = text[start:end]
+          sim += r'''
+          const testWorld=new World();
+          const ids=[I(20,20),I(21,20),I(20,21),I(21,21)];
+          for(const i of ids)Object.assign(testWorld.tiles[i],blank('grass'),{zone:'res',resType:'house',parcel:4242,level:1});
+          Object.assign(testWorld.tiles[I(17,20)],blank('grass'),{civic:'plant'});
+          Object.assign(testWorld.tiles[I(18,20)],blank('grass'),{line:true});
+          Object.assign(testWorld.tiles[I(19,20)],blank('grass'),{line:true});
+          Object.assign(testWorld.tiles[I(19,21)],blank('grass'),{civic:'pump',line:true,pipe:true});
+          Object.assign(testWorld.tiles[I(22,21)],blank('grass'),{road:true});
+          ParcelSystem.invalidate(testWorld);testWorld.recalculate();
+          const p=ParcelSystem.info(testWorld,ids[0]);
+          if(!p||p.area!==4||p.width!==2||p.height!==2)throw Error('2x2 parcel geometry failed');
+          if(!ParcelSystem.roadNear(testWorld,ids[0]))throw Error('parcel road-edge access failed');
+          if(!p.members.every(i=>testWorld.fields.power[i]))throw Error('power did not propagate through full parcel');
+          if(!p.members.every(i=>testWorld.fields.water[i]))throw Error('water did not propagate through full parcel');
+          const houseCap=ParcelSystem.capacity(testWorld,p,1);
+          testWorld.tiles[p.root].resType='apt';p.type='apt';
+          const aptCap=ParcelSystem.capacity(testWorld,p,1);
+          if(!(aptCap>houseCap))throw Error('apartment capacity should exceed house capacity on same parcel');
+          console.log('Parcel smoke test passed:',{area:p.area,houseCap,aptCap});
+          '''
+          Path('/tmp/metroforge-sim.js').write_text(sim)
+          PY
+          node /tmp/metroforge-sim.js
       - name: Commit upgraded game
         shell: bash
         run: |
@@ -40,5 +78,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add MetroForge-2000.html
-          git commit -m 'Add parcel-based residential development'
+          git commit -m 'Harden parcel utility connections'
           git push
