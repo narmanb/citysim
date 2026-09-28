@@ -64,6 +64,7 @@ jobs:
           const aptCap=ParcelSystem.capacity(testWorld,p,1);
           if(!(aptCap>houseCap))throw Error('apartment capacity should exceed house capacity on same parcel');
           console.log('Parcel smoke test passed:',{area:p.area,houseCap,aptCap});
+          })();
           '''
           Path('/tmp/metroforge-sim.js').write_text(sim)
           PY
