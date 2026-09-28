@@ -54,11 +54,9 @@ jobs:
           sim=text[start:end]
           sim += r'''
           const w=new World();
-          // commercial 2x2 parcel
           const c=[I(20,20),I(21,20),I(20,21),I(21,21)];
           for(const i of c)Object.assign(w.tiles[i],blank('grass'),{zone:'com',zoneType:'shop',parcel:7001,level:1});
           Object.assign(w.tiles[I(22,20)],blank('grass'),{road:true});
-          // logistics 1x2 parcel
           const l=[I(25,20),I(25,21)];
           for(const i of l)Object.assign(w.tiles[i],blank('grass'),{zone:'ind',zoneType:'logistics',parcel:7002,level:1});
           Object.assign(w.tiles[I(26,20)],blank('grass'),{road:true});
@@ -67,7 +65,6 @@ jobs:
           if(!cp||cp.area!==4||cp.zone!=='com'||cp.type!=='shop')throw Error('commercial parcel failed');
           if(!lp||lp.area!==2||lp.type!=='logistics')throw Error('logistics parcel failed');
           if(!(ParcelSystem.capacity(w,lp,1)>0))throw Error('industrial parcel capacity failed');
-          // dry channel does not fill until connected to source water
           const dry=I(35,35),edge=I(35,34);
           Object.assign(w.tiles[dry],blank('grass'),{channel:true,elev:-1});
           TerrainSystem.reflow(w);
@@ -93,3 +90,5 @@ jobs:
           fi
           git commit -m 'Add commercial industrial parcels and terraforming'
           git push
+
+# Trigger revision 2
