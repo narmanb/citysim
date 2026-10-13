@@ -1,0 +1,14 @@
+# Conversion progress
+
+Binding brief: user-supplied MetroForge_Isometric_Conversion_Plan.md; local refinement in isometric-design.md.
+
+M0: complete — baseline run/save round trips, main retained, feature branch created.
+M1: complete — supplied subset inventoried, licenses/hashes preserved, coherent interactive art proof.
+M2–M4: browser milestone complete — separate renderer, projection/picking, cache/culling, depth and terrain occlusion, overlays/input, adjacency roads/bridges, actual agents, contained parcels, growth/abandonment/fire and honest procedural art for uncovered systems.
+M5: resource packaging and browser/touch regressions complete; APK/device acceptance remains unverified because SDK/Gradle/device are unavailable. Managed browser file URL policy blocks direct offline navigation.
+
+Decisions: use the available 132×66 family; absent modular families cannot be compared. Use asphalt/pavement texture clipping for complete road masks instead of implying the archive has uniquely named adjacency tiles. Keep simulation/save classes unchanged. Keep the local feature branch for user review, without publishing or merging.
+
+Independent whole-change review found no Critical issues and identified bridge rail orientation, cliff culling, and raised-ground occlusion. All were fixed with geometry or pixel regressions. A final requirement check also added visibly distinct house/industrial growth levels. No review minors remain deferred.
+
+Final verification commands and their measured outcomes are documented in isometric-validation.md. Runtime and source ZIPs are produced separately under /workspace/artifacts.

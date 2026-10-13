@@ -6,6 +6,9 @@ on:
     branches: [ main ]
     paths:
       - 'MetroForge-2000.html'
+      - 'src/**'
+      - 'assets/**'
+      - 'tools/package_runtime.py'
       - 'app/**'
       - 'build.gradle'
       - 'settings.gradle'
@@ -40,8 +43,7 @@ jobs:
 
       - name: Package current MetroForge game into app assets
         run: |
-          mkdir -p app/src/main/assets
-          cp MetroForge-2000.html app/src/main/assets/index.html
+          python tools/package_runtime.py --android-dir app/src/main/assets
 
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace

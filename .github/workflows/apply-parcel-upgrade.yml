@@ -60,7 +60,7 @@ jobs:
           if(!p.members.every(i=>testWorld.fields.power[i]))throw Error('power did not propagate through full parcel');
           if(!p.members.every(i=>testWorld.fields.water[i]))throw Error('water did not propagate through full parcel');
           const houseCap=ParcelSystem.capacity(testWorld,p,1);
-          testWorld.tiles[p.root].resType='apt';p.type='apt';
+          testWorld.tiles[p.root].resType='apt';testWorld.tiles[p.root].zoneType='apt';p.type='apt';
           const aptCap=ParcelSystem.capacity(testWorld,p,1);
           if(!(aptCap>houseCap))throw Error('apartment capacity should exceed house capacity on same parcel');
           console.log('Parcel smoke test passed:',{area:p.area,houseCap,aptCap});

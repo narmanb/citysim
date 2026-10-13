@@ -1,0 +1,311 @@
+{
+  "version": 1,
+  "source": {
+    "name": "1-MetroForge_Starter_Isometric_Assets.zip",
+    "sha256": "f6ce1178dbaeafab33ae904a443d5e104e343adb159908df1a87a9d8d006c838"
+  },
+  "tile": {
+    "width": 132,
+    "height": 66,
+    "origin": "ground-center"
+  },
+  "atlases": {
+    "terrain": {
+      "file": "assets/atlases/terrain.png",
+      "width": 1024,
+      "height": 2048,
+      "sha256": "67505f6c2c132e27d65378ddf9c48ed1072df3e2d58526e743fb5baec9959ab3",
+      "source": "Isometric Tiles Base/Spritesheet/landscapeTiles_sheet.png"
+    },
+    "city": {
+      "file": "assets/atlases/city.png",
+      "width": 1024,
+      "height": 2048,
+      "sha256": "f21d2c8ec79d8f9d4c50fdf642ede9d669b5eb377d7e36227a6229332094a272",
+      "source": "Isometric Tiles City/Spritesheet/cityTiles_sheet.png"
+    },
+    "buildings": {
+      "file": "assets/atlases/buildings.png",
+      "width": 1024,
+      "height": 2048,
+      "sha256": "b60b2dace1f324b29891e2db091812a8c3ad0c0eb31bb5660a74b9d10962fa94",
+      "source": "Isometric Tiles Buildings/Spritesheet/buildingTiles_sheet.png"
+    },
+    "details": {
+      "file": "assets/atlases/details.png",
+      "width": 256,
+      "height": 128,
+      "sha256": "c298a34a95db87c9e5d0c8fe901cb7daa77e234f35442ffe57d9422823b23080",
+      "source": "Isometric Tiles City/Spritesheet/cityDetails_sheet.png"
+    },
+    "vehicles": {
+      "file": "assets/atlases/vehicles.png",
+      "width": 256,
+      "height": 256,
+      "sha256": "493c80c77b58446aaaaa351d190f198a647174cb7e28423c0cdb2f8ebd6cf5aa",
+      "source": "Isometric Tiles Vehicles/Spritesheet/sheet_utility.png"
+    }
+  },
+  "sprites": {
+    "grass": {
+      "atlas": "terrain",
+      "source": "landscapeTiles_022.png",
+      "x": 662,
+      "y": 495,
+      "width": 132,
+      "height": 99,
+      "anchor": {
+        "x": 66,
+        "y": 33
+      },
+      "baselineElevation": 0
+    },
+    "water": {
+      "atlas": "terrain",
+      "source": "landscapeTiles_066.png",
+      "x": 398,
+      "y": 364,
+      "width": 132,
+      "height": 83,
+      "anchor": {
+        "x": 66,
+        "y": 33
+      },
+      "baselineElevation": 0
+    },
+    "sand": {
+      "atlas": "terrain",
+      "source": "landscapeTiles_058.png",
+      "x": 529,
+      "y": 1108,
+      "width": 132,
+      "height": 83,
+      "anchor": {
+        "x": 66,
+        "y": 33
+      },
+      "baselineElevation": 0
+    },
+    "dirt": {
+      "atlas": "terrain",
+      "source": "landscapeTiles_073.png",
+      "x": 397,
+      "y": 1745,
+      "width": 132,
+      "height": 83,
+      "anchor": {
+        "x": 66,
+        "y": 33
+      },
+      "baselineElevation": 0
+    },
+    "asphalt": {
+      "atlas": "city",
+      "source": "cityTiles_080.png",
+      "x": 266,
+      "y": 436,
+      "width": 132,
+      "height": 99,
+      "anchor": {
+        "x": 66,
+        "y": 33
+      },
+      "baselineElevation": 0
+    },
+    "pavement": {
+      "atlas": "city",
+      "source": "cityTiles_074.png",
+      "x": 662,
+      "y": 202,
+      "width": 132,
+      "height": 101,
+      "anchor": {
+        "x": 66,
+        "y": 33
+      },
+      "baselineElevation": 0
+    },
+    "house": {
+      "atlas": "buildings",
+      "source": "buildingTiles_045.png",
+      "x": 497,
+      "y": 536,
+      "width": 99,
+      "height": 85,
+      "anchor": {
+        "x": 49.5,
+        "y": 60
+      },
+      "baselineElevation": 0
+    },
+    "houseBeige": {
+      "atlas": "buildings",
+      "source": "buildingTiles_048.png",
+      "x": 497,
+      "y": 329,
+      "width": 99,
+      "height": 85,
+      "anchor": {
+        "x": 49.5,
+        "y": 60
+      },
+      "baselineElevation": 0
+    },
+    "office": {
+      "atlas": "buildings",
+      "source": "buildingTiles_000.png",
+      "x": 596,
+      "y": 85,
+      "width": 99,
+      "height": 85,
+      "anchor": {
+        "x": 49.5,
+        "y": 60
+      },
+      "baselineElevation": 0
+    },
+    "industry": {
+      "atlas": "buildings",
+      "source": "buildingTiles_032.png",
+      "x": 595,
+      "y": 1145,
+      "width": 99,
+      "height": 85,
+      "anchor": {
+        "x": 49.5,
+        "y": 60
+      },
+      "baselineElevation": 0
+    },
+    "roof": {
+      "atlas": "buildings",
+      "source": "buildingTiles_065.png",
+      "x": 497,
+      "y": 414,
+      "width": 99,
+      "height": 61,
+      "anchor": {
+        "x": 49.5,
+        "y": 36
+      },
+      "baselineElevation": 0
+    },
+    "flatRoof": {
+      "atlas": "buildings",
+      "source": "buildingTiles_005.png",
+      "x": 596,
+      "y": 170,
+      "width": 99,
+      "height": 54,
+      "anchor": {
+        "x": 49.5,
+        "y": 29
+      },
+      "baselineElevation": 0
+    },
+    "tree": {
+      "atlas": "details",
+      "source": "cityDetails_010.png",
+      "x": 71,
+      "y": 0,
+      "width": 32,
+      "height": 45,
+      "anchor": {
+        "x": 16.0,
+        "y": 44
+      },
+      "baselineElevation": 0
+    },
+    "carNE": {
+      "atlas": "vehicles",
+      "source": "taxi_NE.png",
+      "x": 140,
+      "y": 222,
+      "width": 32,
+      "height": 25,
+      "anchor": {
+        "x": 16.0,
+        "y": 24
+      },
+      "baselineElevation": 0
+    },
+    "carSE": {
+      "atlas": "vehicles",
+      "source": "taxi_SE.png",
+      "x": 173,
+      "y": 160,
+      "width": 32,
+      "height": 26,
+      "anchor": {
+        "x": 16.0,
+        "y": 25
+      },
+      "baselineElevation": 0
+    },
+    "carSW": {
+      "atlas": "vehicles",
+      "source": "taxi_SW.png",
+      "x": 205,
+      "y": 0,
+      "width": 32,
+      "height": 26,
+      "anchor": {
+        "x": 16.0,
+        "y": 25
+      },
+      "baselineElevation": 0
+    },
+    "carNW": {
+      "atlas": "vehicles",
+      "source": "taxi_NW.png",
+      "x": 172,
+      "y": 222,
+      "width": 32,
+      "height": 25,
+      "anchor": {
+        "x": 16.0,
+        "y": 24
+      },
+      "baselineElevation": 0
+    }
+  },
+  "licenses": [
+    {
+      "pack": "Base",
+      "file": "assets/licenses/Base.txt",
+      "sha256": "52356adb52bf63f325bcd5e6bafb6a13929a1622df3c636884f8a3feb881729f"
+    },
+    {
+      "pack": "City",
+      "file": "assets/licenses/City.txt",
+      "sha256": "429b1240c37bbae238cd0ddb2fffee8cc4c13200d0d0c0d283aadb52e2913786"
+    },
+    {
+      "pack": "Buildings",
+      "file": "assets/licenses/Buildings.txt",
+      "sha256": "78dd057891c8a78b039260a553200044cc336a00827cbc9535d973021c0b75cc"
+    },
+    {
+      "pack": "Vehicles",
+      "file": "assets/licenses/Vehicles.txt",
+      "sha256": "1c2094b8f5ef716d83fe0a3fca6ba0f4daad2cc124e67bad329ba300a6225611"
+    }
+  ],
+  "roads": {
+    "method": "City asphalt/pavement textures clipped by logical adjacency",
+    "bits": {
+      "north": 1,
+      "east": 2,
+      "south": 4,
+      "west": 8
+    }
+  },
+  "missingArt": [
+    "railway",
+    "power plant",
+    "pump",
+    "tower",
+    "civic services",
+    "dedicated industry"
+  ]
+}
