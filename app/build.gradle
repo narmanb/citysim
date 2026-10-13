@@ -10,13 +10,17 @@ android {
         applicationId 'com.narmanb.metroforge'
         minSdk 26
         targetSdk 35
-        versionCode 1
-        versionName '0.1.0'
+        versionCode 2
+        versionName '0.2.0-isometric'
+        manifestPlaceholders = [appLabel: 'MetroForge']
     }
 
     buildTypes {
         debug {
             debuggable true
+            applicationIdSuffix '.isometricpreview'
+            versionNameSuffix '-preview'
+            manifestPlaceholders = [appLabel: 'MetroForge Isometric']
         }
         release {
             minifyEnabled false

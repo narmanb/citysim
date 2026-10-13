@@ -5,7 +5,7 @@ Binding brief: user-supplied MetroForge_Isometric_Conversion_Plan.md; local refi
 M0: complete — baseline run/save round trips, main retained, feature branch created.
 M1: complete — supplied subset inventoried, licenses/hashes preserved, coherent interactive art proof.
 M2–M4: browser milestone complete — separate renderer, projection/picking, cache/culling, depth and terrain occlusion, overlays/input, adjacency roads/bridges, actual agents, contained parcels, growth/abandonment/fire and honest procedural art for uncovered systems.
-M5: resource packaging and browser/touch regressions complete; APK/device acceptance remains unverified because SDK/Gradle/device are unavailable. Managed browser file URL policy blocks direct offline navigation.
+M5: resource packaging and browser/touch regressions complete. Follow-up installed official Android build tools and a full Java 17 JDK, compiled and verified a signed debug APK. Device acceptance remains unverified because no Android device is attached. Managed browser file URL policy blocks direct offline navigation.
 
 Decisions: use the available 132×66 family; absent modular families cannot be compared. Use asphalt/pavement texture clipping for complete road masks instead of implying the archive has uniquely named adjacency tiles. Keep simulation/save classes unchanged. Keep the local feature branch for user review, without publishing or merging.
 

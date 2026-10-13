@@ -12,12 +12,14 @@ python tools/package_runtime.py --browser-zip /tmp/MetroForge-Isometric-Browser.
 
 Extract the entire ZIP and open `index.html`. Runtime scripts and images are local; there are no external libraries, API calls or asset downloads. The package preserves all four source CC0 license files.
 
-The Android GitHub workflow invokes the same packaging script. Locally, with Android SDK 35, Java 17+ and Gradle 8.10.2 installed:
+The Android GitHub workflow invokes the same packaging script. Locally, with Android SDK 35, a full Java 17 JDK and Gradle 8.10.2 installed:
 
 ```sh
 python tools/package_runtime.py --android-dir app/src/main/assets
 gradle :app:assembleDebug --no-daemon
 ```
+
+The debug APK installs as **MetroForge Isometric** (`com.narmanb.metroforge.isometricpreview`) alongside the existing app. Its version is `0.2.0-isometric-preview`; the release variant retains the original application ID. The APK is a device-test build; launch, persistence and performance on the target Android device still require manual verification.
 
 Regenerate the asset mapping from the original supplied starter ZIP using `python tools/import_isometric_assets.py /path/to/MetroForge_Starter_Isometric_Assets.zip` (requires Pillow). Original atlas PNG/XML bytes are preserved; `assets/manifest.json` records source hashes, sprite crops and anchors. The matching `manifest.js` avoids fetching JSON under Android file URLs.
 
