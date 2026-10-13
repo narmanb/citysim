@@ -73,10 +73,10 @@
         for(const [dx,dy,ax,ay,bx,by]of [[0,-1,0,0,1,0],[1,0,1,0,1,1],[0,1,1,1,0,1],[-1,0,0,1,0,0]])
           if(!same(x+dx,y+dy))this.surfaceLine([this.art.point(x+ax,y+ay,t.elev),this.art.point(x+bx,y+by,t.elev)],base,Math.max(1,this.scale*.045));
       }
-      drawGroundTile(w,i) {
+      drawGroundTile(w,i,surfaceOnly=false) {
         const t=w.tiles[i],x=i%N,y=Math.floor(i/N);
         const name=t.terrain==='water'?'water':t.channel?'dirt':t.biome==='desert'?'sand':'grass';
-        this.cliff(w,i);this.art.terrain(name,x,y,t.elev);this.shore(w,i);
+        this.cliff(w,i);this.art.terrain(name,x,y,t.elev,surfaceOnly);this.shore(w,i);
         if(t.zone)this.parcelTile(w,i);
         if(t.road)this.art.road(x,y,t.elev,Core.roadMask(w.tiles,i,N),t.condition,t.terrain==='water');
         if(t.rail)this.drawRailIso(w,i);
@@ -99,7 +99,9 @@
           const onscreen=Core.visible(bounds,this.w,this.h);
           if(onscreen) {
             this.groundTiles.push(i);this.drawGroundTile(w,i);
-            this.groundRecords.push({depth:sum+1,bounds,terrain:true,draw:()=>this.drawGroundTile(w,i)});
+            // The base pass already buries PNG side walls under neighboring
+            // tiles. Replaying those walls would cover visible ground/objects.
+            this.groundRecords.push({depth:sum+1,bounds,terrain:true,draw:()=>this.drawGroundTile(w,i,true)});
           }
           const add=(depth,draw,bounds)=>this.objects.push({depth,draw,bounds});
           if(t.tree&&t.terrain!=='water'&&!t.road&&!t.rail&&!t.civic&&!t.level&&Core.visible(this.art.spriteBounds('tree',p,2),this.w,this.h))

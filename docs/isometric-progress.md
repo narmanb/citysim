@@ -12,3 +12,5 @@ Decisions: use the available 132×66 family; absent modular families cannot be c
 Independent whole-change review found no Critical issues and identified bridge rail orientation, cliff culling, and raised-ground occlusion. All were fixed with geometry or pixel regressions. A final requirement check also added visibly distinct house/industrial growth levels. No review minors remain deferred.
 
 Final verification commands and their measured outcomes are documented in isometric-validation.md. Runtime and source ZIPs are produced separately under /workspace/artifacts.
+
+Android follow-up 0.2.1: reproduced reported pan-dependent empty-ground artifacts, clipped the occlusion replay to terrain surfaces, and passed 36 camera/tree-isolation checks plus the existing regression suite. Rebuilt and verified an APK signed with the same preview certificate and application ID; versionCode 3 supports an in-place preview update. See rendering-pop-in-fix.md.

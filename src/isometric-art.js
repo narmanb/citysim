@@ -38,11 +38,16 @@
       if (!image.complete || !image.naturalWidth) return false;
       this.view.ctx.drawImage(image,s.x,s.y,s.width,s.height,rect.x,rect.y,rect.width,rect.height); return true;
     }
-    terrain(name, x, y, elevation = 0) {
+    terrain(name, x, y, elevation = 0, surfaceOnly = false) {
+      const c=this.view.ctx;
+      if(surfaceOnly) {
+        c.save();c.beginPath();this.rectPath(x,y,elevation);c.clip();
+      }
       // Source PNGs include partially transparent interior pixels as well as
       // edge antialiasing. An opaque surface prevents objects leaking through.
       this.diamond(x,y,elevation,({water:'#79b9d1',sand:'#d7bd7a',dirt:'#9f8156',grass:'#91b955'})[name]);
       this.sprite(name,this.point(x+.5,y+.5,elevation));
+      if(surfaceOnly)c.restore();
     }
     road(x, y, elevation, mask, condition = 1, bridge = false) {
       const c=this.view.ctx, p=this.point(x+.5,y+.5,elevation);

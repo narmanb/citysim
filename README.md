@@ -19,7 +19,7 @@ python tools/package_runtime.py --android-dir app/src/main/assets
 gradle :app:assembleDebug --no-daemon
 ```
 
-The debug APK installs as **MetroForge Isometric** (`com.narmanb.metroforge.isometricpreview`) alongside the existing app. Its version is `0.2.0-isometric-preview`; the release variant retains the original application ID. The APK is a device-test build; launch, persistence and performance on the target Android device still require manual verification.
+The debug APK installs as **MetroForge Isometric** (`com.narmanb.metroforge.isometricpreview`) alongside the existing app. Its version is `0.2.1-isometric-preview`; the release variant retains the original application ID. The APK is a device-test build; launch, persistence and performance on the target Android device still require manual verification.
 
 Regenerate the asset mapping from the original supplied starter ZIP using `python tools/import_isometric_assets.py /path/to/MetroForge_Starter_Isometric_Assets.zip` (requires Pillow). Original atlas PNG/XML bytes are preserved; `assets/manifest.json` records source hashes, sprite crops and anchors. The matching `manifest.js` avoids fetching JSON under Android file URLs.
 
@@ -34,6 +34,7 @@ python tests/touch_offline.py
 python tests/city_rendering.py
 python tests/terrain_occlusion.py
 python tests/building_growth.py
+python tests/pan_rendering.py
 ```
 
 Plant, pump, tower, service buildings, industry and rail art use deliberate procedural composites and labels because the supplied subset has no dedicated sprites for these systems. The terrain renderer uses stepped elevations and shoreline edges; it does not add terrain mechanics. See [design and audit](docs/isometric-design.md) and [validation report](docs/isometric-validation.md) for measured results and device limitations.
