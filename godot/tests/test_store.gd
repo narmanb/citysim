@@ -58,6 +58,18 @@ func run():
 	corrupt.close()
 	loaded = Store.load_city(path)
 	check(loaded != null and loaded.cash == 12345, "Corrupt primary recovers previous valid city")
+	var bad_structure = city.serialize()
+	bad_structure.tiles[0].merge({"zone":null,"level":1,"line":true}, true)
+	bad_structure.tiles[1].civic = "plant"
+	check(Store.import_json(JSON.stringify(bad_structure)) == null and not Store.last_error.is_empty(), "Structurally invalid JSON rejects with an explanation")
+	corrupt = FileAccess.open(path, FileAccess.WRITE)
+	corrupt.store_string(JSON.stringify(bad_structure))
+	corrupt.close()
+	loaded = Store.load_city(path)
+	check(loaded != null and loaded.cash == 12345 and Store.last_error.contains("backup"), "Structurally corrupt primary recovers valid backup")
+	check(Store.save_city(city, path) == OK, "Saving over structurally corrupt primary succeeds")
+	var backup = Store.load_city(path + ".bak")
+	check(backup != null and backup.cash == 12345, "Structurally corrupt primary cannot replace valid backup")
 	for suffix in ["", ".tmp", ".bak"]:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(path + suffix))
 	if failures.is_empty():

@@ -380,6 +380,9 @@ func _tile_line(first: int, last: int) -> Array:
 		if doubled > -dy:
 			error -= dy
 			x += sx
+		# Emit the horizontal connector before a simultaneous vertical step.
+		if doubled > -dy and doubled < dx:
+			result.append(y * World.N + x)
 		if doubled < dx:
 			error += dx
 			y += sy

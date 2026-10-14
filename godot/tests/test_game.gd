@@ -146,6 +146,14 @@ func run() -> void:
 	var current_world = game.world
 	check(not game.import_city_text("{invalid json"), "Invalid JSON import reports failure")
 	check(game.world == current_world, "Invalid import preserves the active city")
+	var corrupt_structure: Dictionary = current_world.serialize()
+	corrupt_structure.tiles[0].merge({"level":1,"zone":null,"line":true}, true)
+	corrupt_structure.tiles[1].civic = "plant"
+	var preserved_tiles: Array = current_world.tiles.duplicate(true)
+	var preserved_cash: float = current_world.cash
+	var preserved_actions: int = game.history.undo_stack.size()
+	check(not game.import_city_text(JSON.stringify(corrupt_structure)), "Structurally invalid UI import reports failure")
+	check(game.world == current_world and game.world.tiles == preserved_tiles and game.world.cash == preserved_cash and game.history.undo_stack.size() == preserved_actions, "Invalid structure preserves active city and construction history")
 	var exported: String = game.export_city_text()
 	check(game.import_city_text(exported), "Controller accepts legacy-compatible exported JSON")
 	check(game.world.tiles[600].road, "Controller import preserves construction")
@@ -173,8 +181,81 @@ func run() -> void:
 		check(camera_rect.position.x > 0 and camera_rect.end.x <= dimensions.x, "Camera controls remain on screen")
 	for node_name in ["Stats", "Categories", "Tools", "Playback", "Actions", "Status", "GrowthHint", "Selection"]:
 		check(game.find_child(node_name, true, false) != null, "Native control exists: " + node_name)
+	_test_connected_strokes(game)
 	game.queue_free()
 	await process_frame
 	if failures.is_empty():
 		print("PASS test_game: construction, parcels, history, bridges, timing, safe import and native controls")
 	quit(0 if failures.is_empty() else 1)
+
+func _test_connected_strokes(game) -> void:
+	var world = game.world
+	var first: int = 20 * 52 + 20
+	var last: int = 25 * 52 + 25
+	# Explicit expected footprint catches omission of the orthogonal connectors.
+	var diagonal: Array = [1060,1061,1113,1114,1166,1167,1219,1220,1272,1273,1325]
+	for tool in ["road", "rail", "line", "pipe"]:
+		for i in range(world.COUNT): world.tiles[i] = world.blank_tile()
+		world.cash = 36000
+		world.recalculate()
+		game.clear_history()
+		game.choose_tool(tool)
+		check(game._tile_line(first,last) == diagonal and game.view._tile_line(first,last) == diagonal, "Preview and construction include the same diagonal connectors for " + tool)
+		var before: float = world.cash
+		if tool in ["road", "rail"]:
+			check(game.construct_line(first,last) == diagonal.size(), "Diagonal transport fills every connector for " + tool)
+			check(world.route(first,last,tool).size() == diagonal.size(), "Diagonal transport is four-connected for " + tool)
+		else:
+			game.begin_stroke()
+			game.paint_at(first)
+			game.paint_at(last)
+			game.end_stroke()
+		var spent: float = world.COST[tool] * diagonal.size()
+		check(world.cash == before - spent and game.history.undo_stack.size() == 1, "Diagonal stroke spending and one action for " + tool)
+		check(game.undo() and world.cash == before, "One undo refunds entire diagonal " + tool)
+		var cleared: bool = true
+		for i in diagonal:
+			if world.tiles[i][tool]: cleared = false
+		check(cleared, "One undo removes all diagonal connectors for " + tool)
+		check(game.redo() and world.cash == before - spent, "One redo charges entire diagonal " + tool)
+		if tool == "line":
+			world.tiles[first - 1].civic = "plant"
+			world.tiles[last + 1].zone = "res"
+			world.recalculate()
+			check(world.fields.power[last + 1] == 1, "Diagonal power stroke carries electricity to remote zone")
+		elif tool == "pipe":
+			world.tiles[first - 1].civic = "pump"
+			world.tiles[first - 2].civic = "plant"
+			world.tiles[last + 1].zone = "res"
+			world.recalculate()
+			check(world.fields.water[last + 1] == 1, "Diagonal pipe stroke carries water from powered pump")
+	# Count actual four-connected water cells against the bridge limit.
+	for tool in ["road", "rail"]:
+		for i in range(world.COUNT): world.tiles[i] = world.blank_tile()
+		world.cash = 36000
+		for i in diagonal.slice(1, -1):
+			world.tiles[i] = world.blank_tile("water")
+		world.recalculate()
+		game.clear_history()
+		game.choose_tool(tool)
+		check(game.construct_line(first, last) == 2 and world.route(first,last,tool).is_empty(), "Expanded nine-water diagonal crossing exceeds bridge limit for " + tool)
+		for i in range(world.COUNT): world.tiles[i] = world.blank_tile()
+		for i in range(first + 1, first + 10): world.tiles[i] = world.blank_tile("water")
+		world.recalculate()
+		game.clear_history()
+		check(game.construct_line(first, first + 10) == 2, "Nine-water straight bridge rejected for " + tool)
+		for i in range(world.COUNT): world.tiles[i] = world.blank_tile()
+		for i in range(first + 1, first + 9): world.tiles[i] = world.blank_tile("water")
+		world.recalculate()
+		game.clear_history()
+		check(game.construct_line(first, first + 9) == 10 and world.route(first,first+9,tool).size() == 10, "Eight-water straight bridge remains connected for " + tool)
+		# Preserve existing support for short bends, with every connector counted.
+		for i in range(world.COUNT): world.tiles[i] = world.blank_tile()
+		var short_diagonal: Array = diagonal.slice(0, 7)
+		for i in short_diagonal.slice(1, -1): world.tiles[i] = world.blank_tile("water")
+		world.recalculate()
+		game.clear_history()
+		var bridge_cash: float = world.cash
+		check(game.construct_line(first,short_diagonal.back()) == 7 and world.route(first,short_diagonal.back(),tool).size() == 7, "Five-water diagonal bridge retains supported bends for " + tool)
+		check(world.cash == bridge_cash - world.COST[tool] * 27, "Diagonal bridge charges fivefold for each actual water connector for " + tool)
+		check(game.undo() and world.cash == bridge_cash and not world.tiles[short_diagonal[1]][tool], "Diagonal bridge undo refunds the complete crossing for " + tool)

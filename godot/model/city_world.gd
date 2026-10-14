@@ -344,6 +344,9 @@ static func from_dict(data: Dictionary) -> CityWorld:
 	if not data.get("tiles") is Array or data.tiles.size() != COUNT: return null
 	var normalized: Array = []
 	var saved_occupancy: Array = []
+	var parcel_types: Dictionary = {}
+	var defaults = blank_tile()
+	var zone_types = {"res":["house","apt"],"com":["shop","office"],"ind":["light","logistics","heavy"]}
 	for value in data.tiles:
 		if not value is Dictionary: return null
 		var q = blank_tile()
@@ -351,18 +354,44 @@ static func from_dict(data: Dictionary) -> CityWorld:
 		if not q.terrain in ["grass","water"]: return null
 		if q.zone != null and not q.zone in ["res","com","ind"]: return null
 		if q.civic != null and not q.civic in ["park","plant","pump","tower","police","fire","school","hospital","station"]: return null
+		# Optional legacy fields may be absent/null. Present structural values must
+		# be supported integers; guessing a height or building level loses state.
+		for key in ["level","parcel","elev"]:
+			if q[key] == null: q[key] = defaults[key]
+			if not _finite(q[key]) or float(q[key]) != floor(float(q[key])): return null
+		if q.level < 0 or q.level > 4 or q.parcel < 0 or q.elev < -3 or q.elev > 5: return null
+		q.level = int(q.level)
+		q.parcel = int(q.parcel)
+		q.elev = int(q.elev)
+		if q.level > 0 and q.zone == null: return null
+		if q.civic != null and q.zone != null: return null
+		for key in ["zoneType","resType"]:
+			if q[key] != null and not q[key] is String: return null
+		if q.resType != null and not q.resType in ["house","apt"]: return null
+		if q.zoneType != null and not q.zoneType in ["house","apt","shop","office","light","logistics","heavy"]: return null
+		if q.zone != null:
+			if q.zoneType == null: q.zoneType = q.resType if q.zone == "res" and q.resType != null else _default_type(q.zone)
+			if not q.zoneType in zone_types[q.zone]: return null
+			q.resType = q.zoneType if q.zone == "res" else null
+			if q.parcel > 0:
+				var signature: Array = [q.zone,q.zoneType]
+				if parcel_types.has(q.parcel) and parcel_types[q.parcel] != signature: return null
+				parcel_types[q.parcel] = signature
+		else:
+			q.zoneType = null
+			q.resType = null
+			q.parcel = 0
+		if q.biome == null: q.biome = "grass"
+		if not q.biome in ["grass","desert"]: return null
 		for key in ["tree","road","rail","line","pipe","channel","waterSource"]: q[key] = bool(q[key])
-		for key in ["level","occupancy","abandoned","fire","damage","storage","elev","condition","parcel"]:
-			if not _finite(q[key]): q[key] = blank_tile()[key]
-		q.level = clampi(int(q.level),0,4)
-		q.parcel = maxi(0,int(q.parcel))
+		if q.zone != null and (q.road or q.rail): return null
+		if q.civic != null and (q.road or (q.rail and q.civic != "station")): return null
+		for key in ["occupancy","abandoned","fire","damage","storage","condition"]:
+			if not _finite(q[key]): q[key] = defaults[key]
 		q.occupancy = maxi(0,int(q.occupancy))
 		q.condition = clampf(float(q.condition),0.0,1.0)
 		if q.line: q.tree = false
 		if q.terrain == "water" and not q.channel: q.waterSource = true
-		if not q.biome: q.biome = "grass"
-		if q.zone and not q.zoneType: q.zoneType = q.resType if q.resType else _default_type(q.zone)
-		if q.zone == "res" and not q.resType: q.resType = q.zoneType
 		normalized.append(q.duplicate(true))
 		saved_occupancy.append(q.occupancy)
 	var world = CityWorld.new(int(data.seed) if _finite(data.get("seed")) else 24)

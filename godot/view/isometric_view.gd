@@ -742,6 +742,9 @@ func _tile_line(a: int, b: int) -> Array:
 		if twice_error > -dy:
 			error -= dy
 			x += sx
+		# Keep preview/paint paths four-connected, matching construction.
+		if twice_error > -dy and twice_error < dx:
+			out.append(y * N + x)
 		if twice_error < dx:
 			error += dx
 			y += sy

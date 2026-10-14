@@ -108,6 +108,14 @@ func _run() -> void:
 		check(pixel_y >= atlas_origin - 0.001 and pixel_y <= atlas_origin + 66.001, "terrain UV stays within actual cap and excludes PNG sidewalls")
 	check(is_equal_approx(command[1][2].y - command[1][0].y, 28.0), "elevation never changes flat cap pitch")
 	cap_layer.free()
+	for endpoint in [center + 5 + 5 * 52, center - 5 + 5 * 52, center + 5 - 5 * 52, center - 5 - 5 * 52, center + 7 + 2 * 52, center + 2 + 7 * 52, center, center + 5, center + 5 * 52]:
+		for pair in [[center, endpoint], [endpoint, center]]:
+			var path: Array = view._tile_line(pair[0], pair[1])
+			check(path.front() == pair[0] and path.back() == pair[1], "Preview retains stroke endpoints")
+			for k in range(1,path.size()):
+				var a: int = path[k-1]
+				var b: int = path[k]
+				check(absi(a % 52 - b % 52) + absi(int(a / 52) - int(b / 52)) == 1, "Every preview step shares an edge")
 	view.tile_pressed.connect(func(i): pressed.append(i))
 	view.tile_painted.connect(func(i): painted.append(i))
 	view.selection_changed.connect(func(i): selections.append(i))

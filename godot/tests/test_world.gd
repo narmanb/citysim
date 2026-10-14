@@ -234,5 +234,25 @@ func run():
 	optional_world = WorldModel.from_dict(optional_data)
 	optional_world.step()
 	check(optional_world.events.size() == 1 and optional_world.events[0].age == 1, "legacy null event age defaults before simulation")
+	# Tile invariants must be established before any simulation work on imported data.
+	var valid_import = empty_world().serialize()
+	var invalid_import = valid_import.duplicate(true)
+	invalid_import.tiles[0].level = 1
+	invalid_import.tiles[0].zone = null
+	invalid_import.tiles[0].line = true
+	invalid_import.tiles[1].civic = "plant"
+	check(WorldModel.from_dict(invalid_import) == null, "developed tile without zoning is rejected before utility calculation")
+	for elevation in [-4, 6, 99, 0.5, "3"]:
+		invalid_import = valid_import.duplicate(true)
+		invalid_import.tiles[0].elev = elevation
+		check(WorldModel.from_dict(invalid_import) == null, "unsupported/noninteger elevation rejected: " + str(elevation))
+	for malformed in [{"zone":"res","zoneType":"heavy"}, {"zone":"res","zoneType":[]}, {"resType":{}}, {"biome":"lava"}, {"biome":42}, {"level":1.5}, {"zone":"res","civic":"plant"}]:
+		invalid_import = valid_import.duplicate(true)
+		invalid_import.tiles[0].merge(malformed, true)
+		check(WorldModel.from_dict(invalid_import) == null, "malformed tile structure/type rejected: " + str(malformed))
+	var legacy_optional = valid_import.duplicate(true)
+	legacy_optional.tiles[0].merge({"zone":"res","level":1,"zoneType":null,"resType":"apt","biome":null,"elev":null}, true)
+	var legacy_optional_world = WorldModel.from_dict(legacy_optional)
+	check(legacy_optional_world != null and legacy_optional_world.tiles[0].zoneType == "apt" and legacy_optional_world.tiles[0].elev == 0, "legacy nullable type/elevation fields retain residential subtype")
 	print("World model: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
