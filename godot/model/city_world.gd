@@ -385,7 +385,7 @@ static func from_dict(data: Dictionary) -> CityWorld:
 		if not q.biome in ["grass","desert"]: return null
 		for key in ["tree","road","rail","line","pipe","channel","waterSource"]: q[key] = bool(q[key])
 		if q.zone != null and (q.road or q.rail): return null
-		if q.civic != null and (q.road or (q.rail and q.civic != "station")): return null
+		if q.civic != null and q.civic != "station" and (q.road or q.rail): return null
 		for key in ["occupancy","abandoned","fire","damage","storage","condition"]:
 			if not _finite(q[key]): q[key] = defaults[key]
 		q.occupancy = maxi(0,int(q.occupancy))

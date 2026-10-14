@@ -38,6 +38,14 @@ func run():
 	check(old != null, "Legacy optional fields accepted")
 	if old != null:
 		check(old.tiles[800].get("elev", -99) == 0, "Legacy missing elevation defaults to zero")
+	var crossing = World.new(42)
+	crossing.tiles[1060] = World.blank_tile()
+	check(crossing.place(1060, "road") and crossing.place(1060, "rail") and crossing.place(1060, "station"), "Road/rail crossing legally accepts a station")
+	crossing.recalculate()
+	var crossing_import = Store.import_json(Store.export_json(crossing))
+	check(crossing_import != null, "Road/rail station export imports successfully")
+	if crossing_import != null:
+		check(crossing_import.tiles[1060].road and crossing_import.tiles[1060].rail and crossing_import.tiles[1060].civic == "station" and crossing_import.cash == crossing.cash, "Road/rail station round trip retains all layers and spending")
 	for invalid in ["{broken", "[]", "null", "{}", '{"tiles":[null]}']:
 		check(Store.import_json(invalid) == null, "Invalid city rejected: " + invalid)
 		check(not Store.last_error.is_empty(), "Invalid import explains error")
