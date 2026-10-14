@@ -1,0 +1,16 @@
+{
+  "version": "0.3.0-godot-preview",
+  "engine": "4.6.3.stable.official.7d41c59c4",
+  "built_utc": "2026-10-14T23:32:38.622443+00:00",
+  "source_sha256": {
+    "project.godot": "7545154a5b6873599f28cfe65d76ed4bea11cb9910314322b91907b35cd26f7c",
+    "export_presets.cfg": "930e715cb040fc912cdea299e08c736a03f678782bb9a16d7feafce4ff9bf574",
+    "assets/icon.svg": "dbddc1b04178fd131d3734c942d0fdf77e3c618e311067ac2d04293081d728c9",
+    "model/city_world.gd": "ac9ad16097819fedc762b8d5b601351aac478bd03bf15b2bbc371d3de321a6ee",
+    "view/iso_layer.gd": "5a9aab5abe978457d67eba2e6686474880deaf66772620532c7a7a9b29c9ab8d",
+    "view/isometric_view.gd": "7c787d168d2e35b631047aaf8cad96cfe19734b1dc63e8d9f443d89675147308",
+    "ui/construction_history.gd": "23b7a443708bba85df7960d0a58dedd1b13fc541b96019769a71cfe8595ade4d",
+    "ui/main.gd": "9841a0e8e069474c411b015e31d709d4f65464abb478d12ade0e50a20a316d5c",
+    "persistence/city_store.gd": "29730970134849d4e859ec7ea51ebf06f46db7f18c2a5db9207f419f5b0a854b"
+  }
+}
