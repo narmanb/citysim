@@ -49,9 +49,9 @@
   "sprites": {
     "grass": {
       "atlas": "terrain",
-      "source": "landscapeTiles_022.png",
-      "x": 662,
-      "y": 495,
+      "source": "landscapeTiles_067.png",
+      "x": 398,
+      "y": 265,
       "width": 132,
       "height": 99,
       "anchor": {
@@ -75,11 +75,11 @@
     },
     "sand": {
       "atlas": "terrain",
-      "source": "landscapeTiles_058.png",
+      "source": "landscapeTiles_059.png",
       "x": 529,
-      "y": 1108,
+      "y": 1009,
       "width": 132,
-      "height": 83,
+      "height": 99,
       "anchor": {
         "x": 66,
         "y": 33

@@ -38,16 +38,19 @@
       if (!image.complete || !image.naturalWidth) return false;
       this.view.ctx.drawImage(image,s.x,s.y,s.width,s.height,rect.x,rect.y,rect.width,rect.height); return true;
     }
-    terrain(name, x, y, elevation = 0, surfaceOnly = false) {
+    terrain(name, x, y, elevation = 0) {
       const c=this.view.ctx;
-      if(surfaceOnly) {
-        c.save();c.beginPath();this.rectPath(x,y,elevation);c.clip();
-      }
+      // Terrain height comes from world geometry. Atlas foundations and ramp
+      // pixels must never extend beyond the same plane used by zones/picking.
       // Source PNGs include partially transparent interior pixels as well as
-      // edge antialiasing. An opaque surface prevents objects leaking through.
-      this.diamond(x,y,elevation,({water:'#79b9d1',sand:'#d7bd7a',dirt:'#9f8156',grass:'#91b955'})[name]);
+      // edge antialiasing. A half-pixel overlap in the opaque foundation seals
+      // shared seams without extending the texture or inventing terrain walls.
+      const color=({water:'#9cd4e2',sand:'#d8d19e',dirt:'#ba8c5d',grass:'#8ab549'})[name];
+      const dpr=this.view.canvas?this.view.canvas.width/Math.max(1,this.view.w):1;
+      this.diamond(x,y,elevation,color,color,1/dpr);
+      c.save();c.beginPath();this.rectPath(x,y,elevation);c.clip();
       this.sprite(name,this.point(x+.5,y+.5,elevation));
-      if(surfaceOnly)c.restore();
+      c.restore();
     }
     road(x, y, elevation, mask, condition = 1, bridge = false) {
       const c=this.view.ctx, p=this.point(x+.5,y+.5,elevation);

@@ -21,9 +21,9 @@ PACKS = {
     'vehicles': ('Vehicles', 'sheet_utility'),
 }
 SELECTED = {
-    'grass': ('terrain', 'landscapeTiles_022.png', (66, 33)),
+    'grass': ('terrain', 'landscapeTiles_067.png', (66, 33)),
     'water': ('terrain', 'landscapeTiles_066.png', (66, 33)),
-    'sand': ('terrain', 'landscapeTiles_058.png', (66, 33)),
+    'sand': ('terrain', 'landscapeTiles_059.png', (66, 33)),
     'dirt': ('terrain', 'landscapeTiles_073.png', (66, 33)),
     'asphalt': ('city', 'cityTiles_080.png', (66, 33)),
     'pavement': ('city', 'cityTiles_074.png', (66, 33)),

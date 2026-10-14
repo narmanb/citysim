@@ -11,6 +11,7 @@
           if(this.art.errors.length && deps.onAssetError)deps.onAssetError('Some artwork could not load. Basic shapes are shown; reload the complete game folder.');
         });
         this.ground = document.createElement('canvas'); this.groundContext = this.ground.getContext('2d');
+        this.agentLayer = document.createElement('canvas'); this.agentContext = this.agentLayer.getContext('2d');
         this.metrics = { visibleTiles: 0, staticObjects: 0, groundRedraws: 0 };
       }
       fit() {
@@ -73,10 +74,10 @@
         for(const [dx,dy,ax,ay,bx,by]of [[0,-1,0,0,1,0],[1,0,1,0,1,1],[0,1,1,1,0,1],[-1,0,0,1,0,0]])
           if(!same(x+dx,y+dy))this.surfaceLine([this.art.point(x+ax,y+ay,t.elev),this.art.point(x+bx,y+by,t.elev)],base,Math.max(1,this.scale*.045));
       }
-      drawGroundTile(w,i,surfaceOnly=false) {
+      drawGroundTile(w,i) {
         const t=w.tiles[i],x=i%N,y=Math.floor(i/N);
         const name=t.terrain==='water'?'water':t.channel?'dirt':t.biome==='desert'?'sand':'grass';
-        this.cliff(w,i);this.art.terrain(name,x,y,t.elev,surfaceOnly);this.shore(w,i);
+        this.cliff(w,i);this.art.terrain(name,x,y,t.elev);this.shore(w,i);
         if(t.zone)this.parcelTile(w,i);
         if(t.road)this.art.road(x,y,t.elev,Core.roadMask(w.tiles,i,N),t.condition,t.terrain==='water');
         if(t.rail)this.drawRailIso(w,i);
@@ -84,10 +85,13 @@
         if(t.channel&&t.terrain!=='water')this.surfaceLine([this.art.point(x+.2,y+.5,t.elev),this.art.point(x+.8,y+.5,t.elev)],'#796345',this.scale*.12);
       }
       buildGround(w) {
-        if(this.ground.width!==this.canvas.width||this.ground.height!==this.canvas.height){this.ground.width=this.canvas.width;this.ground.height=this.canvas.height;}
+        if(this.ground.width!==this.canvas.width||this.ground.height!==this.canvas.height){
+          this.ground.width=this.agentLayer.width=this.canvas.width;this.ground.height=this.agentLayer.height=this.canvas.height;
+        }
         const original=this.ctx;this.ctx=this.groundContext;
-        const dpr=this.canvas.width/Math.max(1,this.w);this.ctx.setTransform(dpr,0,0,dpr,0,0);
-        this.ctx.clearRect(0,0,this.w,this.h);this.ctx.fillStyle='#193848';this.ctx.fillRect(0,0,this.w,this.h);
+        this.ctx.setTransform(1,0,0,1,0,0);this.ctx.clearRect(0,0,this.ground.width,this.ground.height);
+        this.ctx.fillStyle='#193848';this.ctx.fillRect(0,0,this.ground.width,this.ground.height);
+        this.ctx.setTransform(original.getTransform());
         this.groundTiles=[];this.objects=[];this.groundRecords=[];
         // Ground order uses logical diagonal depth; complete art bounds are culled.
         for(let sum=0;sum<2*N-1;sum++)for(let x=Math.max(0,sum-N+1);x<=Math.min(N-1,sum);x++) {
@@ -98,16 +102,16 @@
           const bounds=Core.includePoints(cap,[this.art.point(x+1,y+1,Math.min(t.elev||0,east,south))]);
           const onscreen=Core.visible(bounds,this.w,this.h);
           if(onscreen) {
-            this.groundTiles.push(i);this.drawGroundTile(w,i);
-            // The base pass already buries PNG side walls under neighboring
-            // tiles. Replaying those walls would cover visible ground/objects.
-            this.groundRecords.push({depth:sum+1,bounds,terrain:true,draw:()=>this.drawGroundTile(w,i,true)});
+            this.groundTiles.push(i);
+            this.groundRecords.push({depth:sum+1,bounds,terrain:true,draw:()=>this.drawGroundTile(w,i)});
           }
           const add=(depth,draw,bounds)=>this.objects.push({depth,draw,bounds});
           if(t.tree&&t.terrain!=='water'&&!t.road&&!t.rail&&!t.civic&&!t.level&&Core.visible(this.art.spriteBounds('tree',p,2),this.w,this.h))
             add(sum+1.1,()=>this.art.tree(x+.5,y+.5,t.elev),this.art.spriteBounds('tree',p,2));
-          if(t.line && Core.visible({x:p.x-this.scale*2,y:p.y-this.scale,width:this.scale*4,height:this.scale*2},this.w,this.h))
-            add(sum+1.2,()=>this.drawPole(w,i),{x:p.x-this.scale*2,y:p.y-this.scale,width:this.scale*4,height:this.scale*2});
+          if(t.line) {
+            const poleBounds=this.poleBounds(w,i);
+            if(Core.visible(poleBounds,this.w,this.h))add(sum+1.2,()=>this.drawPole(w,i),poleBounds);
+          }
           if(t.civic && Core.visible({x:p.x-this.scale,y:p.y-this.scale*2,width:this.scale*2,height:this.scale*3},this.w,this.h))
             add(sum+1.6,()=>this.drawCivicIso(t,x,y),{x:p.x-this.scale,y:p.y-this.scale*2,width:this.scale*2,height:this.scale*3});
           if(t.level) {
@@ -119,9 +123,26 @@
             if(Core.visible(overhang,this.w,this.h))add(fp.x+fp.y+fp.width+fp.height-.1,()=>this.drawDevelopment(root,bx,by,size),overhang);
           }
         }
-        this.staticOccluders=this.groundRecords.filter(ground=>this.objects.some(object=>object.depth<ground.depth&&Core.overlaps(ground.bounds,object.bounds)));
-        this.staticOccluderSet=new Set(this.staticOccluders);
+        // Paint every surface and static object once, in a complete depth
+        // order. Selective ground replay changes exposed cliffs and doubles
+        // translucent zoning/antialiased edges whenever objects are added.
+        this.staticRecords=[...this.groundRecords,...this.objects].sort((a,b)=>a.depth-b.depth);
+        this.ctx.save();
+        for(const item of this.staticRecords) {
+          this.ctx.globalAlpha=(this.overlay!=='none'&&!item.terrain)?.7:1;item.draw();
+        }
+        this.ctx.restore();
         this.ctx=original;this.metrics.visibleTiles=this.groundTiles.length;this.metrics.staticObjects=this.objects.length;this.metrics.groundRedraws++;
+      }
+      poleBounds(w,i) {
+        const S=this.scale,p=this.art.point(i%N+.5,Math.floor(i/N)+.5,w.tiles[i].elev),top={x:p.x,y:p.y-S*.65};
+        const points=[p,{x:top.x-S*.16,y:top.y},{x:top.x+S*.16,y:top.y}];
+        for(const j of neighbors(i))if(w.tiles[j].line||w.tiles[j].civic==='plant') {
+          const q=this.art.point(j%N+.5,Math.floor(j/N)+.5,w.tiles[j].elev);
+          points.push({x:q.x,y:q.y-S*.65},{x:(top.x+q.x)/2,y:(top.y+q.y-S*.65)/2+S*.07});
+        }
+        const bounds=Core.includePoints({x:p.x,y:p.y,width:0,height:0},points),pad=Math.max(2,S*.04);
+        return {x:bounds.x-pad,y:bounds.y-pad,width:bounds.width+2*pad,height:bounds.height+2*pad};
       }
       drawPole(w,i) {
         const x=i%N,y=Math.floor(i/N),t=w.tiles[i],p=this.art.point(x+.5,y+.5,t.elev),top={x:p.x,y:p.y-this.scale*.65};
@@ -170,20 +191,35 @@
       }
       draw(w) {
         const c=this.ctx;
-        if(this.dirty || this.cachedWorld!==w || this.cachedScale!==this.scale || this.cachedX!==this.cx || this.cachedY!==this.cy || this.cachedWidth!==this.canvas.width || this.cachedHeight!==this.canvas.height) {
-          this.buildGround(w);this.cachedWorld=w;this.cachedScale=this.scale;this.cachedX=this.cx;this.cachedY=this.cy;this.cachedWidth=this.canvas.width;this.cachedHeight=this.canvas.height;
+        if(this.dirty || this.cachedWorld!==w || this.cachedScale!==this.scale || this.cachedX!==this.cx || this.cachedY!==this.cy || this.cachedOverlay!==this.overlay || this.cachedWidth!==this.canvas.width || this.cachedHeight!==this.canvas.height) {
+          this.buildGround(w);this.cachedWorld=w;this.cachedScale=this.scale;this.cachedX=this.cx;this.cachedY=this.cy;this.cachedOverlay=this.overlay;this.cachedWidth=this.canvas.width;this.cachedHeight=this.canvas.height;
         }
-        c.drawImage(this.ground,0,0,this.ground.width,this.ground.height,0,0,this.w,this.h);
-        const agents=this.agents(w),objects=[...this.objects,...agents];
-        // Repaint only ground that intersects an earlier object, at its proper
-        // depth. This retains the base cache without drawing agents through hills.
-        const occluders=[...this.staticOccluders,...this.groundRecords.filter(ground=>!this.staticOccluderSet.has(ground)&&agents.some(object=>object.depth<ground.depth&&Core.overlaps(ground.bounds,object.bounds)))];
-        this.metrics.occludingGroundTiles=occluders.length;
-        c.save();
-        for(const item of [...objects,...occluders].sort((a,b)=>a.depth-b.depth)) {
-          c.globalAlpha=(this.overlay!=='none'&&!item.terrain) ? .7 : 1;item.draw();
+        c.save();c.setTransform(1,0,0,1,0,0);c.drawImage(this.ground,0,0);c.restore();
+        const agents=this.agents(w);
+        this.metrics.occludingGroundTiles=this.groundRecords.filter(ground=>agents.some(agent=>agent.depth<ground.depth&&Core.overlaps(ground.bounds,agent.bounds))).length;
+        if(agents.length) {
+          // Recompose intersecting records without a regional vector clip:
+          // nested clip masks change antialiasing even at integer boundaries.
+          // Copy completed opaque raster regions back at device-pixel precision.
+          const dpr=c.getTransform().a,pixel=1/dpr,pad=Math.max(3,this.scale*.05);
+          const regions=agents.map(({bounds})=>{
+            const left=Math.floor(bounds.x*dpr)-1,top=Math.floor(bounds.y*dpr)-1;
+            const right=Math.ceil((bounds.x+bounds.width)*dpr)+1,bottom=Math.ceil((bounds.y+bounds.height)*dpr)+1;
+            return {x:left*pixel,y:top*pixel,width:(right-left)*pixel,height:(bottom-top)*pixel,left,top,pixelWidth:right-left,pixelHeight:bottom-top};
+          });
+          const records=this.staticRecords.filter(item=>regions.some(region=>Core.overlaps({x:item.bounds.x-pad,y:item.bounds.y-pad,width:item.bounds.width+2*pad,height:item.bounds.height+2*pad},region)));
+          const layer=this.agentContext,original=this.ctx;this.ctx=layer;
+          layer.setTransform(1,0,0,1,0,0);layer.clearRect(0,0,this.agentLayer.width,this.agentLayer.height);
+          layer.fillStyle='#193848';layer.fillRect(0,0,this.agentLayer.width,this.agentLayer.height);layer.setTransform(c.getTransform());
+          layer.save();
+          for(const item of [...records,...agents].sort((a,b)=>a.depth-b.depth)) {
+            layer.globalAlpha=(this.overlay!=='none'&&!item.terrain)?.7:1;item.draw();
+          }
+          layer.restore();this.ctx=original;
+          c.save();c.setTransform(1,0,0,1,0,0);
+          for(const region of regions)c.drawImage(this.agentLayer,region.left,region.top,region.pixelWidth,region.pixelHeight,region.left,region.top,region.pixelWidth,region.pixelHeight);
+          c.restore();
         }
-        c.restore();
         for(const i of this.groundTiles) {
           const t=w.tiles[i],x=i%N,y=Math.floor(i/N),color=this.overlayColor(w,i);
           if(color)this.art.diamond(x,y,t.elev,color);
