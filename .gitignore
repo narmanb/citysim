@@ -4,3 +4,7 @@ app/src/main/assets/
 local.properties
 __pycache__/
 *.pyc
+godot/.godot/
+godot/build/
+godot/export_credentials.cfg
+.superpowers/
