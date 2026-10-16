@@ -1,0 +1,724 @@
+{
+  "scope": "Research only. No runtime assets, code, import settings, APK or performance implementation changed.",
+  "created_utc": "2026-10-16T23:31:59.689513+00:00",
+  "current_app": "Godot 0.3.1",
+  "source_documents": {
+    "MetroForge_Building_Inventory.md": "d340841dcb3064a0e9711286fa8ac399baf4da2830b2c4a45d4e9395e4c4f153",
+    "MetroForge_Building_Asset_Index.json": "46f9c0daf9cd162735c638c8002306dfa4f8c1000511c0f766777aec5f5a00a7"
+  },
+  "native_atlas_receipts": {
+    "terrain": {
+      "file": "assets/atlases/terrain.png",
+      "sha256": "67505f6c2c132e27d65378ddf9c48ed1072df3e2d58526e743fb5baec9959ab3",
+      "sprite_crops": 128
+    },
+    "city": {
+      "file": "assets/atlases/city.png",
+      "sha256": "f21d2c8ec79d8f9d4c50fdf642ede9d669b5eb377d7e36227a6229332094a272",
+      "sprite_crops": 128
+    },
+    "buildings": {
+      "file": "assets/atlases/buildings.png",
+      "sha256": "b60b2dace1f324b29891e2db091812a8c3ad0c0eb31bb5660a74b9d10962fa94",
+      "sprite_crops": 129
+    },
+    "details": {
+      "file": "assets/atlases/details.png",
+      "sha256": "c298a34a95db87c9e5d0c8fe901cb7daa77e234f35442ffe57d9422823b23080",
+      "sprite_crops": 11
+    },
+    "vehicles": {
+      "file": "assets/atlases/vehicles.png",
+      "sha256": "493c80c77b58446aaaaa351d190f198a647174cb7e28423c0cdb2f8ebd6cf5aa",
+      "sprite_crops": 64
+    }
+  },
+  "active_building_files": [
+    "buildingTiles_000.png",
+    "buildingTiles_005.png",
+    "buildingTiles_045.png",
+    "buildingTiles_048.png",
+    "buildingTiles_065.png"
+  ],
+  "mapped_but_unused_building_file": {
+    "file": "buildingTiles_032.png",
+    "current_alias": "industry",
+    "observation": "Generic brown windowed floor module. Industrial rendering currently uses procedural boxes."
+  },
+  "shortlist": [
+    {
+      "id": "storefronts",
+      "proposed_existing_role": "shop",
+      "evidence": "current native atlas bytes and original XML crop metadata",
+      "note": "Visually reviewed awnings and shop-like bases. These are candidates, not verified ready-made businesses.",
+      "candidates": [
+        {
+          "file": "buildingTiles_002.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 0,
+            "y": 1905,
+            "width": 132,
+            "height": 127
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_009.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 265,
+            "y": 893,
+            "width": 132,
+            "height": 127
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_018.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 265,
+            "y": 639,
+            "width": 132,
+            "height": 127
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_034.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 133,
+            "y": 1402,
+            "width": 132,
+            "height": 127
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_100.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 0,
+            "y": 508,
+            "width": 133,
+            "height": 127
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_108.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 264,
+            "y": 1913,
+            "width": 132,
+            "height": 127
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_113.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 265,
+            "y": 1275,
+            "width": 132,
+            "height": 127
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_124.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 132,
+            "y": 1905,
+            "width": 132,
+            "height": 127
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        }
+      ]
+    },
+    {
+      "id": "residential_walls",
+      "proposed_existing_role": "house/apt",
+      "evidence": "current native atlas bytes and original XML crop metadata",
+      "note": "Visually reviewed window/wall modules; assemble into measured building recipes.",
+      "candidates": [
+        {
+          "file": "buildingTiles_038.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 397,
+            "y": 434,
+            "width": 100,
+            "height": 85
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_039.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 497,
+            "y": 945,
+            "width": 99,
+            "height": 85
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_043.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 497,
+            "y": 681,
+            "width": 99,
+            "height": 85
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_044.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 397,
+            "y": 519,
+            "width": 100,
+            "height": 85
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_047.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 397,
+            "y": 664,
+            "width": 100,
+            "height": 85
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_049.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 397,
+            "y": 894,
+            "width": 100,
+            "height": 85
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_053.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 397,
+            "y": 809,
+            "width": 100,
+            "height": 85
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_056.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 397,
+            "y": 1064,
+            "width": 100,
+            "height": 85
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        }
+      ]
+    },
+    {
+      "id": "roofs",
+      "proposed_existing_role": "house/apt/shop/office",
+      "evidence": "current native atlas bytes and original XML crop metadata",
+      "note": "Visually reviewed roof/cap pieces, including pitched and curved silhouettes.",
+      "candidates": [
+        {
+          "file": "buildingTiles_060.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 496,
+            "y": 1331,
+            "width": 99,
+            "height": 60
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_069.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 496,
+            "y": 1717,
+            "width": 99,
+            "height": 60
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_074.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 397,
+            "y": 1209,
+            "width": 99,
+            "height": 61
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_081.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 397,
+            "y": 1517,
+            "width": 99,
+            "height": 60
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_088.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 497,
+            "y": 145,
+            "width": 99,
+            "height": 61
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_090.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 397,
+            "y": 1331,
+            "width": 99,
+            "height": 63
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_104.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 528,
+            "y": 1777,
+            "width": 99,
+            "height": 63
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "buildingTiles_118.png",
+          "atlas": "assets/atlases/buildings.png",
+          "crop": {
+            "x": 528,
+            "y": 1964,
+            "width": 99,
+            "height": 54
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        }
+      ]
+    },
+    {
+      "id": "street_and_park_tiles",
+      "proposed_existing_role": "decoration",
+      "evidence": "current native atlas bytes and original XML crop metadata",
+      "note": "Water-basin, striped crossing, lamp and planted-plaza candidates; each includes its own ground/base geometry.",
+      "candidates": [
+        {
+          "file": "cityTiles_051.png",
+          "atlas": "assets/atlases/city.png",
+          "crop": {
+            "x": 529,
+            "y": 1520,
+            "width": 132,
+            "height": 101
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "cityTiles_056.png",
+          "atlas": "assets/atlases/city.png",
+          "crop": {
+            "x": 133,
+            "y": 1006,
+            "width": 133,
+            "height": 101
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "cityTiles_057.png",
+          "atlas": "assets/atlases/city.png",
+          "crop": {
+            "x": 398,
+            "y": 888,
+            "width": 132,
+            "height": 115
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "cityTiles_064.png",
+          "atlas": "assets/atlases/city.png",
+          "crop": {
+            "x": 794,
+            "y": 838,
+            "width": 132,
+            "height": 101
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "cityTiles_067.png",
+          "atlas": "assets/atlases/city.png",
+          "crop": {
+            "x": 397,
+            "y": 1803,
+            "width": 132,
+            "height": 113
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "cityTiles_075.png",
+          "atlas": "assets/atlases/city.png",
+          "crop": {
+            "x": 661,
+            "y": 1383,
+            "width": 132,
+            "height": 113
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        }
+      ]
+    },
+    {
+      "id": "street_details",
+      "proposed_existing_role": "decoration",
+      "evidence": "current native atlas bytes and original XML crop metadata",
+      "note": "Streetlights, gray barrier and red wall segments; named uses are visual recommendations.",
+      "candidates": [
+        {
+          "file": "cityDetails_000.png",
+          "atlas": "assets/atlases/details.png",
+          "crop": {
+            "x": 125,
+            "y": 64,
+            "width": 22,
+            "height": 37
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "cityDetails_002.png",
+          "atlas": "assets/atlases/details.png",
+          "crop": {
+            "x": 71,
+            "y": 77,
+            "width": 32,
+            "height": 32
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "cityDetails_005.png",
+          "atlas": "assets/atlases/details.png",
+          "crop": {
+            "x": 147,
+            "y": 46,
+            "width": 22,
+            "height": 46
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "cityDetails_006.png",
+          "atlas": "assets/atlases/details.png",
+          "crop": {
+            "x": 135,
+            "y": 0,
+            "width": 22,
+            "height": 46
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "cityDetails_007.png",
+          "atlas": "assets/atlases/details.png",
+          "crop": {
+            "x": 103,
+            "y": 64,
+            "width": 22,
+            "height": 37
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "cityDetails_008.png",
+          "atlas": "assets/atlases/details.png",
+          "crop": {
+            "x": 0,
+            "y": 64,
+            "width": 71,
+            "height": 63
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "cityDetails_009.png",
+          "atlas": "assets/atlases/details.png",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 71,
+            "height": 64
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        }
+      ]
+    },
+    {
+      "id": "service_vehicle_art",
+      "proposed_existing_role": "vehicle appearance",
+      "evidence": "current native atlas bytes and original XML crop metadata",
+      "note": "Known utility vehicle filenames. Dispatch, garbage collection and emergency routing are separate gameplay work.",
+      "candidates": [
+        {
+          "file": "police_NE.png",
+          "atlas": "assets/atlases/vehicles.png",
+          "crop": {
+            "x": 173,
+            "y": 50,
+            "width": 32,
+            "height": 26
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "police_SE.png",
+          "atlas": "assets/atlases/vehicles.png",
+          "crop": {
+            "x": 173,
+            "y": 186,
+            "width": 32,
+            "height": 27
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "police_SW.png",
+          "atlas": "assets/atlases/vehicles.png",
+          "crop": {
+            "x": 107,
+            "y": 24,
+            "width": 33,
+            "height": 27
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "police_NW.png",
+          "atlas": "assets/atlases/vehicles.png",
+          "crop": {
+            "x": 173,
+            "y": 0,
+            "width": 32,
+            "height": 27
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "ambulance_NE.png",
+          "atlas": "assets/atlases/vehicles.png",
+          "crop": {
+            "x": 37,
+            "y": 178,
+            "width": 35,
+            "height": 31
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "ambulance_SE.png",
+          "atlas": "assets/atlases/vehicles.png",
+          "crop": {
+            "x": 38,
+            "y": 36,
+            "width": 35,
+            "height": 35
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "ambulance_SW.png",
+          "atlas": "assets/atlases/vehicles.png",
+          "crop": {
+            "x": 38,
+            "y": 0,
+            "width": 35,
+            "height": 36
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "ambulance_NW.png",
+          "atlas": "assets/atlases/vehicles.png",
+          "crop": {
+            "x": 37,
+            "y": 119,
+            "width": 35,
+            "height": 31
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "garbage_NE.png",
+          "atlas": "assets/atlases/vehicles.png",
+          "crop": {
+            "x": 72,
+            "y": 177,
+            "width": 35,
+            "height": 31
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "garbage_SE.png",
+          "atlas": "assets/atlases/vehicles.png",
+          "crop": {
+            "x": 72,
+            "y": 144,
+            "width": 35,
+            "height": 33
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "garbage_SW.png",
+          "atlas": "assets/atlases/vehicles.png",
+          "crop": {
+            "x": 72,
+            "y": 111,
+            "width": 35,
+            "height": 33
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        },
+        {
+          "file": "garbage_NW.png",
+          "atlas": "assets/atlases/vehicles.png",
+          "crop": {
+            "x": 37,
+            "y": 209,
+            "width": 35,
+            "height": 32
+          },
+          "semantic_status": "visually reviewed candidate; game role proposed",
+          "ground_anchor_status": "not measured for integration"
+        }
+      ]
+    }
+  ],
+  "later_uploaded_families": {
+    "small_building_pieces": 129,
+    "modular_identities": 101,
+    "modular_rotations_per_identity": 4,
+    "vector_shape_identities": 155,
+    "vector_materials_per_identity": 4,
+    "awnings": 32,
+    "watercraft_models_from_prior_catalog": 29,
+    "watercraft_views_per_model": 8,
+    "civilian_vehicle_body_shapes_from_prior_catalog": 6,
+    "civilian_vehicle_colors_from_prior_catalog": 5,
+    "source_availability_note": "Original later ZIP files are not currently local. Larger-family suitability uses the uploaded index, retained pack previews and previous catalog/hash examination; current native atlas bytes are verified directly."
+  },
+  "external_research": [
+    {
+      "url": "https://kenney.nl/assets/city-kit-industrial",
+      "verified_page_excerpt": "verything at once, plus free updates! Games Tools Assets Starter Kits Donate \u00d7 Games Tools Assets Starter Kits Support Knowledge Base Donate City Kit (Industrial) Tags city building factory warehouse Category 3D \u2022 City Features \ud83c\udfa8 Variation(s) Files 40\u00d7 License Creative Commons CC0 Download Get All-in-1 bundle Updates 2.0 Solar/wind energy, plus more 1.0 Released in 2025 You might also like... City Kit (Commercial) 3D \u2022 City City Kit (Suburban) 3D \u2022 City City Kit (Roads) 3D \u2022 City Pico-8 City 2D \u2022 Pico-8 Consider a donation The game assets you're about to download are available for free, thanks to the generosity of our amazing community. If you'd like to support and help keep them free for everyone, consider making a small donation! Donate Continue without donating... Thanks for downloading Be the first to know about new Kenney releases by",
+      "downloaded_asset_package": false
+    },
+    {
+      "url": "https://kenney.nl/assets/city-kit-commercial",
+      "verified_page_excerpt": "nload everything at once, plus free updates! Games Tools Assets Starter Kits Donate \u00d7 Games Tools Assets Starter Kits Support Knowledge Base Donate City Kit (Commercial) Tags city skyscraper building Category 3D \u2022 City Features \ud83c\udfa8 Variation(s) Files 50\u00d7 License Creative Commons CC0 Download Get All-in-1 bundle Updates 2.1 Fixed problem skyscraper E 2.0 Completely remade 1.0 Released in 2021 You might also like... City Kit (Suburban) 3D \u2022 City City Kit (Roads) 3D \u2022 City City Kit (Industrial) 3D \u2022 City Pico-8 City 2D \u2022 Pico-8 Consider a donation The game assets you're about to download are available for free, thanks to the generosity of our amazing community. If you'd like to support and help keep them free for everyone, consider making a small donation! Donate Continue without donating... Thanks for downloading Be the first to know about ne",
+      "downloaded_asset_package": false
+    },
+    {
+      "url": "https://kenney.nl/assets/city-kit-suburban",
+      "verified_page_excerpt": " download everything at once, plus free updates! Games Tools Assets Starter Kits Donate \u00d7 Games Tools Assets Starter Kits Support Knowledge Base Donate City Kit (Suburban) Tags city suburban building Category 3D \u2022 City Features \ud83c\udfa8 Variation(s) Files 40\u00d7 License Creative Commons CC0 Download Get All-in-1 bundle Updates 2.0 Completely remade 1.0 Released in 2020 You might also like... City Kit (Commercial) 3D \u2022 City City Kit (Roads) 3D \u2022 City City Kit (Industrial) 3D \u2022 City Pico-8 City 2D \u2022 Pico-8 Consider a donation The game assets you're about to download are available for free, thanks to the generosity of our amazing community. If you'd like to support and help keep them free for everyone, consider making a small donation! Donate Continue without donating... Thanks for downloading Be the first to know about new Kenney releases by followin",
+      "downloaded_asset_package": false
+    }
+  ],
+  "performance_follow_up": {
+    "device": "Samsung Galaxy S25+",
+    "city": "Harbor City: 4371 residents, 108 developed properties, 70 cars, 8 trains",
+    "user_report": "Severe slowdown; worse zoomed out and needed substantial zoom-in to reduce it. FPS unavailable.",
+    "status": "Unresolved. User deferred optimization until a later request.",
+    "first_requested_measurement": "Visible FPS/frame-time counter, then on-device populated-city profiling",
+    "scale_goal": "Approximately 10 times Harbor City; clarify population, building count or map area before changing the fixed 52x52 format."
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "index_sha256": "46f9c0daf9cd162735c638c8002306dfa4f8c1000511c0f766777aec5f5a00a7",
+  "record_count": 417,
+  "expanded_unique_paths": 1185,
+  "family_records": {
+    "Tiles Buildings": 129,
+    "Modular Buildings": 101,
+    "Vector Buildings": 155,
+    "Vector Buildings/Awnings": 32
+  },
+  "existing_building_atlas_canvas_matches": 129,
+  "existing_building_atlas_alpha_matches": 121,
+  "dimension_mismatches": [
+    {
+      "id": "tiles_071",
+      "canvas_matches": true,
+      "alpha_bounds_match": false
+    },
+    {
+      "id": "tiles_077",
+      "canvas_matches": true,
+      "alpha_bounds_match": false
+    },
+    {
+      "id": "tiles_078",
+      "canvas_matches": true,
+      "alpha_bounds_match": false
+    },
+    {
+      "id": "tiles_086",
+      "canvas_matches": true,
+      "alpha_bounds_match": false
+    },
+    {
+      "id": "tiles_094",
+      "canvas_matches": true,
+      "alpha_bounds_match": false
+    },
+    {
+      "id": "tiles_102",
+      "canvas_matches": true,
+      "alpha_bounds_match": false
+    },
+    {
+      "id": "tiles_110",
+      "canvas_matches": true,
+      "alpha_bounds_match": false
+    },
+    {
+      "id": "tiles_111",
+      "canvas_matches": true,
+      "alpha_bounds_match": false
+    }
+  ]
+}
