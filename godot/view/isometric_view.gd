@@ -10,6 +10,7 @@ signal stroke_finished
 signal selection_changed(index: int)
 
 const Layer = preload("res://view/iso_layer.gd")
+const GroundShader = preload("res://view/opaque_ground.gdshader")
 const N: int = 52
 const BASE: float = 28.0
 const ELEVATION: float = 0.15
@@ -62,6 +63,18 @@ var _pending_tiles: Array = []
 var _elapsed: float = 0.0
 var _last_indicator_tick: int = 0
 var _refresh_pending: bool = false
+var _cached_world = null
+var _static_layers: Dictionary = {}
+var _bucket_members: Dictionary = {}
+var _bucket_objects: Dictionary = {}
+var _tile_records: Array = []
+var _tile_hashes = PackedInt64Array()
+var _tile_parcels = PackedInt64Array()
+var _parcel_roots: Dictionary = {}
+var _fire_tiles: Array = []
+var _recording_layer
+var _record_index: int = -1
+var _ground_material: ShaderMaterial
 
 func _ready() -> void:
 	clip_contents = true
@@ -70,6 +83,12 @@ func _ready() -> void:
 	_city = Node2D.new()
 	_city.name = "City"
 	add_child(_city)
+	_ground_material = ShaderMaterial.new()
+	_ground_material.shader = GroundShader
+	# One hidden command recorder replaces thousands of temporary CanvasItems.
+	_recording_layer = Layer.new()
+	_recording_layer.visible = false
+	add_child(_recording_layer)
 	_overlay_layer = Layer.new()
 	_overlay_layer.name = "Overlays"
 	_overlay_layer.z_index = 3000
@@ -180,6 +199,14 @@ func _road_mask(index: int, kind: String = "road") -> int:
 	return result
 
 func _new_layer(depth: float, object: bool = false):
+	if _record_index >= 0:
+		var key: int = clampi(roundi(depth * 20.0), 0, 2999)
+		_recording_layer.commands = []
+		_tile_records[_record_index][key] = _recording_layer.commands
+		if not _bucket_members.has(key): _bucket_members[key] = {}
+		_bucket_members[key][_record_index] = true
+		_bucket_objects[key] = object
+		return _recording_layer
 	var layer = Layer.new()
 	layer.z_index = clampi(roundi(depth * 20.0), 0, 2999)
 	_city.add_child(layer)
@@ -199,50 +226,102 @@ func _rebuild() -> void:
 	_refresh_pending = false
 	if not is_instance_valid(_city):
 		return
-	for child in _city.get_children():
-		if child != _overlay_layer and child != _indicator_layer:
-			_city.remove_child(child)
-			child.queue_free()
-	_agent_layers.clear()
-	_object_layers.clear()
 	if world == null:
+		for layer in _static_layers.values():
+			layer.commands.clear()
+			layer.visible = false
+		for layer in _agent_layers: layer.visible = false
+		_cached_world = null
 		_overlay_layer.commands.clear()
 		_indicator_layer.commands.clear()
 		_overlay_layer.queue_redraw()
 		_indicator_layer.queue_redraw()
 		return
-	for sum in range(2 * N - 1):
-		for x in range(maxi(0, sum - N + 1), mini(N - 1, sum) + 1):
-			var y: int = sum - x
-			var index: int = y * N + x
-			if index >= world.tiles.size():
-				continue
-			var tile: Dictionary = world.tiles[index]
-			var elevation: float = float(tile.get("elev", 0))
-			var ground = _new_layer(sum + 1.0)
-			_draw_ground(ground, index)
-			if tile.get("tree", false) and tile.get("terrain", "grass") != "water" and not tile.get("road", false) and not tile.get("rail", false) and not tile.get("civic", "") and not tile.get("level", 0):
-				_tree(_new_layer(sum + 1.1, true), x + 0.5, y + 0.5, elevation)
-			if tile.get("line", false):
-				_draw_pole(_new_layer(sum + 1.2, true), index)
-			if tile.get("civic", ""):
-				_draw_civic(_new_layer(sum + 1.6, true), tile, x, y)
-			if int(tile.get("level", 0)) > 0:
-				var parcel: Dictionary = world.parcel_info(index) if tile.get("parcel", 0) else {}
-				if not parcel.is_empty() and int(parcel.get("root", index)) != index:
-					continue
-				var fp: Rect2i = _parcel_footprint(parcel.get("members", [index]))
-				var bx: float = fp.position.x + fp.size.x * 0.5
-				var by: float = fp.position.y + fp.size.y * 0.5
-				var span: float = mini(fp.size.x, fp.size.y)
-				_draw_development(_new_layer(fp.position.x + fp.position.y + fp.size.x + fp.size.y - 0.1, true), tile, bx, by, span, index)
+	var dirty: Dictionary = {}
+	var buckets: Dictionary = {}
+	var reset: bool = _cached_world != world or _tile_records.size() != world.tiles.size()
+	if reset:
+		for key in _static_layers: buckets[key] = true
+		_bucket_members.clear()
+		_tile_records.clear()
+		_tile_records.resize(world.tiles.size())
+		_tile_hashes.resize(world.tiles.size())
+		_tile_parcels.resize(world.tiles.size())
+		_tile_parcels.fill(0)
+		_parcel_roots.clear()
+		_cached_world = world
+	_fire_tiles.clear()
+	for index in range(world.tiles.size()):
+		var tile: Dictionary = world.tiles[index]
+		var signature: int = tile.hash()
+		if tile.get("pipe", false): signature = hash([signature, _field("water", index) > 0])
+		if reset or signature != _tile_hashes[index]:
+			dirty[index] = true
+			for neighbor in _neighbors(index): dirty[neighbor] = true
+			var old_parcel: int = _tile_parcels[index]
+			if _parcel_roots.has(old_parcel): dirty[_parcel_roots[old_parcel]] = true
+			if tile.get("parcel", 0):
+				var parcel: Dictionary = world.parcel_info(index)
+				if not parcel.is_empty():
+					dirty[parcel.root] = true
+					_parcel_roots[parcel.id] = parcel.root
+			_tile_hashes[index] = signature
+			_tile_parcels[index] = int(tile.get("parcel", 0))
+		if tile.get("fire", 0): _fire_tiles.append(index)
+	for index in dirty:
+		if _tile_records[index] != null:
+			for key in _tile_records[index]:
+				buckets[key] = true
+				if _bucket_members.has(key): _bucket_members[key].erase(index)
+		_tile_records[index] = {}
+		_record_index = index
+		_record_tile(index)
+		for key in _tile_records[index]: buckets[key] = true
+	_record_index = -1
+	for key in buckets:
+		if not _static_layers.has(key):
+			var layer = Layer.new()
+			layer.z_index = key
+			if not _bucket_objects.get(key, false): layer.material = _ground_material
+			_city.add_child(layer)
+			_static_layers[key] = layer
+			if _bucket_objects.get(key, false): _object_layers.append(layer)
+		var layer = _static_layers[key]
+		layer.commands = []
+		var members: Array = _bucket_members.get(key, {}).keys()
+		members.sort_custom(func(a, b): return (int(a) % N + int(a) / N) * N + int(a) % N < (int(b) % N + int(b) / N) * N + int(b) % N)
+		for index in members: layer.commands.append_array(_tile_records[index][key])
+		layer.visible = not layer.commands.is_empty()
+		layer.queue_redraw()
+	# Preserve the original equal-depth ordering of moving agents over scenery.
+	for layer in _agent_layers: _city.move_child(layer, _city.get_child_count() - 1)
 	metrics.ground_redraws += 1
 	metrics.static_objects = _object_layers.size()
 	metrics.visible_tiles = world.tiles.size()
+	metrics.tiles_regenerated = dirty.size()
+	metrics.static_layers = _static_layers.size()
+	metrics.buckets_regenerated = buckets.size()
 	_update_static_alpha()
 	_update_overlay()
 	_update_indicators()
 	_update_agents()
+
+func _record_tile(index: int) -> void:
+	var tile: Dictionary = world.tiles[index]
+	var x: int = index % N
+	var y: int = floori(float(index) / N)
+	var depth: int = x + y
+	var elevation: float = float(tile.get("elev", 0))
+	_draw_ground(_new_layer(depth + 1.0), index)
+	if tile.get("tree", false) and tile.get("terrain", "grass") != "water" and not tile.get("road", false) and not tile.get("rail", false) and not tile.get("civic", "") and not tile.get("level", 0):
+		_tree(_new_layer(depth + 1.1, true), x + 0.5, y + 0.5, elevation)
+	if tile.get("line", false): _draw_pole(_new_layer(depth + 1.2, true), index)
+	if tile.get("civic", ""): _draw_civic(_new_layer(depth + 1.6, true), tile, x, y)
+	if int(tile.get("level", 0)) > 0:
+		var parcel: Dictionary = world.parcel_info(index) if tile.get("parcel", 0) else {}
+		if not parcel.is_empty() and int(parcel.get("root", index)) != index: return
+		var fp: Rect2i = _parcel_footprint(parcel.get("members", [index]))
+		_draw_development(_new_layer(fp.position.x + fp.position.y + fp.size.x + fp.size.y - 0.1, true), tile, fp.position.x + fp.size.x * 0.5, fp.position.y + fp.size.y * 0.5, mini(fp.size.x, fp.size.y), index)
 
 func _rect_points(x: float, y: float, elevation: float, left: float = 0, top: float = 0, width: float = 1, height: float = 1) -> PackedVector2Array:
 	return PackedVector2Array([_point(x + left, y + top, elevation), _point(x + left + width, y + top, elevation), _point(x + left + width, y + top + height, elevation), _point(x + left, y + top + height, elevation)])
@@ -255,18 +334,19 @@ func _diamond(layer, x: float, y: float, elevation: float, fill: Color, outline:
 		points.append(points[0])
 		layer.line(points, outline, width)
 
-func _surface(layer, name: String, x: float, y: float, elevation: float, left: float = 0, top: float = 0, width: float = 1, height: float = 1) -> void:
+func _surface(layer, name: String, x: float, y: float, elevation: float, left: float = 0, top: float = 0, width: float = 1, height: float = 1, cap_color: Color = Color.WHITE) -> bool:
 	if not _manifest.get("sprites", {}).has(name):
-		return
+		return false
 	var sprite: Dictionary = _manifest.sprites[name]
 	var texture: Texture2D = _textures.get(sprite.atlas)
 	if texture == null:
-		return
+		return false
 	var uv: PackedVector2Array = PackedVector2Array()
 	for p in [Vector2(left, top), Vector2(left + width, top), Vector2(left + width, top + height), Vector2(left, top + height)]:
 		# Sample only the 132 by 66 cap, never the PNG's foundation walls.
 		uv.append((Vector2(float(sprite.x) + 66.0 + (p.x - p.y) * 66.0, float(sprite.y) + (p.x + p.y) * 33.0)) / Vector2(texture.get_size()))
-	layer.polygon(_rect_points(x, y, elevation, left, top, width, height), Color.WHITE, texture, uv)
+	layer.polygon(_rect_points(x, y, elevation, left, top, width, height), cap_color, texture, uv)
+	return true
 
 func _sprite(layer, name: String, point: Vector2, span: float = 1.0, lift: float = 0.0, color: Color = Color.WHITE) -> void:
 	if not _manifest.get("sprites", {}).has(name):
@@ -292,8 +372,10 @@ func _draw_ground(layer, index: int) -> void:
 			var b: Vector2 = Vector2(x + 1, y + 1)
 			layer.polygon(PackedVector2Array([_point(a.x, a.y, elevation), _point(b.x, b.y, elevation), _point(b.x, b.y, lower), _point(a.x, a.y, lower)]), Color("8b7954") if axis.x else Color("a18b62"))
 	var name: String = "water" if tile.get("terrain", "grass") == "water" else "dirt" if tile.get("channel", false) else "sand" if tile.get("biome", "") == "desert" else "grass"
-	_diamond(layer, x, y, elevation, TERRAIN_COLOR[name], TERRAIN_COLOR[name], 0.6)
-	_surface(layer, name, x, y, elevation)
+	# The atlas cap is opaque inside the diamond and already contains the grid.
+	# A second fill and antialiased outline broke batching for every empty tile.
+	if not _surface(layer, name, x, y, elevation, 0, 0, 1, 1, Color(TERRAIN_COLOR[name], 0)):
+		_diamond(layer, x, y, elevation, TERRAIN_COLOR[name], TERRAIN_COLOR[name], 0.6)
 	if name != "water":
 		for j in _neighbors(index):
 			if world.tiles[j].get("terrain", "grass") != "water": continue
@@ -508,7 +590,7 @@ func _update_indicators() -> void:
 	if not is_instance_valid(_indicator_layer): return
 	_indicator_layer.commands.clear()
 	if world != null:
-		for index in range(world.tiles.size()):
+		for index in _fire_tiles:
 			var tile: Dictionary = world.tiles[index]
 			if not tile.get("fire", false): continue
 			var p: Vector2 = _point(index % N + 0.5, floori(float(index) / N) + 0.5, float(tile.get("elev", 0)))

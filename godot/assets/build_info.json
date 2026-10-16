@@ -1,16 +1,18 @@
 {
-  "version": "0.3.0-godot-preview",
+  "version": "0.3.1-godot-preview",
   "engine": "4.6.3.stable.official.7d41c59c4",
-  "built_utc": "2026-10-14T23:32:38.622443+00:00",
+  "built_utc": "2026-10-16T21:28:56.223070+00:00",
   "source_sha256": {
-    "project.godot": "7545154a5b6873599f28cfe65d76ed4bea11cb9910314322b91907b35cd26f7c",
-    "export_presets.cfg": "930e715cb040fc912cdea299e08c736a03f678782bb9a16d7feafce4ff9bf574",
+    "project.godot": "cc01be292539e23961192b7ecaad008b3344abe341653cab0fe448b3f2156807",
+    "export_presets.cfg": "fa94a598a3384c578765f9b9d692613f103794b43f16a225234150c280c437e7",
+    "main.tscn": "ad4499da50ab709a4399781ae828748134242d9d683907748d23253459005a70",
     "assets/icon.svg": "dbddc1b04178fd131d3734c942d0fdf77e3c618e311067ac2d04293081d728c9",
-    "model/city_world.gd": "ac9ad16097819fedc762b8d5b601351aac478bd03bf15b2bbc371d3de321a6ee",
-    "view/iso_layer.gd": "5a9aab5abe978457d67eba2e6686474880deaf66772620532c7a7a9b29c9ab8d",
-    "view/isometric_view.gd": "7c787d168d2e35b631047aaf8cad96cfe19734b1dc63e8d9f443d89675147308",
+    "model/city_world.gd": "bda3cca48909408be80c308e115badad0b14eb518d3a44ea5f8649a57550657f",
+    "view/iso_layer.gd": "41c0aa16662241f12376a9c10cb8d2176ada21315bc4a2fdfcbb2f53e14f0aca",
+    "view/isometric_view.gd": "f90ae2c6291964e5eae525267c78c29d098384e85d9e901395339cf7d34d6fd0",
     "ui/construction_history.gd": "23b7a443708bba85df7960d0a58dedd1b13fc541b96019769a71cfe8595ade4d",
-    "ui/main.gd": "9841a0e8e069474c411b015e31d709d4f65464abb478d12ade0e50a20a316d5c",
-    "persistence/city_store.gd": "29730970134849d4e859ec7ea51ebf06f46db7f18c2a5db9207f419f5b0a854b"
+    "ui/main.gd": "65ff96a878116161974a4f402d2b48a5c1db72592cf452c9c1455a81303d02fe",
+    "persistence/city_store.gd": "29730970134849d4e859ec7ea51ebf06f46db7f18c2a5db9207f419f5b0a854b",
+    "view/opaque_ground.gdshader": "ee05cc8edcf968582a000133a8a47675fa27281db1e22495433d96ed3575175a"
   }
 }

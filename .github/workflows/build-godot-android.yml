@@ -100,9 +100,9 @@ jobs:
 
       - name: Export and verify native Android APK
         run: |
-          python godot/tools/build_android.py --godot "$GODOT_BIN" --output dist/MetroForge-Godot-0.3.0-debug.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/MetroForge-Godot-0.3.0-debug.apk
-          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 dist/MetroForge-Godot-0.3.0-debug.apk
+          python godot/tools/build_android.py --godot "$GODOT_BIN" --output dist/MetroForge-Godot-0.3.1-debug.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/MetroForge-Godot-0.3.1-debug.apk
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 dist/MetroForge-Godot-0.3.1-debug.apk
           python - <<'PY'
           from pathlib import Path
           import hashlib
@@ -137,6 +137,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view v0.3.0-godot-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"
+          gh release view v0.3.1-godot-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"
           python -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"] + "/godot-draft.json"))["isDraft"], "Only an unpublished draft may be updated"'
-          gh release upload v0.3.0-godot-preview dist/*.apk dist/*.zip dist/MetroForge-Godot-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber
+          gh release upload v0.3.1-godot-preview dist/*.apk dist/*.zip dist/MetroForge-Godot-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber

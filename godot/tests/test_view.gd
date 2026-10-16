@@ -175,7 +175,7 @@ func _run() -> void:
 	check(selections == [center] and view.selected == center, "pan tap selects")
 	view.refresh()
 	await process_frame
-	check(view.get_node("City").get_child_count() >= 2704, "retained native terrain records exist")
+	check(view.metrics.visible_tiles == 2704 and view.get_node("City").get_child_count() > 2, "retained native terrain records cover the full map")
 	var static_count: int = view.get_node("City").get_child_count()
 	world.cars = [{"path": [center, center + 1], "p": 0.5}]
 	view._process(0.01)

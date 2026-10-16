@@ -535,6 +535,8 @@ func _utility_component(kind: String, power_covered = null, commit: bool = false
 	var parcel_consumers: Dictionary = {}
 	for i in range(COUNT):
 		var t = tiles[i]
+		# Empty lots may receive coverage, but never consume capacity.
+		if not t.level and not t.civic: continue
 		var p = parcel_info(i) if t.parcel else {}
 		if not p.is_empty():
 			if parcel_consumers.has(p.id) or i != p.root: continue
@@ -548,7 +550,6 @@ func _utility_component(kind: String, power_covered = null, commit: bool = false
 		var id = candidate.keys()[0]
 		for possible in candidate:
 			if groups[possible].capacity > groups[id].capacity: id = possible
-		if not t.level and not t.civic: continue
 		var units = 0
 		if t.level:
 			var capacity = parcel_capacity(p,int(t.level)) if not p.is_empty() else CONFIG.buildingCapacity[t.zone][t.level]
@@ -596,12 +597,17 @@ func _utility_component(kind: String, power_covered = null, commit: bool = false
 		head += 1
 	for i in range(COUNT):
 		var t = tiles[i]
-		var touch = bool(reached[i])
-		for j in neighbors(i):
-			if reached[j]: touch = true
 		if t.level:
 			if not reached[i]: covered[i] = 0
-		elif (t.civic and (t.civic in SERVICES or t.civic == "station")) or (kind == "power" and t.civic == "pump"):
+			continue
+		if not (t.zone or t.line or t.pipe or t.civic): continue
+		var touch = bool(reached[i])
+		if not touch:
+			for j in neighbors(i):
+				if reached[j]:
+					touch = true
+					break
+		if (t.civic and (t.civic in SERVICES or t.civic == "station")) or (kind == "power" and t.civic == "pump"):
 			covered[i] = 1 if covered[i] and touch else 0
 		elif t.zone or t.line or t.pipe or t.civic:
 			covered[i] = 1 if touch else 0
@@ -676,10 +682,20 @@ func _service_update() -> void:
 		fields[type] = values
 
 func _environment_update() -> void:
-	for name in ["pollution","crime","landValue","trafficImpact"]:
-		var values = PackedFloat32Array()
-		values.resize(COUNT)
-		fields[name] = values
+	# Local arrays retain Float32 intermediate rounding without per-tile dictionary lookups.
+	var pollution = PackedFloat32Array()
+	var crime = PackedFloat32Array()
+	var land_value = PackedFloat32Array()
+	var traffic_impact = PackedFloat32Array()
+	pollution.resize(COUNT)
+	crime.resize(COUNT)
+	land_value.resize(COUNT)
+	traffic_impact.resize(COUNT)
+	var police = fields.police
+	var school = fields.school
+	var hospital = fields.hospital
+	var has_traffic = trafficHeat.size() == COUNT
+	var economic = stats.get("unemployment",0)
 	var parks: Array = []
 	var stations: Array = []
 	for i in range(COUNT):
@@ -693,7 +709,7 @@ func _environment_update() -> void:
 		for yy in range(maxi(0,y-6),mini(N-1,y+6)+1):
 			for xx in range(maxi(0,x-6),mini(N-1,x+6)+1):
 				var distance = abs(x-xx)+abs(y-yy)
-				if distance <= 7: fields.pollution[yy*N+xx] += strength*maxf(0,1-distance/7.0)
+				if distance <= 7: pollution[yy*N+xx] += strength*maxf(0,1-distance/7.0)
 	var total_crime = 0.0
 	var total_land = 0.0
 	for i in range(COUNT):
@@ -701,28 +717,34 @@ func _environment_update() -> void:
 		var park = 0.0
 		var abandoned = 0.0
 		var bad_road = 0.0
+		var adjacent_road = false
+		var local_traffic = trafficHeat[i] if has_traffic else 0.0
 		for j in neighbors(i):
 			var neighbor = tiles[j]
 			if neighbor.civic == "park": park += 9
 			if neighbor.abandoned: abandoned += 9
-			if neighbor.road: bad_road += 1-neighbor.condition
+			if neighbor.road:
+				bad_road += 1-neighbor.condition
+				adjacent_road = true
+				if has_traffic: local_traffic = maxf(local_traffic,trafficHeat[j])
 		for p in parks:
-			if _man(i,p) <= 5: park += maxi(0,5-_man(i,p))
-		fields.pollution[i] = clampf(fields.pollution[i]-park*0.65,0.0,100.0)
-		var transport = 12 if road_near(i) else 0
+			var distance = _man(i,p)
+			if distance <= 5: park += maxi(0,5-distance)
+		pollution[i] = clampf(pollution[i]-park*0.65,0.0,100.0)
+		var transport = 12 if (road_near(i) if t.parcel else adjacent_road) else 0
 		for j in stations:
 			if _man(i,j) <= 5:
 				transport += 8
 				break
-		var local_traffic = trafficHeat[i] if trafficHeat.size() == COUNT else 0.0
-		for j in neighbors(i):
-			if tiles[j].road and trafficHeat.size() == COUNT: local_traffic = maxf(local_traffic,trafficHeat[j])
-		fields.trafficImpact[i] = local_traffic
-		var economic = stats.get("unemployment",0)
-		fields.crime[i] = clampf(15+t.level*4+economic*0.2+abandoned+fields.pollution[i]*0.13-fields.police[i]*55-park*0.1,0.0,100.0)
-		fields.landValue[i] = clampf(48+park+transport+fields.school[i]*20+fields.hospital[i]*13+fields.police[i]*8-fields.pollution[i]*0.48-fields.crime[i]*0.34-fields.trafficImpact[i]*0.25-bad_road*12-(45 if t.fire else 0),0.0,100.0)
-		total_crime += fields.crime[i]
-		total_land += fields.landValue[i]
+		traffic_impact[i] = local_traffic
+		crime[i] = clampf(15+t.level*4+economic*0.2+abandoned+pollution[i]*0.13-police[i]*55-park*0.1,0.0,100.0)
+		land_value[i] = clampf(48+park+transport+school[i]*20+hospital[i]*13+police[i]*8-pollution[i]*0.48-crime[i]*0.34-traffic_impact[i]*0.25-bad_road*12-(45 if t.fire else 0),0.0,100.0)
+		total_crime += crime[i]
+		total_land += land_value[i]
+	fields.pollution = pollution
+	fields.crime = crime
+	fields.landValue = land_value
+	fields.trafficImpact = traffic_impact
 	stats.avgCrime = _js_round(total_crime/COUNT)
 	stats.avgLand = _js_round(total_land/COUNT)
 

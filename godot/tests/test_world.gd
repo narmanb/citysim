@@ -254,5 +254,28 @@ func run():
 	legacy_optional.tiles[0].merge({"zone":"res","level":1,"zoneType":null,"resType":"apt","biome":null,"elev":null}, true)
 	var legacy_optional_world = WorldModel.from_dict(legacy_optional)
 	check(legacy_optional_world != null and legacy_optional_world.tiles[0].zoneType == "apt" and legacy_optional_world.tiles[0].elev == 0, "legacy nullable type/elevation fields retain residential subtype")
+
+	# Exact baseline Float32 fields cover park relief, service funding, road
+	# condition and neighboring traffic together, beyond the monthly growth fixture.
+	w = empty_world()
+	w.tiles[100].civic = "plant"
+	w.tiles[101].civic = "park"
+	w.tiles[102].merge({"zone":"res","zoneType":"apt","resType":"apt","level":2},true)
+	w.tiles[103].road = true
+	w.tiles[103].condition = 0.25
+	w.tiles[104].abandoned = 2
+	w.fields.police[102] = 0.25
+	w.fields.school[102] = 0.5
+	w.fields.hospital[102] = 0.75
+	w.trafficHeat.resize(w.COUNT)
+	w.trafficHeat[102] = 7.25
+	w.trafficHeat[103] = 11.5
+	w.stats.unemployment = 13
+	w._environment_update()
+	check(w.fields.pollution[102] == PackedFloat32Array([41.55])[0], "park pollution relief preserves Float32 rounding")
+	check(w.fields.crime[102] == PackedFloat32Array([15.9515])[0], "park and police crime effects preserve Float32 rounding")
+	check(w.fields.trafficImpact[102] == 11.5 and w.fields.trafficImpact[104] == 0, "traffic includes cardinal roads without wrapping map edges")
+	check(w.fields.landValue[102] == PackedFloat32Array([57.507492])[0], "services traffic and road condition preserve exact land value")
+	check(w.stats.avgCrime == 18 and w.stats.avgLand == 42, "environment averages preserve baseline rounding")
 	print("World model: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)

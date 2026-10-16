@@ -101,7 +101,18 @@ var _status: Label
 var _growth: Label
 var _selection: Label
 var _selection_panel: PanelContainer
-var _tools: HBoxContainer
+var _tools: GridContainer
+var _tool_menu: PanelContainer
+var _menu_dismiss: Control
+var _stat_labels: Dictionary = {}
+var _demand_labels: Dictionary = {}
+var _demand_meters: Dictionary = {}
+var _quick_buttons: Dictionary = {}
+var _tool_name: Label
+var _header: PanelContainer
+var _tool_dock: PanelContainer
+var _footer: PanelContainer
+var _full_button: Button
 var _tool_buttons: Dictionary = {}
 var _category_buttons: Dictionary = {}
 var _speed_buttons: Dictionary = {}
@@ -109,7 +120,7 @@ var _undo_button: Button
 var _redo_button: Button
 var _pause_button: Button
 var _mode_button: Button
-var _demand: Label
+var _demand: HBoxContainer
 var _toast: Label
 var _toast_time: float = 0.0
 var _modal: ColorRect
@@ -160,7 +171,7 @@ func set_speed(value: int) -> void:
 
 func toggle_pause() -> void:
 	paused = not paused
-	_pause_button.text = "Resume" if paused else "Pause"
+	_pause_button.text = "▶" if paused else "❚❚"
 	_pause_button.button_pressed = paused
 
 func set_world(value) -> bool:
@@ -204,7 +215,11 @@ func choose_tool(tool: String) -> bool:
 	for group in CATEGORIES:
 		if tool in CATEGORIES[group] and category != group:
 			select_category(group)
+	_close_tool_menu()
 	_refresh_tool_buttons()
+	if _tool_name != null:
+		_tool_name.text = ("Pan" if tool == "pan" else str(TOOL_LABELS[tool])) + " · " + (_money(World.COST[tool]) if World.COST.has(tool) else "free")
+		_tool_name.tooltip_text = _tool_name.text
 	if _status != null:
 		_status.text = str(TOOL_HELP.get(tool, TOOL_LABELS[tool] + ": " + _money(World.COST.get(tool, 0)) + " per tile."))
 		refresh_selection()
@@ -215,13 +230,15 @@ func set_placement_mode(mode: String) -> void:
 		return
 	placement_mode = mode
 	view.mode = mode
-	_mode_button.text = "Tap + pan" if mode == "tapPan" else "Paint drag"
+	_mode_button.text = "Mode: Tap + pan" if mode == "tapPan" else "Mode: Paint drag"
 	_mode_button.button_pressed = mode == "paint"
-	show_notice("Tap builds one tile; drag pans." if mode == "tapPan" else "Drag paints a construction stroke. Two fingers pan and zoom.")
+	_close_tool_menu()
+	_status.text = "Tap builds one tile; drag pans the map with any tool." if mode == "tapPan" else "Drag paints across tiles; use Pan or two fingers to move the map."
 
 func select_category(value: String) -> void:
 	if not CATEGORIES.has(value):
 		return
+	var was_open: bool = _tool_menu != null and _tool_menu.visible and category == value
 	category = value
 	if _tools == null:
 		return
@@ -233,15 +250,26 @@ func select_category(value: String) -> void:
 		var label: String = str(TOOL_LABELS[tool]) + " · " + _money(World.COST.get(tool, 0))
 		var button: Button = _button(label, func(): choose_tool(tool), _tools)
 		button.toggle_mode = true
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.tooltip_text = str(TOOL_HELP.get(tool, TOOL_LABELS[tool]))
 		_tool_buttons[tool] = button
 	for key in _category_buttons:
 		_category_buttons[key].button_pressed = key == category
+	_tool_menu.visible = not was_open
+	_menu_dismiss.visible = not was_open
+	_layout_shell()
 	_refresh_tool_buttons()
+
+func _close_tool_menu() -> void:
+	if _tool_menu != null:
+		_tool_menu.hide()
+		_menu_dismiss.hide()
 
 func _refresh_tool_buttons() -> void:
 	for tool in _tool_buttons:
 		_tool_buttons[tool].button_pressed = tool == selected_tool
+	for tool in _quick_buttons:
+		_quick_buttons[tool].button_pressed = tool == selected_tool
 
 func begin_stroke() -> void:
 	if _stroke or selected_tool == "pan":
@@ -505,8 +533,26 @@ func refresh_ui() -> void:
 	if world == null or _stats_label == null:
 		return
 	var s: Dictionary = world.stats
-	_stats_label.text = "METROFORGE · %d/%02d   %s   Pop %s   Jobs %s (%s%% idle)   Power %s/%s   Water %s/%s   %s/mo" % [world.year, world.month, _money(world.cash), s.get("population", 0), s.get("jobs", 0), s.get("unemployment", 0), roundi(float(s.get("powerUsed", 0))), roundi(float(s.get("powerGenerated", 0))), roundi(float(s.get("waterUsed", 0))), roundi(float(s.get("waterCapacity", 0))), _money(s.get("net", 0))]
-	_demand.text = "Demand   R %s   C %s   I %s" % [_signed(world.demand.get("res", 0)), _signed(world.demand.get("com", 0)), _signed(world.demand.get("ind", 0))]
+	_stat_labels.date.text = "%d / %02d" % [world.year, world.month]
+	_stat_labels.cash.text = _money(world.cash)
+	_stat_labels.cash.add_theme_color_override("font_color", Color("ff9588") if world.cash < 0 else Color("e9f1e8"))
+	_stat_labels.population.text = "Pop %s" % s.get("population", 0)
+	_stat_labels.jobs.text = "Jobs %s · %s%% idle" % [s.get("jobs", 0), s.get("unemployment", 0)]
+	_stat_labels.power.text = "⚡ %s/%s" % [roundi(float(s.get("powerUsed", 0))), roundi(float(s.get("powerGenerated", 0)))]
+	_stat_labels.water.text = "◉ %s/%s" % [roundi(float(s.get("waterUsed", 0))), roundi(float(s.get("waterCapacity", 0)))]
+	_stat_labels.net.text = ("+" if s.get("net", 0) >= 0 else "") + _money(s.get("net", 0)) + "/mo"
+	_stat_labels.net.add_theme_color_override("font_color", Color("ff9588") if s.get("net", 0) < 0 else Color("9ee6aa"))
+	for key in _demand_labels:
+		var value: float = float(world.demand.get(key, 0))
+		_demand_labels[key].text = _signed(world.demand.get(key, 0))
+		var meter: ProgressBar = _demand_meters[key]
+		meter.value = absf(value)
+		meter.position.x = 13 if value >= 0 else 0
+		meter.fill_mode = ProgressBar.FILL_BEGIN_TO_END if value >= 0 else ProgressBar.FILL_END_TO_BEGIN
+		var fill = StyleBoxFlat.new()
+		fill.bg_color = Color("ee897c") if value < 0 else CityView.ZCOL[key]
+		meter.add_theme_stylebox_override("fill", fill)
+		meter.size = Vector2(13, 9)
 	_refresh_history()
 	refresh_selection()
 	_refresh_growth()
@@ -613,64 +659,98 @@ func _style(background: Color, border: Color, radius: int = 7) -> StyleBoxFlat:
 	box.border_color = border
 	box.set_border_width_all(1)
 	box.set_corner_radius_all(radius)
-	box.content_margin_left = 12
-	box.content_margin_right = 12
-	box.content_margin_top = 6
-	box.content_margin_bottom = 6
+	box.content_margin_left = 9
+	box.content_margin_right = 9
+	box.content_margin_top = 5
+	box.content_margin_bottom = 5
 	return box
 
 func _build_ui() -> void:
 	name = "MetroForge"
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var skin = Theme.new()
-	skin.default_font_size = 14
-	skin.set_stylebox("normal", "Button", _style(Color("233a48"), Color("3a5665")))
-	skin.set_stylebox("hover", "Button", _style(Color("335365"), Color("89c7cf")))
-	skin.set_stylebox("pressed", "Button", _style(Color("477d83"), Color("a1e3d7")))
-	skin.set_stylebox("focus", "Button", _style(Color(0, 0, 0, 0), Color("f5d599")))
-	skin.set_stylebox("disabled", "Button", _style(Color("1d2c36"), Color("293d48")))
-	skin.set_color("font_color", "Label", Color("e2eaf0"))
-	skin.set_color("font_color", "Button", Color("e2eaf0"))
-	skin.set_color("font_disabled_color", "Button", Color("71818b"))
-	skin.set_color("font_color", "CheckBox", Color("e2eaf0"))
-	skin.set_stylebox("panel", "PanelContainer", _style(Color("172b36"), Color("3a5665")))
+	skin.default_font_size = 13
+	skin.set_stylebox("normal", "Button", _style(Color("294052"), Color("536f7f"), 5))
+	skin.set_stylebox("hover", "Button", _style(Color("36536a"), Color("88a6a6"), 5))
+	skin.set_stylebox("pressed", "Button", _style(Color("a96a36"), Color("ffd27b"), 5))
+	skin.set_stylebox("hover_pressed", "Button", _style(Color("bc7940"), Color("ffd27b"), 5))
+	skin.set_stylebox("focus", "Button", _style(Color(0, 0, 0, 0), Color("f6ca69"), 5))
+	skin.set_stylebox("disabled", "Button", _style(Color("233646"), Color("3d5360"), 5))
+	for control_type in ["Label", "Button", "CheckBox"]:
+		skin.set_color("font_color", control_type, Color("e9f1e8"))
+	skin.set_color("font_disabled_color", "Button", Color("71818a"))
+	skin.set_stylebox("panel", "PanelContainer", _style(Color("223443"), Color("78919b")))
 	theme = skin
 	var backdrop = ColorRect.new()
-	backdrop.color = Color("10212b")
+	backdrop.color = Color("121b27")
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(backdrop)
-	var margin = MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 8)
-	margin.add_theme_constant_override("margin_right", 8)
-	margin.add_theme_constant_override("margin_top", 4)
-	margin.add_theme_constant_override("margin_bottom", 4)
-	add_child(margin)
 	var column = VBoxContainer.new()
-	column.add_theme_constant_override("separation", 4)
-	margin.add_child(column)
-	var stats = _horizontal_scroll("Stats", column, 26)
-	_stats_label = _label("METROFORGE", stats)
-	_stats_label.add_theme_font_size_override("font_size", 14)
-	_stats_label.add_theme_color_override("font_color", Color("c8dfdf"))
-	var categories = _horizontal_scroll("Categories", column, 42)
+	column.name = "Workbench"
+	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	column.add_theme_constant_override("separation", 0)
+	add_child(column)
+	_header = _bar("TopBar", Color("223341"), Color("617586"), column)
+	var header_row = _row(_header, 8)
+	var stats = _horizontal_scroll("Stats", header_row, 0)
+	stats.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	stats.add_theme_constant_override("separation", 5)
+	for key in ["date", "cash", "population", "jobs", "power", "water", "net"]:
+		var badge = PanelContainer.new()
+		badge.name = key.capitalize() + "Badge"
+		var badge_style: StyleBoxFlat = _style(Color("142331"), Color("425c6b"), 3)
+		badge_style.content_margin_left = 7
+		badge_style.content_margin_right = 7
+		badge_style.content_margin_top = 4
+		badge_style.content_margin_bottom = 4
+		badge.add_theme_stylebox_override("panel", badge_style)
+		stats.add_child(badge)
+		_stat_labels[key] = _label("", badge)
+	_stats_label = _stat_labels.date
+	_full_button = _button("⛶ Fullscreen", _toggle_fullscreen, header_row)
+	_full_button.name = "Fullscreen"
+	_full_button.tooltip_text = "Toggle fullscreen / landscape"
+	_full_button.add_theme_stylebox_override("normal", _style(Color("36536a"), Color("536f7f"), 5))
+	_button_padding(_full_button, 9, 2)
+	_tool_dock = _bar("ToolDock", Color("1a2a38"), Color("5d7783"), column)
+	var toolbar = _row(_tool_dock, 6)
+	toolbar.name = "ToolNav"
+	var quick_tools = _row(toolbar, 5)
+	quick_tools.name = "QuickTools"
+	for tool in ["pan", "bulldoze"]:
+		var button: Button = _button("Pan" if tool == "pan" else "Bulldoze", func(): choose_tool(tool), quick_tools)
+		button.toggle_mode = true
+		button.tooltip_text = str(TOOL_HELP[tool])
+		_quick_buttons[tool] = button
+	var divider = VSeparator.new()
+	quick_tools.add_child(divider)
+	_mode_button = _button("Mode: Tap + pan", func(): set_placement_mode("paint" if placement_mode == "tapPan" else "tapPan"), toolbar)
+	_mode_button.name = "PlacementMode"
+	_mode_button.toggle_mode = true
+	_mode_button.add_theme_stylebox_override("normal", _style(Color("52745f"), Color("a3d6a0"), 5))
+	_mode_button.add_theme_stylebox_override("pressed", _style(Color("3b586b"), Color("88a6a6"), 5))
+	var categories = _horizontal_scroll("Categories", toolbar, 0)
+	categories.add_theme_constant_override("separation", 5)
 	for group in CATEGORIES:
 		var button: Button = _button(group, func(): select_category(group), categories)
 		button.toggle_mode = true
+		button.add_theme_stylebox_override("pressed", _style(Color("446e7a"), Color("92c8cb"), 5))
+		button.add_theme_stylebox_override("hover_pressed", _style(Color("446e7a"), Color("92c8cb"), 5))
 		_category_buttons[group] = button
-	_undo_button = _button("Undo", func(): undo(), categories)
-	_redo_button = _button("Redo", func(): redo(), categories)
-	var toolbar = HBoxContainer.new()
-	toolbar.add_theme_constant_override("separation", 4)
-	column.add_child(toolbar)
-	var quick_pan: Button = _button("Pan", func(): choose_tool("pan"), toolbar)
-	quick_pan.tooltip_text = "Pan and inspect tiles"
-	_button("Bulldoze", func(): choose_tool("bulldoze"), toolbar)
-	_mode_button = _button("Tap + pan", func(): set_placement_mode("paint" if placement_mode == "tapPan" else "tapPan"), toolbar)
-	_mode_button.toggle_mode = true
-	_tools = _horizontal_scroll("Tools", toolbar, 42)
-	_tools.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_undo_button = _button("↶", func(): undo(), categories)
+	_redo_button = _button("↷", func(): redo(), categories)
+	_undo_button.tooltip_text = "Undo last construction stroke"
+	_redo_button.tooltip_text = "Redo last construction stroke"
+	for button in [_undo_button, _redo_button]:
+		button.custom_minimum_size.x = 42
+		button.add_theme_font_size_override("font_size", 21)
+		_button_padding(button, 7, 2)
+	_tool_name = _label("Pan · free", toolbar)
+	_tool_name.name = "ToolName"
+	_tool_name.custom_minimum_size.x = 140
+	_tool_name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_tool_name.add_theme_color_override("font_color", Color("f6ca69"))
 	var map_area = Control.new()
 	map_area.name = "MapArea"
 	map_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -690,104 +770,265 @@ func _build_ui() -> void:
 	var camera = HBoxContainer.new()
 	camera.name = "CameraControls"
 	camera.z_index = 3900
-	camera.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	camera.offset_left = -192
+	camera.add_theme_constant_override("separation", 4)
+	camera.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	camera.offset_left = -138
 	camera.offset_right = -8
-	camera.offset_top = 8
-	camera.offset_bottom = 48
+	camera.offset_top = -46
+	camera.offset_bottom = -8
 	map_area.add_child(camera)
-	_button("−", func(): view.zoom_at(1.0 / 1.25, view.size / 2), camera).custom_minimum_size.x = 48
-	_button("+", func(): view.zoom_at(1.25, view.size / 2), camera).custom_minimum_size.x = 48
+	_button("−", func(): view.zoom_at(1.0 / 1.25, view.size / 2), camera).custom_minimum_size.x = 38
+	_button("+", func(): view.zoom_at(1.25, view.size / 2), camera).custom_minimum_size.x = 38
 	_button("Fit", _fit_view, camera)
+	for child in camera.get_children():
+		child.add_theme_font_size_override("font_size", 19 if child.text != "Fit" else 12)
+	_status = _label("", map_area)
+	_status.name = "Status"
+	_status.z_index = 3900
+	_status.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	_status.offset_left = 7
+	_status.offset_top = -32
+	_status.offset_bottom = -6
+	_status.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_status.add_theme_font_size_override("font_size", 12)
+	_status.add_theme_stylebox_override("normal", _style(Color("11212ddc"), Color("55707c"), 4))
+	_status.mouse_filter = Control.MOUSE_FILTER_STOP
+	_status.gui_input.connect(func(event):
+		if (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) or (event is InputEventScreenTouch and event.pressed):
+			show_notice(_status.text)
+			_status.accept_event()
+	)
+	_growth = _label("", map_area)
+	_growth.name = "GrowthHint"
+	_growth.z_index = 3900
+	_growth.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	_growth.offset_left = 7
+	_growth.offset_top = -66
+	_growth.offset_bottom = -38
+	_growth.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_growth.add_theme_font_size_override("font_size", 12)
+	_growth.add_theme_color_override("font_color", Color("ffe3aa"))
+	_growth.add_theme_stylebox_override("normal", _style(Color("463b23e8"), Color("d5a85b"), 4))
 	_selection_panel = PanelContainer.new()
+	_selection_panel.name = "SelectionPanel"
 	_selection_panel.z_index = 3900
-	_selection_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	_selection_panel.offset_left = 8
-	_selection_panel.offset_right = 528
-	_selection_panel.offset_top = -130
-	_selection_panel.offset_bottom = -8
+	_selection_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	_selection_panel.offset_left = -238
+	_selection_panel.offset_right = -8
+	_selection_panel.offset_top = 7
 	_selection_panel.visible = false
 	map_area.add_child(_selection_panel)
-	var selection_row = HBoxContainer.new()
-	_selection_panel.add_child(selection_row)
+	var selection_row = _row(_selection_panel, 4)
 	_selection = _label("", selection_row)
 	_selection.name = "Selection"
 	_selection.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_selection.custom_minimum_size = Vector2(405, 0)
 	_selection.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_selection.add_theme_font_size_override("font_size", 12)
-	_button("×", func(): _selected = -1; view.selected = -1; view.refresh(); refresh_selection(), selection_row)
+	_selection.custom_minimum_size.x = 165
+	_selection.add_theme_font_size_override("font_size", 11)
+	_button("×", func(): _selected = -1; view.selected = -1; view.refresh(); refresh_selection(), selection_row).custom_minimum_size.x = 24
 	_toast = Label.new()
+	_toast.name = "Toast"
 	_toast.z_index = 3901
-	_toast.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	_toast.offset_left = -290
-	_toast.offset_right = 290
-	_toast.offset_top = -48
-	_toast.offset_bottom = -8
+	_toast.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_toast.offset_left = -280
+	_toast.offset_right = 280
+	_toast.offset_top = 14
+	_toast.offset_bottom = 56
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_toast.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_toast.add_theme_stylebox_override("normal", _style(Color("172b36"), Color("9bccba")))
+	_toast.add_theme_stylebox_override("normal", _style(Color("142431ec"), Color("f6ca69"), 5))
 	_toast.add_theme_font_size_override("font_size", 13)
 	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_toast.visible = false
 	map_area.add_child(_toast)
-	_status = _label("", column)
-	_status.name = "Status"
-	_status.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_status.custom_minimum_size.y = 20
-	_status.add_theme_font_size_override("font_size", 12)
-	_status.add_theme_color_override("font_color", Color("a7beca"))
-	_growth = _label("", column)
-	_growth.name = "GrowthHint"
-	_growth.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_growth.custom_minimum_size.y = 18
-	_growth.add_theme_font_size_override("font_size", 12)
-	_growth.add_theme_color_override("font_color", Color("e4c98e"))
-	var footer = HBoxContainer.new()
-	footer.add_theme_constant_override("separation", 6)
-	column.add_child(footer)
-	var playback = HBoxContainer.new()
+	_menu_dismiss = Control.new()
+	_menu_dismiss.name = "ToolMenuDismiss"
+	_menu_dismiss.z_index = 3940
+	_menu_dismiss.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_menu_dismiss.mouse_filter = Control.MOUSE_FILTER_STOP
+	_menu_dismiss.gui_input.connect(func(event):
+		if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+			_close_tool_menu()
+			_menu_dismiss.accept_event()
+	)
+	_menu_dismiss.hide()
+	map_area.add_child(_menu_dismiss)
+	_tool_menu = PanelContainer.new()
+	_tool_menu.name = "ToolPicker"
+	_tool_menu.z_index = 3950
+	_tool_menu.position = Vector2(8, 0)
+	var picker_style: StyleBoxFlat = _style(Color("172a39f5"), Color("7ca0a6"), 8)
+	picker_style.set_border_width_all(2)
+	picker_style.set_content_margin_all(8)
+	_tool_menu.add_theme_stylebox_override("panel", picker_style)
+	map_area.add_child(_tool_menu)
+	var picker_scroll = ScrollContainer.new()
+	picker_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	picker_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tool_menu.add_child(picker_scroll)
+	_tools = GridContainer.new()
+	_tools.name = "Tools"
+	_tools.columns = 3
+	_tools.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tools.add_theme_constant_override("h_separation", 5)
+	_tools.add_theme_constant_override("v_separation", 5)
+	picker_scroll.add_child(_tools)
+	_tool_menu.hide()
+	_footer = _bar("Footer", Color("152531"), Color("536d79"), column)
+	var footer_row = _row(_footer, 8)
+	var playback = _row(footer_row, 4)
 	playback.name = "Playback"
-	playback.add_theme_constant_override("separation", 3)
-	footer.add_child(playback)
-	_pause_button = _button("Pause", toggle_pause, playback)
+	_pause_button = _button("❚❚", toggle_pause, playback)
 	_pause_button.toggle_mode = true
+	_pause_button.tooltip_text = "Pause / resume city time"
 	for multiplier in [1, 3, 8]:
 		var button: Button = _button(str(multiplier) + "×", func(): set_speed(multiplier), playback)
 		button.toggle_mode = true
-		button.custom_minimum_size.x = 44
+		button.custom_minimum_size.x = 40
 		_speed_buttons[multiplier] = button
-	_demand = _label("", playback)
-	_demand.custom_minimum_size.x = 154
-	_demand.add_theme_font_size_override("font_size", 12)
-	_demand.add_theme_color_override("font_color", Color("a9d7c0"))
-	var actions = _horizontal_scroll("Actions", footer, 42)
-	actions.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_demand = _row(footer_row, 5)
+	_demand.name = "Demand"
+	_demand.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	for key in ["res", "com", "ind"]:
+		_build_demand_chip(key)
+	var actions = _horizontal_scroll("Actions", footer_row, 0)
+	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.alignment = BoxContainer.ALIGNMENT_END
 	for pair in [["Overlays", "overlays"], ["Budget", "budget"], ["Events", "events"], ["Guide", "guide"], ["City / Files", "files"]]:
 		_button(pair[0], func(): open_dialog(pair[1]), actions)
 	_build_dialog()
+	resized.connect(_layout_shell)
 	select_category(category)
+	_close_tool_menu()
 	set_speed(1)
+	_layout_shell()
+
+func _bar(node_name: String, color: Color, edge: Color, parent: Node) -> PanelContainer:
+	var panel = PanelContainer.new()
+	panel.name = node_name
+	var box: StyleBoxFlat = _style(color, edge, 0)
+	box.set_border_width_all(0)
+	box.border_width_top = 1 if node_name == "Footer" else 0
+	box.border_width_bottom = 0 if node_name == "Footer" else 2
+	box.content_margin_left = 7
+	box.content_margin_right = 7
+	box.content_margin_top = 2
+	box.content_margin_bottom = 2
+	panel.add_theme_stylebox_override("panel", box)
+	parent.add_child(panel)
+	return panel
+
+func _row(parent: Node, separation: int) -> HBoxContainer:
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", separation)
+	row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	parent.add_child(row)
+	return row
+
+func _build_demand_chip(key: String) -> void:
+	var chip = PanelContainer.new()
+	var box: StyleBoxFlat = _style(Color("172c38"), Color("3d6070"), 3)
+	box.content_margin_left = 5
+	box.content_margin_right = 5
+	box.content_margin_top = 3
+	box.content_margin_bottom = 3
+	chip.add_theme_stylebox_override("panel", box)
+	_demand.add_child(chip)
+	var row = _row(chip, 3)
+	var label: Label = _label(key.substr(0, 1).to_upper(), row)
+	label.add_theme_color_override("font_color", CityView.ZCOL[key])
+	label.add_theme_font_size_override("font_size", 12)
+	chip.tooltip_text = {"res": "Residential demand", "com": "Commercial demand", "ind": "Industrial demand"}[key]
+	var meter_base = ColorRect.new()
+	meter_base.color = Color("34414c")
+	meter_base.custom_minimum_size = Vector2(26, 9)
+	meter_base.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	meter_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(meter_base)
+	var meter = ProgressBar.new()
+	meter.name = "DemandMeter" + key.capitalize()
+	meter.position = Vector2(13, 0)
+	meter.size = Vector2(13, 9)
+	meter.show_percentage = false
+	meter.add_theme_font_size_override("font_size", 1)
+	meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	meter.add_theme_stylebox_override("background", StyleBoxEmpty.new())
+	meter_base.add_child(meter)
+	_demand_meters[key] = meter
+	var center = ColorRect.new()
+	center.color = Color("d9d4b3")
+	center.position = Vector2(13, 0)
+	center.size = Vector2(1, 9)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	meter_base.add_child(center)
+	var value: Label = _label("", row)
+	value.add_theme_font_size_override("font_size", 11)
+	_demand_labels[key] = value
+
+func _layout_shell() -> void:
+	if _header == null:
+		return
+	var compact: bool = size.x <= 950
+	theme.default_font_size = 12 if compact else 13
+	_header.custom_minimum_size.y = 36 if compact else 40
+	_tool_dock.custom_minimum_size.y = 42 if compact else 46
+	_footer.custom_minimum_size.y = 42 if compact else 46
+	_full_button.custom_minimum_size.y = 32
+	for label in _stat_labels.values():
+		label.add_theme_font_size_override("font_size", 11 if compact else 12)
+	var toolbar = _tool_dock.get_child(0)
+	for button in toolbar.find_children("*", "Button", true, false):
+		button.custom_minimum_size.y = 34 if compact else 38
+	_mode_button.custom_minimum_size.x = 115 if compact else 132
+	for button in _footer.find_children("*", "Button", true, false):
+		button.custom_minimum_size.y = 33 if compact else 38
+		button.add_theme_font_size_override("font_size", 11 if compact else 13)
+	for button in _tool_buttons.values():
+		button.custom_minimum_size = Vector2(118 if compact else 136, 36 if compact else 40)
+	_tool_name.visible = size.x > 720
+	_tool_name.add_theme_font_size_override("font_size", 12)
+	_demand.visible = size.x > 720
+	_status.offset_right = minf(680, size.x * 0.7)
+	_growth.offset_right = minf(680, size.x * 0.72)
+	# A bounded scrollable palette overlays the map and never changes its size.
+	var picker_width: float = minf(690, size.x - 16)
+	_tools.columns = 3 if compact else 4
+	_tool_menu.size = Vector2(picker_width, minf(maxf(52, ceilf(float(_tool_buttons.size()) / _tools.columns) * (41 if compact else 45) + 11), maxf(52, size.y - _header.custom_minimum_size.y - _tool_dock.custom_minimum_size.y - _footer.custom_minimum_size.y - 12)))
+	_tool_menu.get_child(0).custom_minimum_size = Vector2(0, 0)
+
+func _toggle_fullscreen() -> void:
+	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+	var fullscreen: bool = DisplayServer.window_get_mode() in [DisplayServer.WINDOW_MODE_FULLSCREEN, DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if fullscreen else DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 func _horizontal_scroll(node_name: String, parent: Node, minimum_height: float) -> HBoxContainer:
 	var scroll = ScrollContainer.new()
 	scroll.name = node_name
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.custom_minimum_size.y = minimum_height
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(scroll)
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	scroll.add_child(row)
 	return row
+
+func _button_padding(button: Button, horizontal: int, vertical: int) -> void:
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+		var box: StyleBoxFlat = button.get_theme_stylebox(state).duplicate()
+		box.content_margin_left = horizontal
+		box.content_margin_right = horizontal
+		box.content_margin_top = vertical
+		box.content_margin_bottom = vertical
+		button.add_theme_stylebox_override(state, box)
 
 func _button(text_value: String, callback: Callable, parent: Node) -> Button:
 	var button = Button.new()
 	button.text = text_value
-	button.custom_minimum_size = Vector2(0, 40)
+	button.custom_minimum_size = Vector2(0, 38)
 	button.focus_mode = Control.FOCUS_ALL
 	button.pressed.connect(callback)
 	parent.add_child(button)
@@ -859,6 +1100,7 @@ func _layout_dialog() -> void:
 	_dialog_panel.offset_bottom = dimensions.y / 2
 
 func open_dialog(kind: String) -> void:
+	_close_tool_menu()
 	_dialog_kind = kind
 	_ledger = null
 	_event_log = null

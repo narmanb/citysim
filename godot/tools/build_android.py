@@ -15,16 +15,18 @@ PROJECT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--godot', default=shutil.which('godot') or shutil.which('godot4') or 'godot')
-    parser.add_argument('--output', type=Path, default=PROJECT / 'build/MetroForge-Godot-0.3.0-debug.apk')
+    parser.add_argument('--output', type=Path, default=PROJECT / 'build/MetroForge-Godot-0.3.1-debug.apk')
     args = parser.parse_args()
     version = subprocess.check_output([args.godot, '--version'], text=True).strip()
     if not version.startswith('4.6.3.stable'):
         raise SystemExit('Use Godot 4.6.3 with matching Android export templates.')
-    sources = [PROJECT / 'project.godot', PROJECT / 'export_presets.cfg', PROJECT / 'assets/icon.svg']
+    sources = [PROJECT / 'project.godot', PROJECT / 'export_presets.cfg',
+               PROJECT / 'main.tscn', PROJECT / 'assets/icon.svg']
     for folder in ('model', 'view', 'ui', 'persistence'):
         sources.extend(sorted((PROJECT / folder).glob('*.gd')))
+    sources.extend(sorted((PROJECT / 'view').glob('*.gdshader')))
     receipts = {p.relative_to(PROJECT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}
-    info = {'version': '0.3.0-godot-preview', 'engine': version,
+    info = {'version': '0.3.1-godot-preview', 'engine': version,
             'built_utc': datetime.now(timezone.utc).isoformat(), 'source_sha256': receipts}
     (PROJECT / 'assets/build_info.json').write_text(json.dumps(info, indent=2) + '\n')
     output = args.output.resolve()
