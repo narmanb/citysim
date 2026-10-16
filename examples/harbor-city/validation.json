@@ -1,0 +1,145 @@
+{
+  "after_24_months_cash": 733120.0,
+  "after_24_months_stats": {
+    "abandoned": 0,
+    "avgCrime": 11,
+    "avgLand": 58,
+    "capacity": {
+      "com": 4896,
+      "ind": 1380,
+      "res": 5764
+    },
+    "commercialCapacity": 4896,
+    "commercialJobs": 4419,
+    "congestion": 55,
+    "count": {
+      "fire": 7,
+      "hospital": 7,
+      "line": 472,
+      "park": 60,
+      "pipe": 529,
+      "plant": 5,
+      "police": 7,
+      "pump": 5,
+      "rail": 164,
+      "road": 526,
+      "school": 7,
+      "station": 6,
+      "tower": 4
+    },
+    "developed": {
+      "com": 32,
+      "ind": 12,
+      "res": 64
+    },
+    "employed": 5184,
+    "expenses": 6344,
+    "industrialCapacity": 1380,
+    "industrialJobs": 765,
+    "jobs": 5184,
+    "lastYearNet": 151706,
+    "maintenance": 6007.8,
+    "net": 12663,
+    "occupied": {
+      "com": 4419,
+      "ind": 765,
+      "res": 5395
+    },
+    "population": 5395,
+    "powerGenerated": 2750.0,
+    "powerUsed": 1756,
+    "railRidership": 270,
+    "resCapacity": 5764,
+    "revenue": 19007,
+    "unemployment": 4,
+    "unpowered": 0,
+    "unwatered": 0,
+    "waterCapacity": 3320.0,
+    "waterPumped": 2600,
+    "waterStored": 720.0,
+    "waterUsed": 1706,
+    "yearToDate": 75978
+  },
+  "city_sha256": "d499e3947edce20061b5ff2c3563c9fe8a82d25a8f4578dfba7299cd51a2191a",
+  "district_parcels": {
+    "Downtown": 16,
+    "Eastbank Quays": 8,
+    "Freight and manufacturing": 12,
+    "Garden neighborhoods": 32,
+    "Hillcrest": 4,
+    "Midtown": 12,
+    "North Quarter": 8,
+    "Parkside": 4,
+    "Southbank": 12
+  },
+  "initial_agents": {
+    "cars": 70,
+    "trains": 8
+  },
+  "initial_cash": 425000.0,
+  "initial_stats": {
+    "abandoned": 0,
+    "avgCrime": 11,
+    "avgLand": 59,
+    "capacity": {
+      "com": 4442,
+      "ind": 1380,
+      "res": 4658
+    },
+    "commercialCapacity": 4442,
+    "commercialJobs": 4069,
+    "congestion": 55,
+    "count": {
+      "fire": 7,
+      "hospital": 7,
+      "line": 472,
+      "park": 60,
+      "pipe": 529,
+      "plant": 5,
+      "police": 7,
+      "pump": 5,
+      "rail": 164,
+      "road": 526,
+      "school": 7,
+      "station": 6,
+      "tower": 4
+    },
+    "developed": {
+      "com": 32,
+      "ind": 12,
+      "res": 64
+    },
+    "employed": 4371,
+    "expenses": 6344,
+    "industrialCapacity": 1380,
+    "industrialJobs": 765,
+    "jobs": 4834,
+    "maintenance": 6007.8,
+    "net": 10621,
+    "occupied": {
+      "com": 4069,
+      "ind": 765,
+      "res": 4371
+    },
+    "population": 4371,
+    "powerGenerated": 2750.0,
+    "powerUsed": 1593,
+    "railRidership": 270,
+    "resCapacity": 4658,
+    "revenue": 16965,
+    "unemployment": 0,
+    "unpowered": 0,
+    "unwatered": 0,
+    "waterCapacity": 3320.0,
+    "waterPumped": 2600,
+    "waterStored": 720.0,
+    "waterUsed": 1543,
+    "yearToDate": 53105
+  },
+  "map_size": [
+    52,
+    52
+  ],
+  "seed": 803621,
+  "validation_checks": 18027
+}

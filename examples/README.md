@@ -1,7 +1,8 @@
-# MetroForge test city
+# MetroForge example cities
 
-Download and extract `MetroForge-Test-City.zip`. In **MetroForge Godot 0.3.1**, use **City / Files → Import JSON file** and choose **MetroForge-Test-City-Complete.json** from the extracted folder.
+Import these city saves in **MetroForge Godot 0.3.1** using **City / Files → Import JSON file**. Extract the chosen ZIP first. Save/export your current city if you want to keep it.
 
-This is a complete export from the native game: 2,704 tiles (52 × 52), population 176, jobs 222, $250,000, January 2003. It includes roads, zoning, developed properties, power, water, rail and civic services. Random disasters are disabled. Existing cities are replaced only after a valid import; save/export yours first if you want to keep it.
+- **[Harbor City — larger showcase](harbor-city/)**: 4,371 residents, 4,834 jobs, 108 developed properties, 60 parks, six rail stops, eight trains and 70 cars. Includes a native-game preview and validation report.
+- **[Small test city](MetroForge-Test-City.zip)**: the earlier example with 176 residents, 222 jobs and $250,000. Choose `MetroForge-Test-City-Complete.json` from its extracted folder.
 
-The ZIP keeps the JSON separate from browser/chat file previews. Its included `READ-ME.txt` records the JSON checksum. Import was checked through the native game's file-selection callback, including an export/import round trip. That desktop check does not reproduce Android's native document-provider access.
+Both use the existing 52 × 52 map and have been checked through the native file-import callback. The ZIP filenames and enclosed JSON names distinguish them from source/asset catalog files.
