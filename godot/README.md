@@ -16,6 +16,10 @@ The local debug certificate is for testing. Public release signing and store pub
 
 The build helper records source SHA-256 receipts in the APK and validates its native scripts/libraries. It uses the same export command available directly through Godot's Android export preset.
 
+The `Build native Godot Android preview` GitHub Actions workflow builds the migration branch, runs the native tests, and provides an APK/source download under the run's Artifacts. It also attaches those files to the existing unpublished `v0.3.0-godot-preview` draft release. The workflow checks the draft status before replacing any attachments.
+
+CI can use an Android debug keystore supplied through the repository Actions secret `GODOT_ANDROID_DEBUG_KEYSTORE_BASE64` (alias `androiddebugkey`, password `android`). Without that optional secret, each run creates its own testing key; Android then requires uninstalling a differently signed previous preview before installing that build. Export city JSON before uninstalling. Production signing keys are not part of this workflow.
+
 ## Move an existing city
 
 1. In the old Android app, save the city and use City / Files → Export JSON.
