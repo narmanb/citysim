@@ -52,4 +52,29 @@ func run():
     await shot(out+"/terrain.png")
     var bounds=FileAccess.open(out+"/metrics.json",FileAccess.WRITE)
     bounds.store_string(JSON.stringify({"peak":peak,"metrics":view.metrics,"draw_calls":RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)}))
-    view.queue_free();await process_frame;quit()
+    view.queue_free();await process_frame
+    root.size=Vector2i(1280,591)
+    root.content_scale_size=Vector2i(854,394)
+    root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+    var game=load("res://main.tscn").instantiate()
+    root.add_child(game)
+    game.paused=true
+    game.set_process(false)
+    game.set_world(world)
+    await process_frame;await process_frame
+    game.choose_tool("raise")
+    if game.has_method("set_terrain_settings"): game.set_terrain_settings(1,2)
+    game.view.tile_scale=14
+    game.view.camera=game.view.size*.5-game.view._point(26,25)*14/28.0
+    game._toast.hide()
+    await shot(out+"/landscape.png")
+    game.select_category("Terraform")
+    await shot(out+"/terraform-panel.png")
+    if game.has_method("set_terrain_settings"):
+        game.choose_tool("flatten");game.set_terrain_settings(2,1,3)
+        game.view.hover=27*World.N+30
+        game.view._update_indicators()
+        await shot(out+"/brush-preview.png")
+        game.select_category("Terraform")
+        await shot(out+"/flatten-panel.png")
+    game.queue_free();await process_frame;quit()

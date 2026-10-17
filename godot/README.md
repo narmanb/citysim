@@ -4,6 +4,8 @@ Open `project.godot` with **Godot 4.6.3 standard edition** and press Play. This 
 
 ## Unreleased source changes
 
+Terraform now supports heights −5…+12, centered 1×1/3×3/5×5 brushes, height steps 1/2/4 and Flatten to the first touched tile or an explicit level. Previews show targets, protected cells and total cost. Paint strokes deduplicate overlapping footprints, commit atomically and undo as one action. Terrain remains flat-topped and stepped; slopes/smoothing are deferred. See [the phased terrain report](../docs/terraforming-2.0.md) for compatibility, controls, validation and limits. No APK/release has been replaced.
+
 Housing, Business and Industrial remain the three zoning choices. New painted properties choose their building type automatically: lot shape, demand, population, services, land value, utilities and roads influence development. A flat 3×3 housing property can grow nine homes or a four-wing apartment complex; size permits denser buildings without guaranteeing them.
 
 The renderer now uses 24 building recipes and six selective wall/roof palettes. Styles stay stable across camera movement and save/reload. Windows, transparency and authored shading are preserved. See [building variety and automatic growth](docs/building-variety.md) for rules, validation and desktop performance comparisons. These changes have not been packaged into a new APK.

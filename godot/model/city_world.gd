@@ -6,11 +6,11 @@ const N = 52
 const COUNT = N * N
 const MIN_TERRAIN_ELEV = -5
 const MAX_TERRAIN_ELEV = 12
-const COST = {"bulldoze":18,"road":18,"rail":36,"line":13,"pipe":12,"res":9,"apt":14,"shop":12,"office":16,"light":12,"heavy":22,"park":95,"plant":3000,"pump":950,"tower":800,"police":1200,"fire":1200,"school":1600,"hospital":1900,"station":550,"raise":20,"lower":20,"river":24,"grass":5,"desert":5,"tree":4,"forest":6}
+const COST = {"bulldoze":18,"road":18,"rail":36,"line":13,"pipe":12,"res":9,"apt":14,"shop":12,"office":16,"light":12,"heavy":22,"park":95,"plant":3000,"pump":950,"tower":800,"police":1200,"fire":1200,"school":1600,"hospital":1900,"station":550,"raise":20,"lower":20,"flatten":20,"river":24,"grass":5,"desert":5,"tree":4,"forest":6}
 const CONFIG = {"monthSeconds":4,"startingCash":36000,"powerPlantCapacity":550,"waterPumpCapacity":520,"waterTowerCapacity":180,"waterTowerLoss":1,"bondAmount":10000,"bondPayment":150,"bondTerm":80,"maxCars":70,"maxTrains":9,"bridgeSpan":8,"milestones":[500,1000,2500,5000,10000],"buildingCapacity":{"res":[0,12,28,68,150],"com":[0,10,24,58,125],"ind":[0,12,30,68,130]},"maintenance":{"road":1.5,"rail":2.4,"line":0.4,"pipe":0.45,"park":8,"plant":120,"pump":32,"tower":18,"police":80,"fire":80,"school":110,"hospital":130,"station":28},"serviceRadius":{"police":8,"fire":8,"school":9,"hospital":9}}
-const TOOLS = [["pan","✋ Pan"],["bulldoze","▧ Bulldoze"],["road","═ Road"],["rail","≡ Rail"],["line","⚡ Power line"],["pipe","◌ Water pipe"],["res","⌂ House lots"],["apt","▥ Apartment lots"],["shop","▣ Shops & services"],["office","▥ Offices"],["light","▤ Light industry"],["heavy","♨ Heavy industry"],["park","♣ Park"],["plant","⚙ Power plant"],["pump","◉ Water pump"],["tower","◍ Water tower"],["police","✦ Police"],["fire","▲ Fire station"],["school","◆ School"],["hospital","✚ Hospital"],["station","▥ Rail station"],["raise","▲ Raise terrain"],["lower","▼ Lower terrain"],["river","≈ Dig water channel"],["grass","· Grass biome"],["desert","░ Desert biome"],["tree","♠ Tree"],["forest","♣ Forest brush"]]
+const TOOLS = [["pan","✋ Pan"],["bulldoze","▧ Bulldoze"],["road","═ Road"],["rail","≡ Rail"],["line","⚡ Power line"],["pipe","◌ Water pipe"],["res","⌂ House lots"],["apt","▥ Apartment lots"],["shop","▣ Shops & services"],["office","▥ Offices"],["light","▤ Light industry"],["heavy","♨ Heavy industry"],["park","♣ Park"],["plant","⚙ Power plant"],["pump","◉ Water pump"],["tower","◍ Water tower"],["police","✦ Police"],["fire","▲ Fire station"],["school","◆ School"],["hospital","✚ Hospital"],["station","▥ Rail station"],["raise","▲ Raise terrain"],["lower","▼ Lower terrain"],["flatten","═ Flatten terrain"],["river","≈ Dig water channel"],["grass","· Grass biome"],["desert","░ Desert biome"],["tree","♠ Tree"],["forest","♣ Forest brush"]]
 const ZONE_TOOL = {"res":{"zone":"res","type":"house"},"apt":{"zone":"res","type":"apt"},"shop":{"zone":"com","type":"shop"},"office":{"zone":"com","type":"office"},"light":{"zone":"ind","type":"light"},"heavy":{"zone":"ind","type":"heavy"}}
-const CATEGORIES = {"Transport":["road","rail","station"],"Zoning":["res","apt","shop","office","light","heavy"],"Utilities":["line","pipe","plant","pump","tower"],"Services":["police","fire","school","hospital"],"Parks":["park"],"Terraform":["raise","lower","river","grass","desert","tree","forest"]}
+const CATEGORIES = {"Transport":["road","rail","station"],"Zoning":["res","apt","shop","office","light","heavy"],"Utilities":["line","pipe","plant","pump","tower"],"Services":["police","fire","school","hospital"],"Parks":["park"],"Terraform":["raise","lower","flatten","river","grass","desert","tree","forest"]}
 const TERRAIN_TOOLS = ["raise","lower","river","grass","desert","tree","forest"]
 const SERVICES = ["police","fire","school","hospital"]
 
@@ -127,7 +127,8 @@ func take_bond() -> bool:
 	return true
 
 func can_place(i: int, tool: String, bridge: bool = false) -> bool:
-	if i < 0 or i >= tiles.size() or not COST.has(tool): return false
+	# Flatten needs an explicit/sampled target and executes through TerrainEditor.
+	if i < 0 or i >= tiles.size() or not COST.has(tool) or tool == "flatten": return false
 	var t = tiles[i]
 	if tool == "raise" and t.elev >= MAX_TERRAIN_ELEV: return false
 	if tool == "lower" and t.elev <= MIN_TERRAIN_ELEV: return false

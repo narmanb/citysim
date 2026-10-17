@@ -8,6 +8,7 @@ signal stroke_started
 signal tile_painted(index: int)
 signal stroke_finished
 signal selection_changed(index: int)
+signal terrain_preview_requested(index: int, centers: Array)
 
 const Layer = preload("res://view/iso_layer.gd")
 const GroundShader = preload("res://view/opaque_ground.gdshader")
@@ -42,6 +43,7 @@ var camera: Vector2 = Vector2.ZERO:
 		camera = value
 		_apply_camera()
 var hover: int = -1
+var terrain_preview: Dictionary = {}
 var metrics: Dictionary = {"ground_redraws": 0, "static_objects": 0, "visible_tiles": 0, "agents": 0}
 
 var _city: Node2D
@@ -686,20 +688,35 @@ func _update_overlay() -> void:
 func _update_indicators() -> void:
 	if not is_instance_valid(_indicator_layer): return
 	_indicator_layer.commands.clear()
+	if tool in ["raise", "lower", "flatten"]:
+		terrain_preview_requested.emit(-1 if _gesture else hover, [] if _gesture else _pending_tiles)
+	else: terrain_preview = {}
 	if world != null:
 		for index in _fire_tiles:
 			var tile: Dictionary = world.tiles[index]
 			if not tile.get("fire", false): continue
 			var p: Vector2 = _point(index % N + 0.5, floori(float(index) / N) + 0.5, float(tile.get("elev", 0)))
 			_indicator_layer.polygon(PackedVector2Array([p - Vector2(BASE * 0.16, 0), p - Vector2(0, BASE * 0.8), p + Vector2(BASE * 0.18, -BASE * 0.1)]), Color("f69b3b"))
-		for index in _pending_tiles:
+		for index in (_pending_tiles if terrain_preview.is_empty() else []):
 			if index >= 0 and index < world.tiles.size():
 				_diamond(_indicator_layer, index % N, floori(float(index) / N), float(world.tiles[index].get("elev", 0)), Color("eaf2a04d"))
 		if selected >= 0 and selected < world.tiles.size():
 			_diamond(_indicator_layer, selected % N, floori(float(selected) / N), float(world.tiles[selected].get("elev", 0)), Color.TRANSPARENT, Color("fff3ad"), 2.0)
-		if hover >= 0 and hover < world.tiles.size() and tool != "pan":
+		if hover >= 0 and hover < world.tiles.size() and tool != "pan" and tool not in ["raise", "lower", "flatten"]:
 			var valid: bool = world.can_place(hover, tool)
 			_diamond(_indicator_layer, hover % N, floori(float(hover) / N), float(world.tiles[hover].get("elev", 0)), Color("eaf2a077") if valid else Color("ee555577"), Color.WHITE, 1.5)
+		if not terrain_preview.is_empty():
+			var color := Color("65e2b06b") if terrain_preview.affordable else Color("ef655b77")
+			for index in terrain_preview.targets:
+				var x: int = index % N
+				var y: int = floori(float(index) / N)
+				var old: float = world.tiles[index].elev
+				var target: float = terrain_preview.targets[index]
+				_diamond(_indicator_layer, x, y, old, color, Color("d3ffe0"), 1)
+				_diamond(_indicator_layer, x, y, target, Color(color, 0.15), Color("d3ffe0"), 1)
+				_indicator_layer.line(PackedVector2Array([_point(x + 0.5, y + 0.5, old), _point(x + 0.5, y + 0.5, target)]), Color("d3ffe0"), 1)
+			for index in terrain_preview.blocked:
+				_diamond(_indicator_layer, index % N, floori(float(index) / N), float(world.tiles[index].elev), Color("ee555566"), Color("f4ac96"), 1)
 		for event in world.events:
 			if event.get("type", "") != "dispatch": continue
 			var index: int = int(event.get("i", -1))
@@ -778,9 +795,11 @@ func _gui_input(event: InputEvent) -> void:
 		_pointer_move(event.index, event.position)
 		accept_event()
 	elif event is InputEventMagnifyGesture:
+		if tool in ["raise", "lower", "flatten"]: _cancel_pointers()
 		zoom_at(event.factor, event.position)
 		accept_event()
 	elif event is InputEventPanGesture:
+		if tool in ["raise", "lower", "flatten"]: _cancel_pointers()
 		camera -= event.delta * 18.0
 		accept_event()
 
@@ -817,7 +836,7 @@ func _pointer_down(id: int, point: Vector2, touch: bool, right: bool = false) ->
 	_pending_tiles.clear()
 	hover = _anchor
 	if mode == "paint" and tool != "pan" and not right and _anchor >= 0:
-		if touch or tool in ["road", "rail"]:
+		if touch or tool in ["road", "rail", "raise", "lower", "flatten"]:
 			_pending_tiles.append(_anchor)
 		else:
 			_emit_paint(_anchor)
@@ -857,7 +876,7 @@ func _pointer_move(id: int, point: Vector2) -> void:
 				_pending_tiles = _tile_line(_anchor, index)
 			else:
 				for tile_index in _tile_line(_last_tile, index):
-					if _touches[id].touch:
+					if _touches[id].touch or tool in ["raise", "lower", "flatten"]:
 						if not _pending_tiles.has(tile_index): _pending_tiles.append(tile_index)
 					else: _emit_paint(tile_index)
 			_last_tile = index
@@ -880,7 +899,7 @@ func _pointer_up(id: int, point: Vector2, canceled: bool = false) -> void:
 				if _anchor >= 0 and last >= 0:
 					_emit_paint(_anchor)
 					_emit_paint(last)
-			elif touch:
+			elif touch or tool in ["raise", "lower", "flatten"]:
 				for index in _pending_tiles: _emit_paint(index)
 	_touches.erase(id)
 	if _touches.is_empty():

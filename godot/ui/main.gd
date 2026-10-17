@@ -5,6 +5,8 @@ const World = preload("res://model/city_world.gd")
 const CityView = preload("res://view/isometric_view.gd")
 const Store = preload("res://persistence/city_store.gd")
 const ConstructionHistory = preload("res://ui/construction_history.gd")
+const TerrainEditor = preload("res://model/terrain_editor.gd")
+const TerrainSettings = preload("res://ui/terrain_settings.gd")
 const PerformanceDisplay = preload("res://ui/performance_display.gd")
 const CATEGORIES: Dictionary = {
 	"Transport": ["road", "rail", "station"],
@@ -12,7 +14,7 @@ const CATEGORIES: Dictionary = {
 	"Utilities": ["line", "pipe", "plant", "pump", "tower"],
 	"Services": ["police", "fire", "school", "hospital"],
 	"Parks": ["park"],
-	"Terraform": ["raise", "lower", "river", "grass", "desert", "tree", "forest"]
+	"Terraform": ["raise", "lower", "flatten", "river", "grass", "desert", "tree", "forest"]
 }
 const TOOL_LABELS: Dictionary = {
 	"pan": "Pan / inspect", "bulldoze": "Bulldoze", "road": "Road", "rail": "Rail",
@@ -20,7 +22,7 @@ const TOOL_LABELS: Dictionary = {
 	"apt": "Apartment lots", "shop": "Business zone", "office": "Offices", "light": "Industrial zone",
 	"heavy": "Heavy industry", "park": "Park", "plant": "Power plant",
 	"pump": "Water pump", "tower": "Water tower", "police": "Police", "fire": "Fire station",
-	"school": "School", "hospital": "Hospital", "raise": "Raise terrain", "lower": "Lower terrain",
+	"school": "School", "hospital": "Hospital", "raise": "Raise terrain", "lower": "Lower terrain", "flatten": "Flatten terrain",
 	"river": "Dig water channel", "grass": "Grass biome", "desert": "Desert biome", "tree": "Tree", "forest": "Forest brush"
 }
 const OVERLAYS: Dictionary = {
@@ -48,6 +50,7 @@ const TOOL_HELP: Dictionary = {
 	"bulldoze": "Remove one layer at a time: fire, building, zoning, road, rail, line, pipe or tree.",
 	"raise": "Raise natural terrain one step. Hills can reach elevation +12.",
 	"lower": "Lower natural terrain one step. Basins can reach elevation −5.",
+	"flatten": "Flatten natural ground to the first touched tile or a chosen height. Protected cells stay unchanged.",
 	"river": "Dig a channel. It fills only when connected to existing water.",
 	"grass": "Paint grass biome on dry, undeveloped ground.", "desert": "Paint desert biome and clear trees.",
 	"tree": "Plant an individual tree on clear land.", "forest": "Paint forest on clear land. Power lines and buildings exclude trees."
@@ -76,6 +79,9 @@ Undo and Redo restore a whole construction stroke and its cost. The city clock a
 8. TRANSPORT AND EVENTS
 Roads and rails can bridge up to eight water tiles with dry land at both ends. Trains need two stations on a connected line. Events contains disasters, fire dispatch and the city message log. Random disasters are optional.
 
+TERRAFORM FLAT TERRACES
+Raise/Lower reaches −5 to +12. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Flatten uses the first touched tile or Set height. Preview shows cost and skipped cells; each changed cell costs $20. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Slopes and smoothing are not included yet.
+
 9. KEEP YOUR CITY
 Save writes a city in this app. Export makes a complete compatible JSON copy for backup or transfer. Import accepts JSON exported by the earlier MetroForge game. Use the native file picker or the copy/paste JSON fallback. Saves from the old Android app are transferred by exporting there and importing here.
 """
@@ -92,6 +98,11 @@ var _elapsed: float = 0.0
 var _stroke: bool = false
 var _stroke_parcel: int = 0
 var _stroke_tiles: Dictionary = {}
+var terrain_settings: Dictionary = {"radius": 0, "step": 1, "flatten_target": null}
+var _terrain_panel
+var _terrain_indices: Dictionary = {}
+var _terrain_stroke_settings: Dictionary = {}
+var _last_terrain_changed: bool = false
 var _linear_start: int = -1
 var _linear_end: int = -1
 var _auto_overlay: bool = false
@@ -148,7 +159,7 @@ func _process(delta: float) -> void:
 		_toast.visible = _toast_time > 0
 
 func advance_time(delta: float) -> void:
-	if world == null or paused or delta <= 0:
+	if world == null or paused or delta <= 0 or (_stroke and selected_tool in TerrainEditor.OPERATIONS) or (selected_tool in TerrainEditor.OPERATIONS and view != null and not view._pending_tiles.is_empty()):
 		return
 	var simulation_delta: float = delta * speed
 	_elapsed += simulation_delta
@@ -177,6 +188,7 @@ func toggle_pause() -> void:
 func set_world(value) -> bool:
 	if value == null:
 		return false
+	if view != null: view._cancel_pointers()
 	world = value
 	_elapsed = 0
 	_selected = -1
@@ -200,6 +212,7 @@ func choose_tool(tool: String) -> bool:
 		return false
 	if _stroke:
 		end_stroke()
+	if view != null: view._cancel_pointers()
 	selected_tool = tool
 	if view != null:
 		view.tool = tool
@@ -223,11 +236,13 @@ func choose_tool(tool: String) -> bool:
 	if _status != null:
 		_status.text = str(TOOL_HELP.get(tool, TOOL_LABELS[tool] + ": " + _money(World.COST.get(tool, 0)) + " per tile."))
 		refresh_selection()
+	_update_terrain_summary()
 	return true
 
 func set_placement_mode(mode: String) -> void:
 	if mode not in ["tapPan", "paint"]:
 		return
+	view._cancel_pointers()
 	placement_mode = mode
 	view.mode = mode
 	_mode_button.text = "Mode: Tap + pan" if mode == "tapPan" else "Mode: Paint drag"
@@ -253,6 +268,8 @@ func select_category(value: String) -> void:
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.tooltip_text = str(TOOL_HELP.get(tool, TOOL_LABELS[tool]))
 		_tool_buttons[tool] = button
+	_terrain_panel.visible = category == "Terraform" and selected_tool in TerrainEditor.OPERATIONS
+	_terrain_panel.configure(terrain_settings, selected_tool)
 	for key in _category_buttons:
 		_category_buttons[key].button_pressed = key == category
 	_tool_menu.visible = not was_open
@@ -276,6 +293,9 @@ func begin_stroke() -> void:
 		return
 	_stroke = true
 	_stroke_tiles.clear()
+	_terrain_indices.clear()
+	_terrain_stroke_settings = terrain_settings.duplicate()
+	_last_terrain_changed = false
 	_stroke_parcel = 0
 	_linear_start = -1
 	_linear_end = -1
@@ -287,11 +307,13 @@ func begin_stroke() -> void:
 func end_stroke() -> void:
 	if not _stroke:
 		return
+	if selected_tool in TerrainEditor.OPERATIONS:
+		_commit_terrain_stroke()
 	if selected_tool in ["road", "rail"] and _linear_start >= 0:
 		_construct_line_internal(_linear_start, _linear_end)
 	_stroke = false
 	_stroke_parcel = 0
-	if history.finish():
+	if history.finish() and selected_tool not in TerrainEditor.OPERATIONS:
 		world.recalculate()
 	view.refresh()
 	refresh_ui()
@@ -337,15 +359,22 @@ func construct_at(index: int, bridge: bool = false) -> bool:
 	var own_stroke: bool = not _stroke
 	if own_stroke:
 		begin_stroke()
-	var placed: bool = _place_one(index, bridge)
+	var terrain: bool = selected_tool in TerrainEditor.OPERATIONS
+	var placed: bool = _stage_terrain(index) if terrain else _place_one(index, bridge)
 	if own_stroke:
 		end_stroke()
+		if terrain: return _last_terrain_changed
 	return placed
 
 func paint_at(index: int) -> void:
 	if not _stroke:
 		begin_stroke()
 	if index < 0:
+		return
+	if selected_tool in TerrainEditor.OPERATIONS:
+		# The view already supplies every traversed center. Interpolating its
+		# deduplicated set again would invent cells on retraced/branched paths.
+		_stage_terrain(index)
 		return
 	if selected_tool in ["road", "rail"]:
 		if _linear_start < 0:
@@ -773,6 +802,7 @@ func _build_ui() -> void:
 	view.tile_painted.connect(paint_at)
 	view.stroke_finished.connect(end_stroke)
 	view.selection_changed.connect(_on_selection)
+	view.terrain_preview_requested.connect(_preview_terrain)
 	var camera = HBoxContainer.new()
 	camera.name = "CameraControls"
 	camera.z_index = 3900
@@ -880,13 +910,19 @@ func _build_ui() -> void:
 	picker_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	picker_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_tool_menu.add_child(picker_scroll)
+	var picker_column := VBoxContainer.new()
+	picker_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	picker_scroll.add_child(picker_column)
 	_tools = GridContainer.new()
 	_tools.name = "Tools"
 	_tools.columns = 3
 	_tools.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_tools.add_theme_constant_override("h_separation", 5)
 	_tools.add_theme_constant_override("v_separation", 5)
-	picker_scroll.add_child(_tools)
+	picker_column.add_child(_tools)
+	_terrain_panel = TerrainSettings.new()
+	_terrain_panel.settings_changed.connect(set_terrain_settings)
+	picker_column.add_child(_terrain_panel)
 	_tool_menu.hide()
 	_footer = _bar("Footer", Color("152531"), Color("536d79"), column)
 	var footer_row = _row(_footer, 8)
@@ -1006,8 +1042,9 @@ func _layout_shell() -> void:
 	_growth.offset_right = minf(680, size.x * 0.72)
 	# A bounded scrollable palette overlays the map and never changes its size.
 	var picker_width: float = minf(690, size.x - 16)
-	_tools.columns = 3 if compact else 4
-	_tool_menu.size = Vector2(picker_width, minf(maxf(52, ceilf(float(_tool_buttons.size()) / _tools.columns) * (41 if compact else 45) + 11), maxf(52, size.y - _header.custom_minimum_size.y - _tool_dock.custom_minimum_size.y - _footer.custom_minimum_size.y - 12)))
+	_tools.columns = 4 if category == "Terraform" else 3 if compact else 4
+	var terrain_height: float = maxf(66, _terrain_panel.get_combined_minimum_size().y) + 5 if _terrain_panel.visible else 0
+	_tool_menu.size = Vector2(picker_width, minf(terrain_height + maxf(52, ceilf(float(_tool_buttons.size()) / _tools.columns) * (41 if compact else 45) + 11), maxf(52, size.y - _header.custom_minimum_size.y - _tool_dock.custom_minimum_size.y - _footer.custom_minimum_size.y - 12)))
 	_tool_menu.get_child(0).custom_minimum_size = Vector2(0, 0)
 
 func _toggle_fullscreen() -> void:
@@ -1269,3 +1306,63 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			else:
 				undo()
 			get_viewport().set_input_as_handled()
+
+func set_terrain_settings(radius: int, step: int, target = null) -> bool:
+	if radius not in [0, 1, 2] or step not in [1, 2, 4]: return false
+	if target != null and (not World._finite(target) or float(target) != floor(float(target)) or target < World.MIN_TERRAIN_ELEV or target > World.MAX_TERRAIN_ELEV): return false
+	if _stroke: end_stroke()
+	view._cancel_pointers()
+	terrain_settings = {"radius": radius, "step": step, "flatten_target": target}
+	_terrain_panel.configure(terrain_settings, selected_tool)
+	_update_terrain_summary()
+	_layout_shell()
+	return true
+
+func _update_terrain_summary() -> void:
+	if selected_tool not in TerrainEditor.OPERATIONS: return
+	var width: int = int(terrain_settings.radius) * 2 + 1
+	var detail: String = "step %s" % terrain_settings.step
+	if selected_tool == "flatten": detail = "first tile" if terrain_settings.flatten_target == null else "height %s" % terrain_settings.flatten_target
+	_tool_name.text = "%s · %s×%s · %s" % [TOOL_LABELS[selected_tool], width, width, detail]
+	_tool_name.tooltip_text = _tool_name.text
+	_status.text = _tool_name.text + " · $20 per changed tile. Flat terraces."
+	_terrain_panel.configure(terrain_settings, selected_tool)
+
+func _stage_terrain(index: int) -> bool:
+	if index < 0 or index >= World.COUNT: return false
+	if _terrain_indices.is_empty() and _terrain_stroke_settings.flatten_target == null:
+		_terrain_stroke_settings.flatten_target = world.tiles[index].elev
+	for cell in TerrainEditor.footprint(index, _terrain_stroke_settings.radius): _terrain_indices[cell] = true
+	return true
+
+func _commit_terrain_stroke() -> void:
+	var proposal: Dictionary = TerrainEditor.plan(world, _terrain_indices.keys(), selected_tool, _terrain_stroke_settings.step, _terrain_stroke_settings.flatten_target)
+	var result: Dictionary = TerrainEditor.commit(world, proposal)
+	_last_terrain_changed = result.changed
+	if result.changed:
+		history.record(result.before, result.after, result.cost)
+		_status.text = "%s tiles changed · %s · %s cells skipped." % [proposal.targets.size(), _money(result.cost), proposal.blocked.size()]
+	else:
+		show_notice(result.reason + (" %s cells skipped: %s." % [proposal.blocked.size(), _terrain_reasons(proposal)] if not proposal.blocked.is_empty() else ""))
+
+func terrain_preview_at(index: int, centers: Array = []) -> Dictionary:
+	if index < 0 or index >= World.COUNT or selected_tool not in TerrainEditor.OPERATIONS: return {}
+	var stamps: Array = centers if not centers.is_empty() else [index]
+	var cells: Dictionary = {}
+	for center in stamps:
+		for cell in TerrainEditor.footprint(center, terrain_settings.radius): cells[cell] = true
+	var target = terrain_settings.flatten_target
+	if target == null: target = world.tiles[stamps[0]].elev
+	return TerrainEditor.plan(world, cells.keys(), selected_tool, terrain_settings.step, target)
+
+func _terrain_reasons(proposal: Dictionary) -> String:
+	var reasons: Dictionary = {}
+	for reason in proposal.blocked.values(): reasons[reason] = true
+	return ", ".join(reasons.keys())
+
+func _preview_terrain(index: int, centers: Array) -> void:
+	view.terrain_preview = terrain_preview_at(index, centers)
+	if view.terrain_preview.is_empty(): return
+	var p: Dictionary = view.terrain_preview
+	_status.text = "%s · %s tiles · %s%s" % [_tool_name.text, p.targets.size(), _money(p.cost), " · insufficient funds; nothing will change" if not p.affordable else ""]
+	if not p.blocked.is_empty(): _status.text += " · %s skipped (%s)" % [p.blocked.size(), _terrain_reasons(p)]

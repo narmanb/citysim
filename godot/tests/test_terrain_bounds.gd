@@ -27,7 +27,7 @@ func run():
         check(not w.place(i,"lower") and w.cash==cash,"Lower at -5 is a free no-op")
     for height in range(-5,13):
         w.tiles[0].elev=height
-        var restored=World.from_dict(w.serialize())
+        var restored=World.from_dict(JSON.parse_string(JSON.stringify(w.serialize())))
         check(restored!=null and restored.tiles[0].elev==height,"Every legal elevation survives JSON import")
     for height in [-6,13,0.5,"5",INF,NAN]:
         var data=w.serialize();data.tiles[0].elev=height
