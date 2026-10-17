@@ -182,11 +182,39 @@ func run() -> void:
 	for node_name in ["Stats", "Categories", "Tools", "Playback", "Actions", "Status", "GrowthHint", "Selection"]:
 		check(game.find_child(node_name, true, false) != null, "Native control exists: " + node_name)
 	_test_connected_strokes(game)
+	_test_generic_zoning_preserves_existing_properties(game)
 	game.queue_free()
 	await process_frame
 	if failures.is_empty():
 		print("PASS test_game: construction, parcels, history, bridges, timing, safe import and native controls")
 	quit(0 if failures.is_empty() else 1)
+
+func _test_generic_zoning_preserves_existing_properties(game) -> void:
+	var world = game.world
+	for pair in [["res", "apt"], ["shop", "office"], ["light", "logistics"], ["light", "heavy"]]:
+		var index: int = 300
+		world.tiles[index] = world.blank_tile()
+		world.tiles[index + 1] = world.blank_tile()
+		check(world.place(index, pair[1]), "Legacy zoning fixture succeeds: " + pair[1])
+		check(world.place(index + 1, pair[1], false, world.tiles[index].parcel), "Legacy property has two tiles")
+		world.tiles[index].level = 2
+		world.tiles[index].occupancy = 20
+		world.tiles[index + 1].level = 2
+		world.recalculate()
+		game.clear_history()
+		game.choose_tool(pair[0])
+		var before: Array = [world.tiles[index].duplicate(true), world.tiles[index + 1].duplicate(true)]
+		var cash: float = world.cash
+		check(not game.construct_at(index), "A generic zone tap does not replace an existing subtype: " + pair[1])
+		check(world.tiles[index] == before[0] and world.tiles[index + 1] == before[1] and world.cash == cash,
+			"Tapping the same zone family preserves development, occupancy, parcel and cash: " + pair[1])
+		game.begin_stroke()
+		game.paint_at(index)
+		game.paint_at(index + 1)
+		game.end_stroke()
+		check(world.tiles[index] == before[0] and world.tiles[index + 1] == before[1] and world.cash == cash,
+			"Painting the same zone family preserves legacy properties: " + pair[1])
+		check(game.history.undo_stack.is_empty(), "Unchanged zoning does not add a construction action")
 
 func _test_connected_strokes(game) -> void:
 	var world = game.world

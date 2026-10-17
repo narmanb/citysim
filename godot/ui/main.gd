@@ -8,7 +8,7 @@ const ConstructionHistory = preload("res://ui/construction_history.gd")
 const PerformanceDisplay = preload("res://ui/performance_display.gd")
 const CATEGORIES: Dictionary = {
 	"Transport": ["road", "rail", "station"],
-	"Zoning": ["res", "apt", "shop", "office", "light", "logistics", "heavy"],
+	"Zoning": ["res", "shop", "light"],
 	"Utilities": ["line", "pipe", "plant", "pump", "tower"],
 	"Services": ["police", "fire", "school", "hospital"],
 	"Parks": ["park"],
@@ -16,8 +16,8 @@ const CATEGORIES: Dictionary = {
 }
 const TOOL_LABELS: Dictionary = {
 	"pan": "Pan / inspect", "bulldoze": "Bulldoze", "road": "Road", "rail": "Rail",
-	"station": "Rail station", "line": "Power line", "pipe": "Water pipe", "res": "House lots",
-	"apt": "Apartment lots", "shop": "Shops & services", "office": "Offices", "light": "Light industry",
+	"station": "Rail station", "line": "Power line", "pipe": "Water pipe", "res": "Housing zone",
+	"apt": "Apartment lots", "shop": "Business zone", "office": "Offices", "light": "Industrial zone",
 	"logistics": "Logistics", "heavy": "Heavy industry", "park": "Park", "plant": "Power plant",
 	"pump": "Water pump", "tower": "Water tower", "police": "Police", "fire": "Fire station",
 	"school": "School", "hospital": "Hospital", "raise": "Raise terrain", "lower": "Lower terrain",
@@ -31,13 +31,13 @@ const OVERLAYS: Dictionary = {
 }
 const TOOL_HELP: Dictionary = {
 	"pan": "Drag to pan. Tap a tile to inspect its parcel and services. Pinch or use + / − to zoom.",
-	"res": "A tap creates one house lot. In Paint drag, a connected stroke becomes one larger property.",
+	"res": "Zone homes beside roads, then supply power and water. Tap for one lot; Paint drag for one larger property.",
 	"apt": "Larger apartment parcels support larger buildings. Add road access, power, water and jobs.",
-	"shop": "Shops need customers, road access and utilities. A paint stroke creates one property.",
+	"shop": "Zone businesses for shops, services and jobs. They need customers, road access, power and water.",
 	"office": "Offices provide denser employment and need a stronger population base.",
-	"light": "Light industry creates jobs with moderate pollution. Keep homes upwind and away.",
-	"logistics": "Logistics prefers at least two tiles per property and generates freight traffic.",
-	"heavy": "Heavy industry prefers at least four tiles and creates the most pollution.",
+	"light": "Zone industrial jobs with road access, power and water. Keep housing away from industrial pollution.",
+	"logistics": "Warehouse-style industry provides more jobs than light industry and prefers at least two tiles per property.",
+	"heavy": "Heavy industry provides more jobs per tile and prefers properties of at least four tiles. Keep homes away from pollution.",
 	"road": "Paint a road between dry banks to bridge up to eight water tiles. Roads must touch zones.",
 	"rail": "Connect two rail stations on one rail line. Paint between dry banks to build a bridge.",
 	"station": "Place a station on an existing rail tile. Two connected stations enable trains.",
@@ -54,7 +54,7 @@ const TOOL_HELP: Dictionary = {
 	"tree": "Plant an individual tree on clear land.", "forest": "Paint forest on clear land. Power lines and buildings exclude trees."
 }
 const GUIDE: String = """1. BUILD A CONNECTED CITY
-Place roads beside zones. Each property needs adjacent road access. House lots and Apartment lots use parcels: a tap makes a 1×1 lot; one connected Paint-drag stroke makes one larger property.
+Choose Housing zone for homes, Business zone for shops and services, or Industrial zone for industrial jobs. Each property needs adjacent road access. A tap makes a 1×1 lot; one connected Paint-drag stroke makes one larger property. Painting the same zone family leaves existing properties intact.
 
 2. SUPPLY POWER
 Build a power plant and connect a power line to the first zone tile. Developed powered buildings pass electricity to neighboring developed buildings. Empty zoning cannot carry power onward. Lines can cross roads.
@@ -66,7 +66,7 @@ Build a pump, power it, and pipe it to the first zone tile. Waterfront pumps pro
 A water tower holds up to 180 surplus units from a connected powered pump. It supplies the same pipe network during shortages. It does not make water by itself.
 
 5. SUPPORT GROWTH
-Provide industry for jobs and commercial lots for services. Keep homes away from pollution. Inspect lots and use overlays to diagnose road, power, water, crime and land-value problems. Adjust taxes and department funding in Budget.
+Balance Housing, Business and Industrial zones. Keep homes away from pollution. Inspect lots and use overlays to diagnose road, power, water, crime and land-value problems. Adjust taxes and department funding in Budget.
 
 6. BUILD WITH TOUCH
 Tap + pan places one tile on a tap and pans on a drag. Paint drag draws a connected construction stroke. Pan always moves the map. Two fingers pan and zoom without construction. + / − and Fit also control the camera.
@@ -292,8 +292,8 @@ func end_stroke() -> void:
 		_construct_line_internal(_linear_start, _linear_end)
 	_stroke = false
 	_stroke_parcel = 0
-	history.finish()
-	world.recalculate()
+	if history.finish():
+		world.recalculate()
 	view.refresh()
 	refresh_ui()
 	_after_placement()
@@ -316,6 +316,10 @@ func _place_one(index: int, bridge: bool = false) -> bool:
 	if index < 0 or index >= world.tiles.size() or _stroke_tiles.has(index):
 		return false
 	_stroke_tiles[index] = true
+	# Generic zone brushes keep existing subtypes within their family intact.
+	# This preserves imported apartments, offices and industrial variants.
+	if selected_tool in ["res", "shop", "light"] and world.tiles[index].get("zone") == World.ZONE_TOOL[selected_tool].zone:
+		return false
 	var before: Dictionary = _candidate_snapshot(index)
 	var cash_before: float = world.cash
 	if not world.place(index, selected_tool, bridge, _stroke_parcel):
