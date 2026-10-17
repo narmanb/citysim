@@ -13,6 +13,7 @@ signal terrain_preview_requested(index: int, centers: Array)
 const Layer = preload("res://view/iso_layer.gd")
 const GroundShader = preload("res://view/opaque_ground.gdshader")
 const BuildingCatalog = preload("res://view/building_catalog.gd")
+const Geometry = preload("res://model/terrain_geometry.gd")
 const World = preload("res://model/city_world.gd")
 const N: int = World.N
 const BASE: float = 28.0
@@ -181,7 +182,7 @@ func tile_to_screen(index: int) -> Vector2:
 	if world == null or index < 0 or index >= world.tiles.size():
 		return Vector2.INF
 	var tile: Dictionary = world.tiles[index]
-	return camera + _point(index % N + 0.5, floori(float(index) / N) + 0.5, float(tile.get("elev", 0))) * tile_scale / BASE
+	return camera + _point(index % N + 0.5, floori(float(index) / N) + 0.5, Geometry.sample(world.tiles,index)) * tile_scale / BASE
 
 func screen_to_tile(point: Vector2) -> int:
 	if world == null: return -1
@@ -200,7 +201,7 @@ func screen_to_tile(point: Vector2) -> int:
 		var x: int = index % N
 		var y: int = floori(float(index) / N)
 		var elevation: float = float(world.tiles[index].get("elev", 0))
-		var hit: bool = Geometry2D.is_point_in_polygon(local, _rect_points(x, y, elevation))
+		var hit: bool = Geometry2D.is_point_in_polygon(local, _terrain_points(index))
 		if not hit:
 			for face in _terrain_faces(index):
 				if Geometry2D.is_point_in_polygon(local, face[0]): hit = true; break
@@ -209,19 +210,48 @@ func screen_to_tile(point: Vector2) -> int:
 			depth = x + y
 	return best
 
+func _terrain_points(index: int, left: float = 0, top: float = 0, width: float = 1, height: float = 1, overrides: Dictionary = {}) -> PackedVector2Array:
+	var x: int = index % N
+	var y: int = index / N
+	var tile: Dictionary = Geometry.tile_at(world.tiles,index,overrides)
+	if tile.get("terrainShape","flat") != "slope": return _rect_points(x,y,tile.elev,left,top,width,height)
+	var out := PackedVector2Array()
+	for uv in [Vector2(left,top),Vector2(left+width,top),Vector2(left+width,top+height),Vector2(left,top+height)]:
+		out.append(_point(x+uv.x,y+uv.y,Geometry.sample(world.tiles,index,uv.x,uv.y,overrides)))
+	return out
+
 func _terrain_faces(index: int) -> Array:
 	var faces: Array = []
-	var tile: Dictionary = world.tiles[index]
 	var x: int = index % N
-	var y: int = floori(float(index) / N)
-	var elevation: float = float(tile.get("elev", 0))
-	for axis in [Vector2i(1, 0), Vector2i(0, 1)]:
-		var next: Vector2i = Vector2i(x, y) + axis
-		var lower: float = float(world.tiles[next.y * N + next.x].get("elev", 0)) if next.x < N and next.y < N else 0.0
-		if elevation > lower:
-			var a := Vector2(x + 1, y) if axis.x else Vector2(x, y + 1)
-			var b := Vector2(x + 1, y + 1)
-			faces.append([PackedVector2Array([_point(a.x, a.y, elevation), _point(b.x, b.y, elevation), _point(b.x, b.y, lower), _point(a.x, a.y, lower)]), Color("8b7954") if axis.x else Color("a18b62")])
+	var y: int = index / N
+	var h = Geometry.corners(world.tiles,index)
+	for side in [0,1]:
+		var a := Vector2(x+1,y) if side == 0 else Vector2(x,y+1)
+		var b := Vector2(x+1,y+1)
+		var hi := Vector2(h[1],h[2]) if side == 0 else Vector2(h[3],h[2])
+		var lo := Vector2.ZERO
+		var neighbor: int = index + 1 if side == 0 else index + N
+		if (side == 0 and x < N-1) or (side == 1 and y < N-1):
+			var nh = Geometry.corners(world.tiles,neighbor)
+			lo = Vector2(nh[0],nh[3]) if side == 0 else Vector2(nh[0],nh[1])
+		elif world.tiles[index].get("terrainShape","flat") == "slope" and minf(hi.x,hi.y) < 0:
+			lo = Vector2.ONE * World.MIN_TERRAIN_ELEV
+		var d: Vector2 = hi-lo
+		if d.x <= 0 and d.y <= 0: continue
+		var points := PackedVector2Array()
+		if d.x >= 0 and d.y >= 0:
+			points = PackedVector2Array([_point(a.x,a.y,hi.x),_point(b.x,b.y,hi.y),_point(b.x,b.y,lo.y),_point(a.x,a.y,lo.x)])
+		else:
+			var t: float = d.x/(d.x-d.y)
+			var meet: Vector2 = a.lerp(b,t)
+			var z: float = lerpf(hi.x,hi.y,t)
+			if d.x > 0: points = PackedVector2Array([_point(a.x,a.y,hi.x),_point(meet.x,meet.y,z),_point(a.x,a.y,lo.x)])
+			else: points = PackedVector2Array([_point(meet.x,meet.y,z),_point(b.x,b.y,hi.y),_point(b.x,b.y,lo.y)])
+		# Collapse coincident endpoints at one-sided seams: no degenerate quads.
+		if points.size() == 4:
+			if points[0].is_equal_approx(points[3]): points.remove_at(3)
+			elif points[1].is_equal_approx(points[2]): points.remove_at(2)
+		faces.append([points,Color("8b7954") if side == 0 else Color("a18b62")])
 	return faces
 
 func _neighbors(index: int) -> Array:
@@ -303,7 +333,10 @@ func _rebuild() -> void:
 		if tile.get("pipe", false): signature = hash([signature, _field("water", index) > 0])
 		if reset or signature != _tile_hashes[index]:
 			dirty[index] = true
-			for neighbor in _neighbors(index): dirty[neighbor] = true
+			for neighbor in _neighbors(index):
+				dirty[neighbor] = true
+				if world.tiles[neighbor].get("terrainShape","flat") == "slope" and world.tiles[neighbor].get("slopeDir","auto") == "auto":
+					for dependent in _neighbors(neighbor): dirty[dependent] = true
 			var old_parcel: int = _tile_parcels[index]
 			if _parcel_roots.has(old_parcel): dirty[_parcel_roots[old_parcel]] = true
 			if tile.get("parcel", 0):
@@ -360,7 +393,7 @@ func _record_tile(index: int) -> void:
 	var elevation: float = float(tile.get("elev", 0))
 	_draw_ground(_new_layer(depth + 1.0), index)
 	if tile.get("tree", false) and tile.get("terrain", "grass") != "water" and not tile.get("road", false) and not tile.get("rail", false) and not tile.get("civic", "") and not tile.get("level", 0):
-		_tree(_new_layer(depth + 1.1, true), x + 0.5, y + 0.5, elevation)
+		_tree(_new_layer(depth + 1.1, true), x + 0.5, y + 0.5, Geometry.sample(world.tiles,index))
 	if tile.get("line", false): _draw_pole(_new_layer(depth + 1.2, true), index)
 	if tile.get("civic", ""): _draw_civic(_new_layer(depth + 1.6, true), tile, x, y)
 	if int(tile.get("level", 0)) > 0:
@@ -372,7 +405,10 @@ func _rect_points(x: float, y: float, elevation: float, left: float = 0, top: fl
 	return PackedVector2Array([_point(x + left, y + top, elevation), _point(x + left + width, y + top, elevation), _point(x + left + width, y + top + height, elevation), _point(x + left, y + top + height, elevation)])
 
 func _diamond(layer, x: float, y: float, elevation: float, fill: Color, outline: Color = Color.TRANSPARENT, width: float = 1.0) -> void:
-	var points: PackedVector2Array = _rect_points(x, y, elevation)
+	var points: PackedVector2Array = _terrain_points(int(y)*N+int(x)) if world != null and x == floorf(x) and y == floorf(y) and x >= 0 and y >= 0 and x < N and y < N else _rect_points(x,y,elevation)
+	_draw_cap(layer,points,fill,outline,width)
+
+func _draw_cap(layer, points: PackedVector2Array, fill: Color, outline: Color = Color.TRANSPARENT, width: float = 1) -> void:
 	if fill.a > 0:
 		layer.polygon(points, fill)
 	if outline.a > 0:
@@ -390,7 +426,7 @@ func _surface(layer, name: String, x: float, y: float, elevation: float, left: f
 	for p in [Vector2(left, top), Vector2(left + width, top), Vector2(left + width, top + height), Vector2(left, top + height)]:
 		# Sample only the 132 by 66 cap, never the PNG's foundation walls.
 		uv.append((Vector2(float(sprite.x) + 66.0 + (p.x - p.y) * 66.0, float(sprite.y) + (p.x + p.y) * 33.0)) / Vector2(texture.get_size()))
-	layer.polygon(_rect_points(x, y, elevation, left, top, width, height), cap_color, texture, uv)
+	layer.polygon(_terrain_points(int(y)*N+int(x),left,top,width,height), cap_color, texture, uv)
 	return true
 
 func _sprite(layer, name: String, point: Vector2, span: float = 1.0, lift: float = 0.0, color: Color = Color.WHITE) -> void:
@@ -419,7 +455,7 @@ func _draw_ground(layer, index: int) -> void:
 		for j in _neighbors(index):
 			if world.tiles[j].get("terrain", "grass") != "water": continue
 			var rect: Rect2 = Rect2(0, 0, 1, 0.1) if j == index - N else Rect2(0, 0.9, 1, 0.1) if j == index + N else Rect2(0, 0, 0.1, 1) if j == index - 1 else Rect2(0.9, 0, 0.1, 1)
-			layer.polygon(_rect_points(x, y, elevation, rect.position.x, rect.position.y, rect.size.x, rect.size.y), Color("dcc78d"))
+			layer.polygon(_terrain_points(index, rect.position.x, rect.position.y, rect.size.x, rect.size.y), Color("dcc78d"))
 	if tile.get("zone", ""):
 		_draw_zone(layer, index)
 	if tile.get("road", false):
@@ -469,12 +505,13 @@ func _connections(layer, index: int, kind: String, color: Color, width: float, s
 	var x: int = index % N
 	var y: int = floori(float(index) / N)
 	var elevation: float = float(world.tiles[index].get("elev", 0))
-	var center: Vector2 = _point(x + 0.5, y + 0.5, elevation) + Vector2(0, shift)
+	var center: Vector2 = _point(x + 0.5, y + 0.5, Geometry.sample(world.tiles,index)) + Vector2(0, shift)
 	var connected: bool = false
 	for j in _neighbors(index):
 		var tile: Dictionary = world.tiles[j]
 		if not tile.get(kind, false) and not (kind == "pipe" and tile.get("civic", "") in ["pump", "tower"]): continue
-		var endpoint: Vector2 = _point(x + 0.5 + float(j % N - x) * 0.5, y + 0.5 + float(floori(float(j) / N) - y) * 0.5, elevation) + Vector2(0, shift)
+		var uv = Vector2(.5 + float(j % N - x)*.5, .5 + float(floori(float(j)/N)-y)*.5)
+		var endpoint: Vector2 = _point(x+uv.x,y+uv.y,Geometry.sample(world.tiles,index,uv.x,uv.y)) + Vector2(0,shift)
 		layer.line(PackedVector2Array([center, endpoint]), color, width)
 		connected = true
 	if not connected:
@@ -508,13 +545,13 @@ func _box(layer, x: float, y: float, elevation: float, width: float, depth: floa
 func _draw_pole(layer, index: int) -> void:
 	var x: int = index % N
 	var y: int = floori(float(index) / N)
-	var point: Vector2 = _point(x + 0.5, y + 0.5, float(world.tiles[index].get("elev", 0)))
+	var point: Vector2 = _point(x + 0.5, y + 0.5, Geometry.sample(world.tiles,index))
 	var top: Vector2 = point - Vector2(0, BASE * 0.65)
 	layer.line(PackedVector2Array([point, top]), Color("614d39"), BASE * 0.07)
 	layer.line(PackedVector2Array([top - Vector2(BASE * 0.16, 0), top + Vector2(BASE * 0.16, 0)]), Color("d5b97b"), BASE * 0.05)
 	for j in _neighbors(index):
 		if not world.tiles[j].get("line", false) and world.tiles[j].get("civic", "") != "plant": continue
-		var endpoint: Vector2 = _point(j % N + 0.5, floori(float(j) / N) + 0.5, float(world.tiles[j].get("elev", 0))) - Vector2(0, BASE * 0.65)
+		var endpoint: Vector2 = _point(j % N + 0.5, floori(float(j) / N) + 0.5, Geometry.sample(world.tiles,j)) - Vector2(0, BASE * 0.65)
 		layer.line(PackedVector2Array([top, (top + endpoint) * 0.5 + Vector2(0, BASE * 0.07), endpoint]), Color("b9af8b"), BASE * 0.025)
 
 func _draw_civic(layer, tile: Dictionary, x: int, y: int) -> void:
@@ -688,7 +725,7 @@ func _update_overlay() -> void:
 func _update_indicators() -> void:
 	if not is_instance_valid(_indicator_layer): return
 	_indicator_layer.commands.clear()
-	if tool in ["raise", "lower", "flatten"]:
+	if tool in ["raise", "lower", "flatten", "shape"]:
 		terrain_preview_requested.emit(-1 if _gesture else hover, [] if _gesture else _pending_tiles)
 	else: terrain_preview = {}
 	if world != null:
@@ -702,7 +739,7 @@ func _update_indicators() -> void:
 				_diamond(_indicator_layer, index % N, floori(float(index) / N), float(world.tiles[index].get("elev", 0)), Color("eaf2a04d"))
 		if selected >= 0 and selected < world.tiles.size():
 			_diamond(_indicator_layer, selected % N, floori(float(selected) / N), float(world.tiles[selected].get("elev", 0)), Color.TRANSPARENT, Color("fff3ad"), 2.0)
-		if hover >= 0 and hover < world.tiles.size() and tool != "pan" and tool not in ["raise", "lower", "flatten"]:
+		if hover >= 0 and hover < world.tiles.size() and tool != "pan" and tool not in ["raise", "lower", "flatten", "shape"]:
 			var valid: bool = world.can_place(hover, tool)
 			_diamond(_indicator_layer, hover % N, floori(float(hover) / N), float(world.tiles[hover].get("elev", 0)), Color("eaf2a077") if valid else Color("ee555577"), Color.WHITE, 1.5)
 		if not terrain_preview.is_empty():
@@ -712,8 +749,8 @@ func _update_indicators() -> void:
 				var y: int = floori(float(index) / N)
 				var old: float = world.tiles[index].elev
 				var target: float = terrain_preview.targets[index]
-				_diamond(_indicator_layer, x, y, old, color, Color("d3ffe0"), 1)
-				_diamond(_indicator_layer, x, y, target, Color(color, 0.15), Color("d3ffe0"), 1)
+				_draw_cap(_indicator_layer, _terrain_points(index), color, Color("d3ffe0"), 1)
+				_draw_cap(_indicator_layer, _terrain_points(index,0,0,1,1,terrain_preview.after), Color(color,.15), Color("d3ffe0"), 1)
 				_indicator_layer.line(PackedVector2Array([_point(x + 0.5, y + 0.5, old), _point(x + 0.5, y + 0.5, target)]), Color("d3ffe0"), 1)
 			for index in terrain_preview.blocked:
 				_diamond(_indicator_layer, index % N, floori(float(index) / N), float(world.tiles[index].elev), Color("ee555566"), Color("f4ac96"), 1)
@@ -795,11 +832,11 @@ func _gui_input(event: InputEvent) -> void:
 		_pointer_move(event.index, event.position)
 		accept_event()
 	elif event is InputEventMagnifyGesture:
-		if tool in ["raise", "lower", "flatten"]: _cancel_pointers()
+		if tool in ["raise", "lower", "flatten", "shape"]: _cancel_pointers()
 		zoom_at(event.factor, event.position)
 		accept_event()
 	elif event is InputEventPanGesture:
-		if tool in ["raise", "lower", "flatten"]: _cancel_pointers()
+		if tool in ["raise", "lower", "flatten", "shape"]: _cancel_pointers()
 		camera -= event.delta * 18.0
 		accept_event()
 
@@ -836,7 +873,7 @@ func _pointer_down(id: int, point: Vector2, touch: bool, right: bool = false) ->
 	_pending_tiles.clear()
 	hover = _anchor
 	if mode == "paint" and tool != "pan" and not right and _anchor >= 0:
-		if touch or tool in ["road", "rail", "raise", "lower", "flatten"]:
+		if touch or tool in ["road", "rail", "raise", "lower", "flatten", "shape"]:
 			_pending_tiles.append(_anchor)
 		else:
 			_emit_paint(_anchor)
@@ -876,7 +913,7 @@ func _pointer_move(id: int, point: Vector2) -> void:
 				_pending_tiles = _tile_line(_anchor, index)
 			else:
 				for tile_index in _tile_line(_last_tile, index):
-					if _touches[id].touch or tool in ["raise", "lower", "flatten"]:
+					if _touches[id].touch or tool in ["raise", "lower", "flatten", "shape"]:
 						if not _pending_tiles.has(tile_index): _pending_tiles.append(tile_index)
 					else: _emit_paint(tile_index)
 			_last_tile = index
@@ -899,7 +936,7 @@ func _pointer_up(id: int, point: Vector2, canceled: bool = false) -> void:
 				if _anchor >= 0 and last >= 0:
 					_emit_paint(_anchor)
 					_emit_paint(last)
-			elif touch or tool in ["raise", "lower", "flatten"]:
+			elif touch or tool in ["raise", "lower", "flatten", "shape"]:
 				for index in _pending_tiles: _emit_paint(index)
 	_touches.erase(id)
 	if _touches.is_empty():

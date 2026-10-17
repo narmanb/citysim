@@ -3,6 +3,7 @@ extends Control
 
 const World = preload("res://model/city_world.gd")
 const CityView = preload("res://view/isometric_view.gd")
+const Session = preload("res://persistence/city_session.gd")
 const Store = preload("res://persistence/city_store.gd")
 const ConstructionHistory = preload("res://ui/construction_history.gd")
 const TerrainEditor = preload("res://model/terrain_editor.gd")
@@ -14,7 +15,7 @@ const CATEGORIES: Dictionary = {
 	"Utilities": ["line", "pipe", "plant", "pump", "tower"],
 	"Services": ["police", "fire", "school", "hospital"],
 	"Parks": ["park"],
-	"Terraform": ["raise", "lower", "flatten", "river", "grass", "desert", "tree", "forest"]
+	"Terraform": ["raise", "lower", "flatten", "shape", "river", "grass", "desert", "tree", "forest"]
 }
 const TOOL_LABELS: Dictionary = {
 	"pan": "Pan / inspect", "bulldoze": "Bulldoze", "road": "Road", "rail": "Rail",
@@ -22,7 +23,7 @@ const TOOL_LABELS: Dictionary = {
 	"apt": "Apartment lots", "shop": "Business zone", "office": "Offices", "light": "Industrial zone",
 	"heavy": "Heavy industry", "park": "Park", "plant": "Power plant",
 	"pump": "Water pump", "tower": "Water tower", "police": "Police", "fire": "Fire station",
-	"school": "School", "hospital": "Hospital", "raise": "Raise terrain", "lower": "Lower terrain", "flatten": "Flatten terrain",
+	"school": "School", "hospital": "Hospital", "raise": "Raise terrain", "lower": "Lower terrain", "flatten": "Flatten terrain", "shape": "Shape terrain",
 	"river": "Dig water channel", "grass": "Grass biome", "desert": "Desert biome", "tree": "Tree", "forest": "Forest brush"
 }
 const OVERLAYS: Dictionary = {
@@ -50,6 +51,7 @@ const TOOL_HELP: Dictionary = {
 	"bulldoze": "Remove one layer at a time: fire, building, zoning, road, rail, line, pipe or tree.",
 	"raise": "Raise natural terrain one step. Hills can reach elevation +12.",
 	"lower": "Lower natural terrain one step. Basins can reach elevation −5.",
+	"shape": "Shape natural ground as Flat, Sloped or Cliff. Direction selects the high edge. Auto follows neighboring reference heights. Flatten before construction.",
 	"flatten": "Flatten natural ground to the first touched tile or a chosen height. Protected cells stay unchanged.",
 	"river": "Dig a channel. It fills only when connected to existing water.",
 	"grass": "Paint grass biome on dry, undeveloped ground.", "desert": "Paint desert biome and clear trees.",
@@ -80,13 +82,16 @@ Undo and Redo restore a whole construction stroke and its cost. The city clock a
 Roads and rails can bridge up to eight water tiles with dry land at both ends. Trains need two stations on a connected line. Events contains disasters, fire dispatch and the city message log. Random disasters are optional.
 
 TERRAFORM FLAT TERRACES
-Raise/Lower reaches −5 to +12. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Flatten uses the first touched tile or Set height. Preview shows cost and skipped cells; each changed cell costs $20. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Slopes and smoothing are not included yet.
+Raise/Lower reaches −5 to +12. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Flatten uses the first touched tile or Set height. Preview shows cost and skipped cells; each changed cell costs $20. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Shape terrain makes Flat, Sloped or Cliff caps. Sloped uses Auto or N/E/S/W (the high edge), with Gentle/Medium/Steep strength independent of height step. Auto needs neighboring height differences; manual directions work on level ground. Flatten before building on a slope. Rounded hills and smoothing are not included yet.
 
 9. KEEP YOUR CITY
-Save writes a city in this app. Export makes a complete compatible JSON copy for backup or transfer. Import accepts JSON exported by the earlier MetroForge game. Use the native file picker or the copy/paste JSON fallback. Saves from the old Android app are transferred by exporting there and importing here.
+Your last city reopens automatically. The game checkpoints periodically and when backgrounded. Save writes a separate manual city in this app. Export makes a complete compatible JSON copy for backup or transfer. Import accepts JSON exported by the earlier MetroForge game. Use the native file picker or the copy/paste JSON fallback. Saves from the old Android app are transferred by exporting there and importing here.
 """
 
 var world
+var session = Session.new()
+var _suspended: bool = false
+var _skip_delta: bool = false
 var view
 var history = ConstructionHistory.new()
 var paused: bool = false
@@ -98,7 +103,7 @@ var _elapsed: float = 0.0
 var _stroke: bool = false
 var _stroke_parcel: int = 0
 var _stroke_tiles: Dictionary = {}
-var terrain_settings: Dictionary = {"radius": 0, "step": 1, "flatten_target": null}
+var terrain_settings: Dictionary = {"radius": 0, "step": 1, "flatten_target": null, "shape": "flat", "direction": "auto", "strength": 1}
 var _terrain_panel
 var _terrain_indices: Dictionary = {}
 var _terrain_stroke_settings: Dictionary = {}
@@ -148,15 +153,39 @@ var _new_confirm: ConfirmationDialog
 
 func _ready() -> void:
 	_build_ui()
-	set_world(World.new())
+	var resumed = session.restore()
+	var resume_message: String = session.message
+	# Upgrade path: a previous manual save is useful on the first launch.
+	if resumed == null and not FileAccess.file_exists(session.path) and FileAccess.file_exists("user://city.json"):
+		resumed = Store.load_city()
+	set_world(resumed if resumed != null else World.new())
+	if not resume_message.is_empty(): show_notice(resume_message)
 	choose_tool("pan")
 	call_deferred("_fit_view")
 
 func _process(delta: float) -> void:
-	advance_time(delta)
+	if not _suspended and not _skip_delta: advance_time(delta)
+	_skip_delta = false
+	session.update(world, delta, _stroke or (view != null and not view._pending_tiles.is_empty()))
 	if _toast_time > 0:
 		_toast_time -= delta
 		_toast.visible = _toast_time > 0
+
+func _notification(what: int) -> void:
+	if what in [MainLoop.NOTIFICATION_APPLICATION_PAUSED, MainLoop.NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_CLOSE_REQUEST]:
+		_suspended = true
+		if view != null: view._cancel_pointers()
+		# Pending terrain previews are discarded; only committed world is stored.
+		if _stroke: end_stroke()
+		if world != null:
+			var error = session.flush(world)
+			if error != OK and _toast != null: show_notice("Auto-save failed: " + session.message)
+	elif what in [MainLoop.NOTIFICATION_APPLICATION_RESUMED, MainLoop.NOTIFICATION_APPLICATION_FOCUS_IN]:
+		_suspended = false
+		_skip_delta = true
+
+func _exit_tree() -> void:
+	if world != null: session.flush(world)
 
 func advance_time(delta: float) -> void:
 	if world == null or paused or delta <= 0 or (_stroke and selected_tool in TerrainEditor.OPERATIONS) or (selected_tool in TerrainEditor.OPERATIONS and view != null and not view._pending_tiles.is_empty()):
@@ -190,6 +219,7 @@ func set_world(value) -> bool:
 		return false
 	if view != null: view._cancel_pointers()
 	world = value
+	session.mark_dirty()
 	_elapsed = 0
 	_selected = -1
 	_stroke = false
@@ -344,6 +374,8 @@ func _place_one(index: int, bridge: bool = false) -> bool:
 	var before: Dictionary = _candidate_snapshot(index)
 	var cash_before: float = world.cash
 	if not world.place(index, selected_tool, bridge, _stroke_parcel):
+		if world.tiles[index].get("terrainShape","flat") == "slope" and selected_tool not in ["line","pipe","bulldoze"]:
+			show_notice("Flatten this slope before construction.")
 		return false
 	if selected_tool in CATEGORIES.Zoning:
 		world.tiles[index].autoGrow = true
@@ -565,6 +597,7 @@ func _on_selection(index: int) -> void:
 	refresh_selection()
 
 func refresh_ui() -> void:
+	session.mark_dirty()
 	if world == null or _stats_label == null:
 		return
 	var s: Dictionary = world.stats
@@ -773,8 +806,10 @@ func _build_ui() -> void:
 		button.add_theme_stylebox_override("pressed", _style(Color("446e7a"), Color("92c8cb"), 5))
 		button.add_theme_stylebox_override("hover_pressed", _style(Color("446e7a"), Color("92c8cb"), 5))
 		_category_buttons[group] = button
-	_undo_button = _button("↶", func(): undo(), categories)
-	_redo_button = _button("↷", func(): redo(), categories)
+	var history_controls = _row(toolbar, 4)
+	history_controls.name = "HistoryControls"
+	_undo_button = _button("↶", func(): undo(), history_controls)
+	_redo_button = _button("↷", func(): redo(), history_controls)
 	_undo_button.tooltip_text = "Undo last construction stroke"
 	_redo_button.tooltip_text = "Redo last construction stroke"
 	for button in [_undo_button, _redo_button]:
@@ -922,6 +957,7 @@ func _build_ui() -> void:
 	picker_column.add_child(_tools)
 	_terrain_panel = TerrainSettings.new()
 	_terrain_panel.settings_changed.connect(set_terrain_settings)
+	_terrain_panel.shape_settings_changed.connect(set_terrain_shape)
 	picker_column.add_child(_terrain_panel)
 	_tool_menu.hide()
 	_footer = _bar("Footer", Color("152531"), Color("536d79"), column)
@@ -1035,7 +1071,7 @@ func _layout_shell() -> void:
 		button.add_theme_font_size_override("font_size", 11 if compact else 13)
 	for button in _tool_buttons.values():
 		button.custom_minimum_size = Vector2(118 if compact else 136, 36 if compact else 40)
-	_tool_name.visible = size.x > 720
+	_tool_name.visible = size.x > 950
 	_tool_name.add_theme_font_size_override("font_size", 12)
 	_demand.visible = size.x > 720
 	_status.offset_right = minf(680, size.x * 0.7)
@@ -1186,7 +1222,9 @@ func open_dialog(kind: String) -> void:
 			random_toggle.text = "Allow random disasters"
 			random_toggle.custom_minimum_size.y = 42
 			random_toggle.button_pressed = world.randomDisasters
-			random_toggle.toggled.connect(func(value): world.randomDisasters = value)
+			random_toggle.toggled.connect(func(value):
+				world.randomDisasters = value
+				session.mark_dirty())
 			_dialog_body.add_child(random_toggle)
 			var row = GridContainer.new()
 			row.columns = 3
@@ -1312,8 +1350,17 @@ func set_terrain_settings(radius: int, step: int, target = null) -> bool:
 	if target != null and (not World._finite(target) or float(target) != floor(float(target)) or target < World.MIN_TERRAIN_ELEV or target > World.MAX_TERRAIN_ELEV): return false
 	if _stroke: end_stroke()
 	view._cancel_pointers()
-	terrain_settings = {"radius": radius, "step": step, "flatten_target": target}
+	terrain_settings.merge({"radius": radius, "step": step, "flatten_target": target}, true)
 	_terrain_panel.configure(terrain_settings, selected_tool)
+	_update_terrain_summary()
+	_layout_shell()
+	return true
+
+func set_terrain_shape(shape: String, direction: String, strength: int) -> bool:
+	if shape not in World.Geometry.SHAPES or direction not in World.Geometry.DIRECTIONS or strength not in [1,2,3]: return false
+	if _stroke: end_stroke()
+	view._cancel_pointers()
+	terrain_settings.merge({"shape":shape,"direction":direction,"strength":strength},true)
 	_update_terrain_summary()
 	_layout_shell()
 	return true
@@ -1322,10 +1369,11 @@ func _update_terrain_summary() -> void:
 	if selected_tool not in TerrainEditor.OPERATIONS: return
 	var width: int = int(terrain_settings.radius) * 2 + 1
 	var detail: String = "step %s" % terrain_settings.step
+	if selected_tool == "shape": detail = terrain_settings.shape + (" " + terrain_settings.direction if terrain_settings.shape == "slope" else "")
 	if selected_tool == "flatten": detail = "first tile" if terrain_settings.flatten_target == null else "height %s" % terrain_settings.flatten_target
 	_tool_name.text = "%s · %s×%s · %s" % [TOOL_LABELS[selected_tool], width, width, detail]
 	_tool_name.tooltip_text = _tool_name.text
-	_status.text = _tool_name.text + " · $20 per changed tile. Flat terraces."
+	_status.text = _tool_name.text + " · $20 per changed tile. " + ("Flatten before construction." if terrain_settings.shape == "slope" and selected_tool != "flatten" else "Flat construction tops.")
 	_terrain_panel.configure(terrain_settings, selected_tool)
 
 func _stage_terrain(index: int) -> bool:
@@ -1336,7 +1384,7 @@ func _stage_terrain(index: int) -> bool:
 	return true
 
 func _commit_terrain_stroke() -> void:
-	var proposal: Dictionary = TerrainEditor.plan(world, _terrain_indices.keys(), selected_tool, _terrain_stroke_settings.step, _terrain_stroke_settings.flatten_target)
+	var proposal: Dictionary = TerrainEditor.plan(world, _terrain_indices.keys(), selected_tool, _terrain_stroke_settings.step, _terrain_stroke_settings.flatten_target, _terrain_stroke_settings)
 	var result: Dictionary = TerrainEditor.commit(world, proposal)
 	_last_terrain_changed = result.changed
 	if result.changed:
@@ -1353,7 +1401,7 @@ func terrain_preview_at(index: int, centers: Array = []) -> Dictionary:
 		for cell in TerrainEditor.footprint(center, terrain_settings.radius): cells[cell] = true
 	var target = terrain_settings.flatten_target
 	if target == null: target = world.tiles[stamps[0]].elev
-	return TerrainEditor.plan(world, cells.keys(), selected_tool, terrain_settings.step, target)
+	return TerrainEditor.plan(world, cells.keys(), selected_tool, terrain_settings.step, target, terrain_settings)
 
 func _terrain_reasons(proposal: Dictionary) -> String:
 	var reasons: Dictionary = {}

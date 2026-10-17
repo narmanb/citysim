@@ -16,11 +16,23 @@ func run() -> void:
 	game.paused = true
 	await process_frame
 	await process_frame
-	for dimensions in [Vector2i(1280, 591), Vector2i(854, 394)]:
+	for dimensions in [Vector2i(1280, 591), Vector2i(854, 394), Vector2i(640, 360)]:
 		root.size = dimensions
 		root.content_scale_size = dimensions
 		await process_frame
 		await process_frame
+		for button in [game._undo_button, game._redo_button]:
+			var bounds: Rect2 = button.get_global_rect()
+			check(Rect2(Vector2.ZERO, Vector2(dimensions)).encloses(bounds), "History button fits landscape " + str(dimensions))
+			var ancestor = button.get_parent()
+			while ancestor is Control:
+				if ancestor.clip_contents:
+					check(ancestor.get_global_rect().encloses(bounds), "History button is fully visible outside clipped category strip " + str(dimensions))
+				ancestor = ancestor.get_parent()
+		if dimensions.x >= 854:
+			for button in game._category_buttons.values():
+				var clip = game.find_child("Categories",true,false)
+				check(clip.get_global_rect().encloses(button.get_global_rect()),"All six categories fit alongside fixed history at " + str(dimensions))
 		var map_rect: Rect2 = game.view.get_global_rect()
 		var compact: bool = dimensions.x <= 950
 		var expected_top: float = 78 if compact else 86

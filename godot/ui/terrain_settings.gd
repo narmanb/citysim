@@ -2,6 +2,7 @@ extends VBoxContainer
 const World = preload("res://model/city_world.gd")
 ## Session preferences only; never serialized into a city.
 signal settings_changed(radius: int, step: int, flatten_target)
+signal shape_settings_changed(shape: String, direction: String, strength: int)
 var settings: Dictionary = {"radius": 0, "step": 1, "flatten_target": null}
 var _steps: Dictionary = {}
 var _brushes: Dictionary = {}
@@ -10,6 +11,11 @@ var _flatten_row: HBoxContainer
 var _target_mode: OptionButton
 var _target_level: SpinBox
 var _syncing: bool = false
+var _shape_row: HBoxContainer
+var _slope_row: HBoxContainer
+var _shape: OptionButton
+var _direction: OptionButton
+var _strength: OptionButton
 
 func _ready() -> void:
 	name = "TerrainSettings"
@@ -46,8 +52,24 @@ func _ready() -> void:
 		if not _syncing: settings_changed.emit(settings.radius, settings.step, null if which == 0 else int(_target_level.value)))
 	_target_level.value_changed.connect(func(value):
 		if not _syncing: settings_changed.emit(settings.radius, settings.step, int(value)))
+	_shape_row = HBoxContainer.new()
+	common.add_child(_shape_row)
+	_label("  Shape ",_shape_row)
+	_shape = _option(["Flat","Sloped","Cliff"],_shape_row,"TerrainShape")
+	_shape.item_selected.connect(func(which):
+		if not _syncing: shape_settings_changed.emit(["flat","slope","cliff"][which],settings.get("direction","auto"),settings.get("strength",1)))
+	_slope_row = HBoxContainer.new()
+	add_child(_slope_row)
+	_label("High edge ",_slope_row)
+	_direction = _option(["Auto","N","E","S","W"],_slope_row,"SlopeDirection")
+	_direction.item_selected.connect(func(which):
+		if not _syncing: shape_settings_changed.emit(settings.get("shape","flat"),["auto","N","E","S","W"][which],settings.get("strength",1)))
+	_label("  Shape strength ",_slope_row)
+	_strength = _option(["Gentle","Medium","Steep"],_slope_row,"ShapeStrength")
+	_strength.item_selected.connect(func(which):
+		if not _syncing: shape_settings_changed.emit(settings.get("shape","flat"),settings.get("direction","auto"),which+1))
 	var note := Label.new()
-	note.text = "Flat terraces · $20 per changed tile · protected cells skipped"
+	note.text = "$20 per changed tile · protected cells skipped · flatten before building"
 	note.add_theme_font_size_override("font_size", 11)
 	add_child(note)
 	configure(settings, "raise")
@@ -56,7 +78,12 @@ func configure(value: Dictionary, operation: String) -> void:
 	settings = value.duplicate()
 	if not is_node_ready(): return
 	_syncing = true
-	_step_row.visible = operation != "flatten"
+	_step_row.visible = operation in ["raise","lower"]
+	_shape_row.visible = operation != "flatten"
+	_slope_row.visible = operation != "flatten" and settings.get("shape","flat") == "slope"
+	_shape.select(["flat","slope","cliff"].find(settings.get("shape","flat")))
+	_direction.select(["auto","N","E","S","W"].find(settings.get("direction","auto")))
+	_strength.select(settings.get("strength",1)-1)
 	_flatten_row.visible = operation == "flatten"
 	for key in _steps: _steps[key].button_pressed = key == settings.step
 	for key in _brushes: _brushes[key].button_pressed = key == settings.radius
@@ -78,3 +105,11 @@ func _choice(text: String, callback: Callable, parent: Node) -> Button:
 	button.pressed.connect(callback)
 	parent.add_child(button)
 	return button
+
+func _option(labels: Array, parent: Node, node_name: String) -> OptionButton:
+	var option := OptionButton.new()
+	option.name = node_name
+	option.custom_minimum_size.y = 34
+	for text in labels: option.add_item(text)
+	parent.add_child(option)
+	return option

@@ -1,7 +1,8 @@
 extends RefCounted
 ## Pure target planning followed by one validated, atomic terrain transaction.
 const World = preload("res://model/city_world.gd")
-const OPERATIONS = ["raise", "lower", "flatten"]
+const Geometry = preload("res://model/terrain_geometry.gd")
+const OPERATIONS = ["raise", "lower", "flatten", "shape"]
 
 static func footprint(center: int, radius: int) -> Array:
 	var cells: Array = []
@@ -13,13 +14,16 @@ static func footprint(center: int, radius: int) -> Array:
 			cells.append(yy * World.N + xx)
 	return cells
 
-static func plan(world, indices: Array, operation: String, step: int = 1, target = null) -> Dictionary:
+static func plan(world, indices: Array, operation: String, step: int = 1, target = null, shape_settings: Dictionary = {}) -> Dictionary:
 	var out: Dictionary = {"before": {}, "after": {}, "targets": {}, "blocked": {}, "cost": 0.0, "affordable": false, "error": ""}
 	if operation not in OPERATIONS or step not in [1, 2, 4]:
 		out.error = "Unsupported terrain setting."
 		return out
 	if operation == "flatten" and (not World._finite(target) or float(target) != floor(float(target)) or target < World.MIN_TERRAIN_ELEV or target > World.MAX_TERRAIN_ELEV):
 		out.error = "Choose a whole-number Flatten height from -5 to +12."
+		return out
+	if not shape_settings.is_empty() and (shape_settings.get("shape") not in Geometry.SHAPES or shape_settings.get("direction") not in Geometry.DIRECTIONS or shape_settings.get("strength") not in [1,2,3]):
+		out.error = "Unsupported shape setting."
 		return out
 	var seen: Dictionary = {}
 	for value in indices:
@@ -31,17 +35,41 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 		if not reason.is_empty():
 			out.blocked[i] = reason
 			continue
-		var desired: int = int(target) if operation == "flatten" else clampi(int(tile.elev) + (step if operation == "raise" else -step), World.MIN_TERRAIN_ELEV, World.MAX_TERRAIN_ELEV)
-		if desired == int(tile.elev):
-			out.blocked[i] = "Already at target" if operation == "flatten" else "Height limit"
+		var desired: int = int(tile.elev) if operation == "shape" else int(target) if operation == "flatten" else clampi(int(tile.elev) + (step if operation == "raise" else -step), World.MIN_TERRAIN_ELEV, World.MAX_TERRAIN_ELEV)
+		var after: Dictionary = tile.duplicate(true)
+		after.elev = desired
+		if operation == "flatten":
+			after.merge({"terrainShape":"flat","slopeDir":"auto","shapeStrength":1},true)
+		elif not shape_settings.is_empty() and (operation == "shape" or desired != int(tile.elev)):
+			if tile.channel and shape_settings.shape != "flat":
+				out.blocked[i] = "Water channel"
+				continue
+			after.terrainShape = shape_settings.shape
+			after.slopeDir = shape_settings.direction if shape_settings.shape == "slope" else "auto"
+			after.shapeStrength = shape_settings.strength if shape_settings.shape == "slope" else 1
+		if after == tile:
+			out.blocked[i] = "Already at target" if operation in ["flatten","shape"] else "Height limit"
 			continue
-		if not world.can_place(i, "raise" if desired > int(tile.elev) else "lower"):
+		if desired != int(tile.elev) and not world.can_place(i, "raise" if desired > int(tile.elev) else "lower"):
 			out.blocked[i] = "Protected terrain"
 			continue
 		out.before[i] = tile.duplicate(true)
-		out.after[i] = tile.duplicate(true)
-		out.after[i].elev = desired
-		out.targets[i] = desired
+		out.after[i] = after
+	# Resolve Auto against the complete target heights, never iteration order.
+	for i in out.after.keys():
+		var after: Dictionary = out.after[i]
+		if after.get("terrainShape","flat") == "slope" and after.get("slopeDir","auto") == "auto" and Geometry.gradient(world.tiles,i,out.after) == Vector2.ZERO:
+			if operation == "shape":
+				out.blocked[i] = "Level neighbors: choose N/E/S/W"
+				out.before.erase(i)
+				out.after.erase(i)
+				continue
+			after.merge({"terrainShape":"flat","slopeDir":"auto","shapeStrength":1},true)
+		if after == world.tiles[i]:
+			out.before.erase(i)
+			out.after.erase(i)
+			continue
+		out.targets[i] = after.elev
 		out.cost += World.COST.raise
 	out.affordable = world.cash >= out.cost
 	return out

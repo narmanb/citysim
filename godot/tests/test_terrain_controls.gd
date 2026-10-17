@@ -106,6 +106,33 @@ func run():
         game.view._gui_input(gesture)
         down.pressed=false;game.view._gui_input(down)
         check(w.cash==1000000 and w.tiles[center].elev==0 and game.history.undo_stack.is_empty(),"Native "+gesture_kind+" cancels pending terrain construction")
+    # Shape choices, preview, history and native cancellation share the terrain transaction.
+    w=blank();game.set_world(w);game.choose_tool("shape");game.set_terrain_settings(1,1)
+    check(game.set_terrain_shape("slope","E",2),"Explicit slope settings accepted")
+    preview=game.terrain_preview_at(center)
+    check(preview.after.size()==9 and preview.after[center].terrainShape=="slope" and preview.after[center].elev==0,"Shape preview changes corners without reference height")
+    check(game.construct_at(center) and game.history.undo_stack.size()==1 and w.tiles[center].slopeDir=="E","Shape brush is one construction action")
+    check(game.undo() and w.tiles[center].terrainShape=="flat" and game.redo() and w.tiles[center].shapeStrength==2,"Shape metadata and cost support Undo/Redo")
+    var restored=preload("res://persistence/city_store.gd").import_json(game.export_city_text())
+    check(restored!=null and restored.tiles[center].slopeDir=="E","Controller export retains ramps")
+    game.set_terrain_settings(0,1);game.set_placement_mode("paint")
+    await process_frame;await process_frame
+    game.view.tile_scale=30;game.view.camera=game.view.size*.5-game.view._point(26.5,26.5)*30/28.0
+    p=game.view.tile_to_screen(center+4);cash=w.cash
+    touch(game.view,0,p,true)
+    check(not game.view.terrain_preview.is_empty() and w.cash==cash,"Native shape touch previews")
+    game._notification(MainLoop.NOTIFICATION_APPLICATION_PAUSED)
+    touch(game.view,0,p,false)
+    check(w.tiles[center+4].terrainShape=="flat" and w.cash==cash,"Backgrounding discards uncommitted shape gesture")
+    game._notification(MainLoop.NOTIFICATION_APPLICATION_RESUMED)
+    # Mouse Shape must stay pending like touch until release/cancellation.
+    game.choose_tool("shape")
+    p=game.view.tile_to_screen(center+4)
+    var shape_down=InputEventMouseButton.new();shape_down.button_index=MOUSE_BUTTON_LEFT;shape_down.pressed=true;shape_down.position=p
+    game.view._gui_input(shape_down)
+    game.view._cancel_pointers()
+    check(w.cash==cash and w.tiles[center+4].terrainShape=="flat","Cancel mouse Shape never commits or spends")
+    game.choose_tool("raise")
     for dimensions in [Vector2i(854,394),Vector2i(640,360)]:
         root.size=dimensions;root.content_scale_size=dimensions;await process_frame;await process_frame
         game.select_category("Terraform");await process_frame;await process_frame
@@ -113,6 +140,7 @@ func run():
         check(panel!=null and panel.is_visible_in_tree(),"Compact Terraform panel visible at "+str(dimensions))
         if panel!=null:
             check(panel.get_global_rect().end.x<=dimensions.x and panel.get_global_rect().end.y<=game.view.get_global_rect().end.y,"Terrain settings fit landscape map")
+            check(panel._slope_row.get_global_rect().end.y<=game._tool_menu.get_global_rect().end.y-4,"Slope direction/strength visible without scrolling at "+str(dimensions))
         check(game._tool_buttons.has("flatten") and game.CATEGORIES.Zoning==["res","shop","light"],"Flatten available; three zoning buttons retained")
         game.choose_tool("flatten");await process_frame
         check(not game._tool_menu.visible,"Choosing operation returns full map")
