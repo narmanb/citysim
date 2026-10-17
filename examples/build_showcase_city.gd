@@ -212,7 +212,7 @@ func build_places():
                     tile(x,y).waterSource=true
                 elif (x+y)%2==0: park(x,y)
                 else: tree(x,y)
-    # Southbank: a small residential quarter near the coast and a freight district east.
+    # Southbank: a small residential quarter near the coast and a manufacturing district east.
     for bx in [10,16,22]:
         for c in range(4):
             var x=bx+(1 if c%2==0 else 4)
@@ -220,7 +220,7 @@ func build_places():
             lot(x,y,2,2,"apt" if bx==22 and c<2 else "shop" if c==3 else "res",2,"Southbank")
     for bx in [28,34,40]:
         for c in range(4):
-            lot(bx+(1 if c%2==0 else 4),39 if c<2 else 42,2,2,"heavy" if bx==40 else "logistics" if bx==34 else "light",3,"Freight and manufacturing")
+            lot(bx+(1 if c%2==0 else 4),39 if c<2 else 42,2,2,"heavy" if bx==40 else "light",3,"Industry and manufacturing")
     for p in [[11,45,"fire"],[15,45,"police"],[17,45,"hospital"],[21,45,"school"]]: civic(p[0],p[1],p[2])
     for p in [[49,26],[49,28],[49,30],[41,45],[45,45]]: civic(p[0],p[1],"plant")
     for p in [[7,9],[7,15],[7,21],[7,27],[25,32]]: civic(p[0],p[1],"pump")

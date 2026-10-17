@@ -534,7 +534,7 @@ func _draw_development(layer, tile: Dictionary, x: float, y: float, span: float,
 		var height: float = size_factor * ((0.4 if type == "heavy" else 0.25) + mini(4, level) * 0.1)
 		_box(layer, x - footprint * 0.5, y - footprint * 0.5, elevation, footprint, footprint, height, ["99968a", "69665b", "817e70"] if abandoned else ["c3b793", "6c716d", "999482"])
 		if type == "heavy": _box(layer, x + footprint * 0.25, y - footprint * 0.2, elevation, footprint * 0.16, footprint * 0.16, size_factor * 1.4, ["a18464", "5d5350", "8b7268"])
-		layer.label_at("LOG" if type == "logistics" else "H" if type == "heavy" else "IND", _point(x, y, elevation) + Vector2(0, -height + 3), 10, Color("342f29"))
+		layer.label_at("H" if type == "heavy" else "IND", _point(x, y, elevation) + Vector2(0, -height + 3), 10, Color("342f29"))
 		return
 	var floors: int = clampi(level, 1, 3) if type in ["house", "shop"] else mini(5, level + 1)
 	var variant: int = int(tile.get("parcel", index)) % 2

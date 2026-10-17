@@ -50,6 +50,10 @@ func run():
 		check(Store.import_json(invalid) == null, "Invalid city rejected: " + invalid)
 		check(not Store.last_error.is_empty(), "Invalid import explains error")
 	check(city.cash == 12345 and city.tiles[800].elev == 3, "Invalid imports do not mutate current city")
+	var removed_type: Dictionary = city.serialize()
+	removed_type.tiles[100] = World.blank_tile()
+	removed_type.tiles[100].merge({"zone": "ind", "zoneType": "logistics", "parcel": 50, "level": 1}, true)
+	check(Store.import_json(JSON.stringify(removed_type)) == null, "Removed logistics subtype is not supported by fresh-save rules")
 	var fixture = Store.import_json(FileAccess.get_file_as_string("res://tests/fixtures/legacy-city-v6.json"))
 	check(fixture != null, "Actual JavaScript city exports import")
 	if fixture != null:

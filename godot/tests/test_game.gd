@@ -44,6 +44,7 @@ func run() -> void:
 	game.paused = true
 	var world = game.world
 	check(world != null and game.view != null, "Controller owns an independent world and native view")
+	check(not game.choose_tool("logistics") and game.selected_tool == "pan", "Removed logistics tool cannot be selected")
 	# Make a predictable construction area without relying on generated terrain.
 	for i in range(600, 680):
 		var tile: Dictionary = world.tiles[i]
@@ -191,7 +192,7 @@ func run() -> void:
 
 func _test_generic_zoning_preserves_existing_properties(game) -> void:
 	var world = game.world
-	for pair in [["res", "apt"], ["shop", "office"], ["light", "logistics"], ["light", "heavy"]]:
+	for pair in [["res", "apt"], ["shop", "office"], ["light", "heavy"]]:
 		var index: int = 300
 		world.tiles[index] = world.blank_tile()
 		world.tiles[index + 1] = world.blank_tile()

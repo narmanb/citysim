@@ -239,7 +239,7 @@ func _populate_render_fixture(world, center: int) -> void:
 	for k in range(12):
 		var index: int = 31 * 52 + 20 + k
 		world.tiles[index].zone = ["res", "com", "ind"][k % 3]
-		world.tiles[index].zoneType = ["house", "office", "heavy", "apt", "shop", "logistics"][k % 6]
+		world.tiles[index].zoneType = ["house", "office", "heavy", "apt", "shop", "light"][k % 6]
 		world.tiles[index].level = k % 4 + 1
 		world.tiles[index].abandoned = k > 9
 	world.tiles[center - 2].fire = true

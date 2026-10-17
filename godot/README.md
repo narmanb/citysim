@@ -44,7 +44,7 @@ The two apps use different private storage, so existing browser local storage do
 
 ## Controls
 
-The zoning palette has three choices: Housing zone, Business zone and Industrial zone. New properties currently use the existing house, shop and light-industry rules respectively; automatic selection of building subtypes is not implemented. Imported apartments, offices, logistics and heavy-industry properties retain their types. Painting the same zone family preserves an existing property without charging or resetting its development. Logistics remains supported in saved cities while its role as a separate player-facing option is being considered.
+The zoning palette has three choices: Housing zone, Business zone and Industrial zone. New properties currently use the existing house, shop and light-industry rules respectively; automatic selection of building subtypes is not implemented. Apartments, offices and heavy industry remain supported building subtypes. Painting the same zone family preserves an existing property without charging or resetting its development. Logistics has been removed from tools, simulation rules and accepted save subtypes; this source revision targets fresh saves.
 
 Tap with a construction tool to place one tile; dragging in Tap + pan mode moves the camera. Paint mode commits a connected stroke on release. Two fingers pan and pinch without spending money. Fit shows the whole city; +/− and pinching zoom into a district. The native controls include all current tools, overlays, budgets, events, guide, pause/speeds, selection details, files and construction-only undo/redo.
 

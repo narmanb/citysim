@@ -138,15 +138,17 @@ func run():
 		w.place(20*52+x,"line")
 		w.place(20*52+x,"pipe")
 		w.place(22*52+x,"road")
-	var sections = [[4,7,"apt",200],[8,9,"shop",201],[10,13,"light",202],[14,17,"apt",203],[18,19,"office",204],[20,22,"logistics",205],[23,26,"apt",206],[27,30,"heavy",207],[31,34,"apt",208]]
+	var sections = [[4,7,"apt",200],[8,9,"shop",201],[10,13,"light",202],[14,17,"apt",203],[18,19,"office",204],[20,22,"light",205],[23,26,"apt",206],[27,30,"heavy",207],[31,34,"apt",208]]
 	for section in sections:
 		for x in range(section[0],section[1]+1): w.place(21*52+x,section[2],false,section[3])
 	for service in [[20,"hospital"],[18,"school"],[16,"police"],[14,"fire"]]: w.place(19*52+service[0],service[1])
 	w.recalculate()
+	# JavaScript reference rerun with ordinary industry in the former logistics block.
 	var expected = {
-		1:{"cash":23906,"population":79,"jobs":44,"powerUsed":67,"waterUsed":57,"net":-441,"demand":{"res":23,"com":45,"ind":41},"levels":[0,0,0,1,0,1,0,0,0]},
-		6:{"cash":23083,"population":191,"jobs":205,"powerUsed":113,"waterUsed":103,"net":55,"demand":{"res":54,"com":39,"ind":56},"levels":[0,1,2,3,2,2,0,1,1]},
-		12:{"cash":24131,"population":296,"jobs":227,"powerUsed":141,"waterUsed":131,"net":227,"demand":{"res":28,"com":46,"ind":52},"levels":[1,1,2,3,3,2,1,2,2]}}
+		1:{"cash":23900,"population":79,"jobs":33,"powerUsed":65,"waterUsed":55,"net":-465,"demand":{"res":8,"com":45,"ind":37},"levels":[0,0,0,1,0,1,0,0,0]},
+		6:{"cash":23158,"population":193,"jobs":194,"powerUsed":112,"waterUsed":102,"net":33,"demand":{"res":52,"com":39,"ind":56},"levels":[0,1,2,3,2,2,0,1,1]},
+		12:{"cash":24060,"population":270,"jobs":215,"powerUsed":135,"waterUsed":125,"net":172,"demand":{"res":34,"com":44,"ind":52},"levels":[1,1,2,3,3,2,1,2,1]}}
+
 	for step in range(1,13):
 		w.step()
 		if not expected.has(step): continue
@@ -158,7 +160,7 @@ func run():
 		var levels: Array = []
 		for section in sections: levels.append(w.tiles[21*52+section[0]].level)
 		check(levels == baseline.levels, "JavaScript parcel growth parity month %d" % step)
-	check(w.year == 2001 and w.month == 1 and w.stats.lastYearNet == -443, "JavaScript year rollover accounting parity")
+	check(w.year == 2001 and w.month == 1 and w.stats.lastYearNet == -477, "JavaScript year rollover accounting parity")
 	check(w.fields.school[21*52+18] > 0 and w.fields.police[21*52+16] > 0, "powered and watered departments provide services")
 	var bond_cash = w.cash
 	check(w.take_bond() and w.cash == bond_cash+10000 and w.bondMonths == 80, "bond adds capital and repayment term")
@@ -277,5 +279,9 @@ func run():
 	check(w.fields.trafficImpact[102] == 11.5 and w.fields.trafficImpact[104] == 0, "traffic includes cardinal roads without wrapping map edges")
 	check(w.fields.landValue[102] == PackedFloat32Array([57.507492])[0], "services traffic and road condition preserve exact land value")
 	check(w.stats.avgCrime == 18 and w.stats.avgLand == 42, "environment averages preserve baseline rounding")
+	w = empty_world()
+	var removal_cash: float = w.cash
+	check(not w.can_place(100, "logistics") and not w.place(100, "logistics"), "Removed logistics tool is rejected by the model")
+	check(w.cash == removal_cash and not w.tiles[100].zone, "Rejected logistics placement changes neither land nor cash")
 	print("World model: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)

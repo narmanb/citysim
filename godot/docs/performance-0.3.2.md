@@ -2,6 +2,8 @@
 
 Baseline: `3b6220875d560c0e01085b8172846c0c201256b5` (0.3.1). Both probes use official Godot 4.6.3. Fixture: the unchanged Harbor City JSON in `examples/harbor-city/MetroForge-Harbor-City.zip`, SHA-256 `d499e3947edce20061b5ff2c3563c9fe8a82d25a8f4578dfba7299cd51a2191a` (4,371 residents, 108 developed properties, 70 cars, eight trains).
 
+The fixture hash above refers to the historical 0.3.2 benchmark. For reproduction, retrieve its archive and native source from commit `d2f131367f60aac65a67fdc0c1c3373e69403707`; the current example cities were rebuilt with ordinary industry after Logistics was removed.
+
 ## Cause and changes
 
 The 0.3.1 fresh-city benchmark missed the populated-city bottleneck. Harbor submitted 6,169 polygons, 5,428 polylines, 836 sprites and 60 labels across 353 static layers. Caching commands avoided rebuilding them every frame but still left roads, rails, pipes, poles and wires as thousands of separate GPU submissions. The full view submitted approximately 20,000 draw calls even with simulation paused.

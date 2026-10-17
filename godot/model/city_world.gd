@@ -4,11 +4,11 @@ extends RefCounted
 
 const N = 52
 const COUNT = N * N
-const COST = {"bulldoze":18,"road":18,"rail":36,"line":13,"pipe":12,"res":9,"apt":14,"shop":12,"office":16,"light":12,"logistics":18,"heavy":22,"park":95,"plant":3000,"pump":950,"tower":800,"police":1200,"fire":1200,"school":1600,"hospital":1900,"station":550,"raise":20,"lower":20,"river":24,"grass":5,"desert":5,"tree":4,"forest":6}
+const COST = {"bulldoze":18,"road":18,"rail":36,"line":13,"pipe":12,"res":9,"apt":14,"shop":12,"office":16,"light":12,"heavy":22,"park":95,"plant":3000,"pump":950,"tower":800,"police":1200,"fire":1200,"school":1600,"hospital":1900,"station":550,"raise":20,"lower":20,"river":24,"grass":5,"desert":5,"tree":4,"forest":6}
 const CONFIG = {"monthSeconds":4,"startingCash":36000,"powerPlantCapacity":550,"waterPumpCapacity":520,"waterTowerCapacity":180,"waterTowerLoss":1,"bondAmount":10000,"bondPayment":150,"bondTerm":80,"maxCars":70,"maxTrains":9,"bridgeSpan":8,"milestones":[500,1000,2500,5000,10000],"buildingCapacity":{"res":[0,12,28,68,150],"com":[0,10,24,58,125],"ind":[0,12,30,68,130]},"maintenance":{"road":1.5,"rail":2.4,"line":0.4,"pipe":0.45,"park":8,"plant":120,"pump":32,"tower":18,"police":80,"fire":80,"school":110,"hospital":130,"station":28},"serviceRadius":{"police":8,"fire":8,"school":9,"hospital":9}}
-const TOOLS = [["pan","✋ Pan"],["bulldoze","▧ Bulldoze"],["road","═ Road"],["rail","≡ Rail"],["line","⚡ Power line"],["pipe","◌ Water pipe"],["res","⌂ House lots"],["apt","▥ Apartment lots"],["shop","▣ Shops & services"],["office","▥ Offices"],["light","▤ Light industry"],["logistics","▰ Logistics"],["heavy","♨ Heavy industry"],["park","♣ Park"],["plant","⚙ Power plant"],["pump","◉ Water pump"],["tower","◍ Water tower"],["police","✦ Police"],["fire","▲ Fire station"],["school","◆ School"],["hospital","✚ Hospital"],["station","▥ Rail station"],["raise","▲ Raise terrain"],["lower","▼ Lower terrain"],["river","≈ Dig water channel"],["grass","· Grass biome"],["desert","░ Desert biome"],["tree","♠ Tree"],["forest","♣ Forest brush"]]
-const ZONE_TOOL = {"res":{"zone":"res","type":"house"},"apt":{"zone":"res","type":"apt"},"shop":{"zone":"com","type":"shop"},"office":{"zone":"com","type":"office"},"light":{"zone":"ind","type":"light"},"logistics":{"zone":"ind","type":"logistics"},"heavy":{"zone":"ind","type":"heavy"}}
-const CATEGORIES = {"Transport":["road","rail","station"],"Zoning":["res","apt","shop","office","light","logistics","heavy"],"Utilities":["line","pipe","plant","pump","tower"],"Services":["police","fire","school","hospital"],"Parks":["park"],"Terraform":["raise","lower","river","grass","desert","tree","forest"]}
+const TOOLS = [["pan","✋ Pan"],["bulldoze","▧ Bulldoze"],["road","═ Road"],["rail","≡ Rail"],["line","⚡ Power line"],["pipe","◌ Water pipe"],["res","⌂ House lots"],["apt","▥ Apartment lots"],["shop","▣ Shops & services"],["office","▥ Offices"],["light","▤ Light industry"],["heavy","♨ Heavy industry"],["park","♣ Park"],["plant","⚙ Power plant"],["pump","◉ Water pump"],["tower","◍ Water tower"],["police","✦ Police"],["fire","▲ Fire station"],["school","◆ School"],["hospital","✚ Hospital"],["station","▥ Rail station"],["raise","▲ Raise terrain"],["lower","▼ Lower terrain"],["river","≈ Dig water channel"],["grass","· Grass biome"],["desert","░ Desert biome"],["tree","♠ Tree"],["forest","♣ Forest brush"]]
+const ZONE_TOOL = {"res":{"zone":"res","type":"house"},"apt":{"zone":"res","type":"apt"},"shop":{"zone":"com","type":"shop"},"office":{"zone":"com","type":"office"},"light":{"zone":"ind","type":"light"},"heavy":{"zone":"ind","type":"heavy"}}
+const CATEGORIES = {"Transport":["road","rail","station"],"Zoning":["res","apt","shop","office","light","heavy"],"Utilities":["line","pipe","plant","pump","tower"],"Services":["police","fire","school","hospital"],"Parks":["park"],"Terraform":["raise","lower","river","grass","desert","tree","forest"]}
 const TERRAIN_TOOLS = ["raise","lower","river","grass","desert","tree","forest"]
 const SERVICES = ["police","fire","school","hospital"]
 
@@ -328,7 +328,7 @@ func parcel_capacity(p: Dictionary, level: int) -> int:
 	if t.zone == "com":
 		base = maxi(10,area*18) if type == "office" else maxi(7,area*11)
 		return _js_round(base*[0,1,1.45,2.05,2.8][lv])
-	base = maxi(16,area*20) if type == "heavy" else maxi(12,area*16) if type == "logistics" else maxi(9,area*12)
+	base = maxi(16,area*20) if type == "heavy" else maxi(9,area*12)
 	return _js_round(base*[0,1,1.35,1.8,2.35][lv])
 
 static func _js_round(value: float) -> int:
@@ -346,7 +346,7 @@ static func from_dict(data: Dictionary) -> CityWorld:
 	var saved_occupancy: Array = []
 	var parcel_types: Dictionary = {}
 	var defaults = blank_tile()
-	var zone_types = {"res":["house","apt"],"com":["shop","office"],"ind":["light","logistics","heavy"]}
+	var zone_types = {"res":["house","apt"],"com":["shop","office"],"ind":["light","heavy"]}
 	for value in data.tiles:
 		if not value is Dictionary: return null
 		var q = blank_tile()
@@ -368,7 +368,7 @@ static func from_dict(data: Dictionary) -> CityWorld:
 		for key in ["zoneType","resType"]:
 			if q[key] != null and not q[key] is String: return null
 		if q.resType != null and not q.resType in ["house","apt"]: return null
-		if q.zoneType != null and not q.zoneType in ["house","apt","shop","office","light","logistics","heavy"]: return null
+		if q.zoneType != null and not q.zoneType in ["house","apt","shop","office","light","heavy"]: return null
 		if q.zone != null:
 			if q.zoneType == null: q.zoneType = q.resType if q.zone == "res" and q.resType != null else _default_type(q.zone)
 			if not q.zoneType in zone_types[q.zone]: return null
@@ -859,7 +859,6 @@ func _growth_score(i: int) -> float:
 	if not p.is_empty():
 		var type = t.zoneType if t.zoneType else t.resType
 		if type == "office" and stats.population < 90: score -= 24
-		if type == "logistics" and p.area < 2: score -= 55
 		if type == "heavy" and p.area < 4: score -= 80
 		if type == "apt" and p.area > 1: score += 5
 		if type == "shop" and stats.population > 80: score += 5

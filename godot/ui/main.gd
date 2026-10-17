@@ -18,7 +18,7 @@ const TOOL_LABELS: Dictionary = {
 	"pan": "Pan / inspect", "bulldoze": "Bulldoze", "road": "Road", "rail": "Rail",
 	"station": "Rail station", "line": "Power line", "pipe": "Water pipe", "res": "Housing zone",
 	"apt": "Apartment lots", "shop": "Business zone", "office": "Offices", "light": "Industrial zone",
-	"logistics": "Logistics", "heavy": "Heavy industry", "park": "Park", "plant": "Power plant",
+	"heavy": "Heavy industry", "park": "Park", "plant": "Power plant",
 	"pump": "Water pump", "tower": "Water tower", "police": "Police", "fire": "Fire station",
 	"school": "School", "hospital": "Hospital", "raise": "Raise terrain", "lower": "Lower terrain",
 	"river": "Dig water channel", "grass": "Grass biome", "desert": "Desert biome", "tree": "Tree", "forest": "Forest brush"
@@ -36,7 +36,6 @@ const TOOL_HELP: Dictionary = {
 	"shop": "Zone businesses for shops, services and jobs. They need customers, road access, power and water.",
 	"office": "Offices provide denser employment and need a stronger population base.",
 	"light": "Zone industrial jobs with road access, power and water. Keep housing away from industrial pollution.",
-	"logistics": "Warehouse-style industry provides more jobs than light industry and prefers at least two tiles per property.",
 	"heavy": "Heavy industry provides more jobs per tile and prefers properties of at least four tiles. Keep homes away from pollution.",
 	"road": "Paint a road between dry banks to bridge up to eight water tiles. Roads must touch zones.",
 	"rail": "Connect two rail stations on one rail line. Paint between dry banks to build a bridge.",

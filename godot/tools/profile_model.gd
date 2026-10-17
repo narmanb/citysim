@@ -18,7 +18,7 @@ func make_world(kind):
         w.place(20*52+x,"line")
         w.place(20*52+x,"pipe")
         w.place(22*52+x,"road")
-    var sections = [[4,7,"apt",200],[8,9,"shop",201],[10,13,"light",202],[14,17,"apt",203],[18,19,"office",204],[20,22,"logistics",205],[23,26,"apt",206],[27,30,"heavy",207],[31,34,"apt",208]]
+    var sections = [[4,7,"apt",200],[8,9,"shop",201],[10,13,"light",202],[14,17,"apt",203],[18,19,"office",204],[20,22,"light",205],[23,26,"apt",206],[27,30,"heavy",207],[31,34,"apt",208]]
     for section in sections:
         for x in range(section[0],section[1]+1): w.place(21*52+x,section[2],false,section[3])
     for service in [[20,"hospital"],[18,"school"],[16,"police"],[14,"fire"]]: w.place(19*52+service[0],service[1])
