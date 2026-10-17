@@ -143,3 +143,4 @@ jobs:
           gh release view v0.3.2-godot-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"
           python -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"] + "/godot-draft.json"))["isDraft"], "Only an unpublished draft may be updated"'
           gh release upload v0.3.2-godot-preview dist/*.apk dist/*.zip dist/MetroForge-Godot-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber
+# Rebuild trigger only: compile existing feature/godot-migration game sources (base 31014d8); no game changes.
