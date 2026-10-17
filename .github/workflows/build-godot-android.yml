@@ -103,9 +103,9 @@ jobs:
 
       - name: Export and verify native Android APK
         run: |
-          python godot/tools/build_android.py --godot "$GODOT_BIN" --output dist/MetroForge-Godot-0.3.2-preview.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/MetroForge-Godot-0.3.2-preview.apk
-          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 dist/MetroForge-Godot-0.3.2-preview.apk
+          python godot/tools/build_android.py --godot "$GODOT_BIN" --output dist/MetroForge-Godot-0.3.3-Terrain-Test.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/MetroForge-Godot-0.3.3-Terrain-Test.apk
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 dist/MetroForge-Godot-0.3.3-Terrain-Test.apk
           python - <<'PY'
           from pathlib import Path
           import hashlib
@@ -136,11 +136,16 @@ jobs:
           compression-level: 0
           retention-days: 30
 
-      - name: Attach APK and source to the existing draft release
+      - name: Attach terrain test to its separate draft release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view v0.3.2-godot-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"
-          python -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"] + "/godot-draft.json"))["isDraft"], "Only an unpublished draft may be updated"'
-          gh release upload v0.3.2-godot-preview dist/*.apk dist/*.zip dist/MetroForge-Godot-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber
-# Rebuild trigger only: compile existing feature/godot-migration game sources (base 31014d8); no game changes.
+          if ! gh release view v0.3.3-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"; then
+            gh release create v0.3.3-terraform-preview --repo "$GITHUB_REPOSITORY" --draft --prerelease --target "$GITHUB_SHA" \
+              --title "MetroForge Godot 0.3.3 — Terrain Test" \
+              --notes "Native Android test of terrain Phases 1 and 2: -5 to +12 heights, brush sizes 1/3/5, steps 1/2/4, Flatten, previews and whole-stroke Undo. Terrain remains flat and stepped. Export your city before installing; Android may require uninstalling a preview signed with a different test certificate. See the build artifacts for source and SHA-256 receipts."
+            gh release view v0.3.3-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"
+          fi
+          python -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"] + "/godot-draft.json"))["isDraft"], "Only an unpublished draft may receive test artifacts"'
+          gh release upload v0.3.3-terraform-preview dist/*.apk dist/*.zip dist/MetroForge-Godot-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY"
+# Terrain-test packaging; previous preview downloads remain untouched.

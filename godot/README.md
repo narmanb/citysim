@@ -2,13 +2,13 @@
 
 Open `project.godot` with **Godot 4.6.3 standard edition** and press Play. This project runs the city simulation and renders its scene natively with GDScript and Godot 2D. The earlier browser/WebView game is retained separately in the repository.
 
-## Unreleased source changes
+## Changes in 0.3.3 Terrain Test
 
-Terraform now supports heights −5…+12, centered 1×1/3×3/5×5 brushes, height steps 1/2/4 and Flatten to the first touched tile or an explicit level. Previews show targets, protected cells and total cost. Paint strokes deduplicate overlapping footprints, commit atomically and undo as one action. Terrain remains flat-topped and stepped; slopes/smoothing are deferred. See [the phased terrain report](../docs/terraforming-2.0.md) for compatibility, controls, validation and limits. No APK/release has been replaced.
+Terraform now supports heights −5…+12, centered 1×1/3×3/5×5 brushes, height steps 1/2/4 and Flatten to the first touched tile or an explicit level. Previews show targets, protected cells and total cost. Paint strokes deduplicate overlapping footprints, commit atomically and undo as one action. Terrain remains flat-topped and stepped; slopes/smoothing are deferred. See [the phased terrain report](../docs/terraforming-2.0.md) for compatibility, controls, validation and limits. Earlier APK downloads/releases remain unchanged.
 
 Housing, Business and Industrial remain the three zoning choices. New painted properties choose their building type automatically: lot shape, demand, population, services, land value, utilities and roads influence development. A flat 3×3 housing property can grow nine homes or a four-wing apartment complex; size permits denser buildings without guaranteeing them.
 
-The renderer now uses 24 building recipes and six selective wall/roof palettes. Styles stay stable across camera movement and save/reload. Windows, transparency and authored shading are preserved. See [building variety and automatic growth](docs/building-variety.md) for rules, validation and desktop performance comparisons. These changes have not been packaged into a new APK.
+The renderer now uses 24 building recipes and six selective wall/roof palettes. Styles stay stable across camera movement and save/reload. Windows, transparency and authored shading are preserved. See [building variety and automatic growth](docs/building-variety.md) for rules, validation and desktop performance comparisons. The 0.3.3 Terrain Test packages these changes together with the terrain tools.
 
 ## Changes in 0.3.2
 
@@ -24,7 +24,7 @@ Desktop CPU/software-GL measurements and regression checks are recorded in [the 
 
 ## Android
 
-The preview is named **MetroForge Godot**, package `com.narmanb.metroforge.godotpreview`, version `0.3.2-godot-preview`. It installs alongside MetroForge Isometric. Android 7.0/API 24 or later and OpenGL ES 3 support are required by this Godot template. The APK includes ARM64 and ARMv7 libraries.
+The preview is named **MetroForge Godot**, package `com.narmanb.metroforge.godotpreview`, version `0.3.3-terraform-preview`. It installs alongside MetroForge Isometric. Android 7.0/API 24 or later and OpenGL ES 3 support are required by this Godot template. The APK includes ARM64 and ARMv7 libraries.
 
 Install the matching official Android export templates in Godot. Configure Java 17 and the Android SDK in Editor Settings → Export → Android. The standard, non-Gradle Android preset uses the template's target SDK 36. Then run:
 
@@ -38,7 +38,7 @@ The testing certificate is for preview installs. Public release signing and stor
 
 The build helper records source SHA-256 receipts in the APK and validates its native scripts/libraries. It uses the same export command available directly through Godot's Android export preset.
 
-The `Build native Godot Android preview` GitHub Actions workflow builds the migration branch, runs the native tests, and provides an APK/source download under the run's Artifacts. It also attaches those files to the existing unpublished `v0.3.2-godot-preview` draft release. The workflow checks the draft status before replacing any attachments.
+The `Build native Godot Android preview` GitHub Actions workflow builds the migration branch, runs the native tests, and provides an APK/source download under the run's Artifacts. It also attaches those files to a separate unpublished `v0.3.3-terraform-preview` draft release. The workflow checks the draft status before replacing any attachments.
 
 CI can use an Android debug keystore supplied through the repository Actions secret `GODOT_ANDROID_DEBUG_KEYSTORE_BASE64` (alias `androiddebugkey`, password `android`). Without that optional secret, each run creates its own testing key; Android then requires uninstalling a differently signed previous preview before installing that build. Export city JSON before uninstalling. Production signing keys are not part of this workflow.
 

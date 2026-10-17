@@ -84,3 +84,9 @@ Godot 4.6.3 compatibility renderer, Mesa 25.0.7 llvmpipe LLVM 19.1.7, unchanged 
 Rendering submissions are unchanged and measured cost stays similar in this paired software-GL run. This does not establish a small speed change or mobile FPS. Source atlases, generated color atlas, shader and mesh-batching implementation are unchanged. No new APK has been built, no download/release replaced and no signing identity changed.
 
 Phase 2 is the stopping boundary. Next, only with a new instruction, Phase 3 would introduce verified shape metadata, deterministic corner/edge geometry, directional ramps/cliffs and shape-aware picking. Rounded hills and smoothing remain later work.
+
+## Android test packaging
+
+The user subsequently authorized an APK of these completed Phases 1–2. Version 0.3.3 (`0.3.3-terraform-preview`, Android version code 4) retains the native package identity and includes both terrain phases plus the earlier building variety. No later terrain phase is added. Build receipts now identify the exact source commit as well as source-file hashes. CI verifies the full suite, official release runtime, ARM64/ARMv7 contents, Android signing and alignment, then attaches the APK/source/checksums to a separate unpublished terrain-test draft. Uploads do not replace earlier preview assets.
+
+The repository's existing preview-signing workflow uses its configured keystore secret when available, otherwise a temporary test certificate. An APK signed by another test certificate cannot update an installed preview in place. Export city JSON before any uninstall; expanded-height exports need the new build. This remains test signing, not production/store publication.
