@@ -47,7 +47,7 @@ func _init(seed_value: int = 0):
 	recalculate()
 
 static func blank_tile(terrain: String = "grass", tree: bool = false) -> Dictionary:
-	return {"terrain":terrain,"tree":tree,"road":false,"rail":false,"line":false,"pipe":false,"zone":null,"resType":null,"zoneType":null,"parcel":0,"level":0,"occupancy":0,"abandoned":0,"civic":null,"condition":1.0,"fire":0.0,"damage":0.0,"storage":0.0,"elev":0,"biome":"grass","channel":false,"waterSource":terrain == "water"}
+	return {"terrain":terrain,"tree":tree,"road":false,"rail":false,"line":false,"pipe":false,"zone":null,"resType":null,"zoneType":null,"autoGrow":false,"parcel":0,"level":0,"occupancy":0,"abandoned":0,"civic":null,"condition":1.0,"fire":0.0,"damage":0.0,"storage":0.0,"elev":0,"biome":"grass","channel":false,"waterSource":terrain == "water"}
 
 static func _hash(x: int, y: int, seed_value: int) -> float:
 	var a = ((x + seed_value) * 374761393) & 0xffffffff
@@ -171,6 +171,7 @@ func place(i: int, tool: String, bridge: bool = false, parcel_id: int = 0) -> bo
 			t.zone = null
 			t.resType = null
 			t.zoneType = null
+			t.autoGrow = false
 			t.parcel = 0
 		elif t.road: t.road = false
 		elif t.rail: t.rail = false
@@ -204,6 +205,7 @@ func place(i: int, tool: String, bridge: bool = false, parcel_id: int = 0) -> bo
 		t.zone = null
 		t.resType = null
 		t.zoneType = null
+		t.autoGrow = false
 		t.parcel = 0
 		t.level = 0
 		t.occupancy = 0
@@ -216,6 +218,7 @@ func place(i: int, tool: String, bridge: bool = false, parcel_id: int = 0) -> bo
 		t.zone = meta.zone
 		t.zoneType = meta.type
 		t.resType = meta.type if meta.zone == "res" else null
+		t.autoGrow = false
 		t.parcel = parcel_id if parcel_id > 0 else nextParcelId
 		if parcel_id <= 0: nextParcelId += 1
 		else: nextParcelId = maxi(nextParcelId,parcel_id+1)
@@ -365,6 +368,8 @@ static func from_dict(data: Dictionary) -> CityWorld:
 		q.elev = int(q.elev)
 		if q.level > 0 and q.zone == null: return null
 		if q.civic != null and q.zone != null: return null
+		if q.autoGrow == null: q.autoGrow = false
+		if not q.autoGrow is bool: return null
 		for key in ["zoneType","resType"]:
 			if q[key] != null and not q[key] is String: return null
 		if q.resType != null and not q.resType in ["house","apt"]: return null
@@ -380,6 +385,7 @@ static func from_dict(data: Dictionary) -> CityWorld:
 		else:
 			q.zoneType = null
 			q.resType = null
+			q.autoGrow = false
 			q.parcel = 0
 		if q.biome == null: q.biome = "grass"
 		if not q.biome in ["grass","desert"]: return null
@@ -865,6 +871,65 @@ func _growth_score(i: int) -> float:
 	if t.fire: score -= 120
 	return score
 
+func _parcel_flat_square(p: Dictionary) -> int:
+	# Largest completely usable square, rather than the bounding box. Holes,
+	# narrow strips and terrain steps cannot create an imaginary large lot.
+	var squares: Dictionary = {}
+	var largest = 0
+	for i in p.members:
+		var t = tiles[i]
+		if t.terrain == "water" or t.road or t.rail or t.civic: continue
+		var size = 1
+		if i%N > 0 and i >= N and squares.has(i-1) and squares.has(i-N) and squares.has(i-N-1):
+			if tiles[i-1].elev == t.elev and tiles[i-N].elev == t.elev and tiles[i-N-1].elev == t.elev:
+				size += mini(squares[i-1],mini(squares[i-N],squares[i-N-1]))
+		squares[i] = size
+		largest = maxi(largest,size)
+	return largest
+
+func _automatic_growth_type(p: Dictionary, score: float) -> String:
+	var current = String(p.type)
+	if not current in ["house","shop","light"]: return current
+	for i in p.members:
+		# Mixed/manual parcels stay manual, even if their root opted in.
+		if not tiles[i].get("autoGrow",false) or tiles[i].fire: return current
+	var square = _parcel_flat_square(p)
+	if square < 2 or not parcel_has(p,"power") or not parcel_has(p,"water"): return current
+	var roads = _parcel_roads(p)
+	if roads.is_empty(): return current
+	var condition = 0.0
+	for i in roads: condition += tiles[i].condition
+	condition /= roads.size()
+	if condition < 0.5: return current
+	var population = stats.get("population",0)
+	var service = (_parcel_avg(p,"school")+_parcel_avg(p,"hospital"))*0.5
+	var value = _parcel_avg(p,"landValue")
+	var requested = demand[p.zone]
+	var chance: float
+	var promoted: String
+	var area = square*square
+	if current == "house":
+		if population < 120 or requested < 28 or score < 48 or value < 48 or service < 0.15: return current
+		chance = clampf(0.18+area*0.025+service*0.22+(requested-28)*0.003,0.0,0.78)
+		promoted = "apt"
+	elif current == "shop":
+		if population < 180 or requested < 25 or score < 48 or value < 52 or service < 0.10: return current
+		chance = clampf(0.15+area*0.022+service*0.15+(requested-25)*0.003,0.0,0.75)
+		promoted = "office"
+	else:
+		if population < 80 or requested < 42 or score < 46 or value < 22 or roads.size() < 2 or condition < 0.65: return current
+		chance = clampf(0.18+area*0.025+(requested-42)*0.004,0.0,0.75)
+		promoted = "heavy"
+	# No calendar or RNG state: a house stays a house under identical conditions,
+	# including after saving. Better suitability can unlock a later promotion.
+	return promoted if _hash(p.root,p.id,seed+7919) < chance else current
+
+func _parcel_set_type(p: Dictionary, subtype: String) -> void:
+	p.type = subtype
+	for i in p.members:
+		tiles[i].zoneType = subtype
+		tiles[i].resType = subtype if p.zone == "res" else null
+
 func _population_develop() -> void:
 	var candidates: Array = []
 	var seen: Dictionary = {}
@@ -878,10 +943,12 @@ func _population_develop() -> void:
 			target = p.root
 			t = tiles[target]
 		if not t.zone or not road_near(target): continue
-		candidates.append({"i":target,"score":_growth_score(target)+_hash(target,tick,seed)*16-8})
+		var growth_score = _growth_score(target)
+		candidates.append({"i":target,"growthScore":growth_score,"score":growth_score+_hash(target,tick,seed)*16-8})
 	candidates.sort_custom(func(a,b): return a.score > b.score)
 	var limit = clampi(ceili(candidates.size()*0.05),2,14)
 	var grown = 0
+	var promotions = 0
 	for candidate in candidates:
 		var t = tiles[candidate.i]
 		var p = parcel_info(candidate.i) if t.parcel else {}
@@ -891,15 +958,25 @@ func _population_develop() -> void:
 		var abandoned = int(t.abandoned)
 		var damage = float(t.damage)
 		var score = candidate.score
-		if score > 17 and grown < limit:
+		var automatic_ready = not t.get("autoGrow",false) or (parcel_has(p,"power") and parcel_has(p,"water"))
+		if score > 17 and grown < limit and automatic_ready:
 			if abandoned and score > 20:
 				abandoned = 0
 				level = maxi(1,level)
 				damage = 0
 				grown += 1
-			elif not abandoned and level < maximum and score > (22+level*19 if level else 17):
-				level += 1
-				grown += 1
+			elif not abandoned:
+				var subtype = type
+				if not p.is_empty() and (level == 0 or (level >= 2 and promotions < 2)):
+					subtype = _automatic_growth_type(p,candidate.growthScore)
+				if level >= 2 and subtype != type:
+					_parcel_set_type(p,subtype)
+					promotions += 1
+					grown += 1
+				elif level < maximum and score > (22+level*19 if level else 17):
+					if subtype != type: _parcel_set_type(p,subtype)
+					level += 1
+					grown += 1
 		elif score < -38 and level:
 			damage += 0.18
 			if damage > 1:

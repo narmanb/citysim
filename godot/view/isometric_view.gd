@@ -11,6 +11,7 @@ signal selection_changed(index: int)
 
 const Layer = preload("res://view/iso_layer.gd")
 const GroundShader = preload("res://view/opaque_ground.gdshader")
+const BuildingCatalog = preload("res://view/building_catalog.gd")
 const N: int = 52
 const BASE: float = 28.0
 const ELEVATION: float = 0.15
@@ -75,6 +76,7 @@ var _fire_tiles: Array = []
 var _recording_layer
 var _record_index: int = -1
 var _ground_material: ShaderMaterial
+var _building_catalog = BuildingCatalog.new()
 
 func _ready() -> void:
 	clip_contents = true
@@ -106,7 +108,9 @@ func _ready() -> void:
 		# between terrain, roads, trees and buildings in each depth-ordered mesh.
 		var layout: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/render_atlas.json"))
 		_textures["runtime"] = load("res://" + str(layout.file))
-		for name in _manifest.sprites:
+		for name in layout.sprites:
+			if not _manifest.sprites.has(name):
+				_manifest.sprites[name] = layout.sprites[name].duplicate(true)
 			_manifest.sprites[name].atlas = "runtime"
 			_manifest.sprites[name].x = layout.sprites[name].x
 			_manifest.sprites[name].y = layout.sprites[name].y
@@ -207,7 +211,7 @@ func _road_mask(index: int, kind: String = "road") -> int:
 func _new_layer(depth: float, object: bool = false):
 	if _record_index >= 0:
 		var key: int = clampi(roundi(depth * 20.0), 0, 2999)
-		_recording_layer.commands = []
+		_recording_layer.commands = _tile_records[_record_index].get(key, [])
 		_tile_records[_record_index][key] = _recording_layer.commands
 		if not _bucket_members.has(key): _bucket_members[key] = {}
 		_bucket_members[key][_record_index] = true
@@ -326,8 +330,7 @@ func _record_tile(index: int) -> void:
 	if int(tile.get("level", 0)) > 0:
 		var parcel: Dictionary = world.parcel_info(index) if tile.get("parcel", 0) else {}
 		if not parcel.is_empty() and int(parcel.get("root", index)) != index: return
-		var fp: Rect2i = _parcel_footprint(parcel.get("members", [index]))
-		_draw_development(_new_layer(fp.position.x + fp.position.y + fp.size.x + fp.size.y - 0.1, true), tile, fp.position.x + fp.size.x * 0.5, fp.position.y + fp.size.y * 0.5, mini(fp.size.x, fp.size.y), index)
+		_draw_property(tile, parcel.get("members", [index]), index)
 
 func _rect_points(x: float, y: float, elevation: float, left: float = 0, top: float = 0, width: float = 1, height: float = 1) -> PackedVector2Array:
 	return PackedVector2Array([_point(x + left, y + top, elevation), _point(x + left + width, y + top, elevation), _point(x + left + width, y + top + height, elevation), _point(x + left, y + top + height, elevation)])
@@ -510,17 +513,54 @@ func _parcel_footprint(members: Array) -> Rect2i:
 	for i in members:
 		var x: int = int(i) % N
 		var y: int = floori(float(i) / N)
-		for width in [1, 2]:
-			for depth in [1, 2]:
+		for width in [1, 2, 3]:
+			for depth in [1, 2, 3]:
 				if x + width > N or y + depth > N or width * depth <= best.size.x * best.size.y: continue
 				var fits: bool = true
 				for dy in range(depth):
 					for dx in range(width):
-						if not contained.has((y + dy) * N + x + dx): fits = false
+						var member: int = (y + dy) * N + x + dx
+						if not contained.has(member): fits = false
+						elif world != null and float(world.tiles[member].get("elev", 0)) != float(world.tiles[int(i)].get("elev", 0)): fits = false
 				if fits: best = Rect2i(x, y, width, depth)
 	return best
 
-func _draw_development(layer, tile: Dictionary, x: float, y: float, span: float, index: int) -> void:
+func _draw_property(tile: Dictionary, members: Array, index: int) -> void:
+	var kind: String = str(tile.get("zoneType", ""))
+	if kind.is_empty(): kind = "house" if tile.zone == "res" else "shop" if tile.zone == "com" else "light"
+	if kind in ["house", "shop"]:
+		# A residential/retail property can contain several small buildings.
+		# Give each its actual terrain height and depth rather than stretching
+		# one house across the whole lot or drawing every house at the front.
+		for member in members:
+			var x: int = int(member) % N
+			var y: int = floori(float(member) / N)
+			var unit: Dictionary = tile.duplicate()
+			unit.elev = world.tiles[member].get("elev", 0)
+			_draw_development(_new_layer(x + y + 1.9, true), unit, x + 0.5, y + 0.5, 0.94, index, int(member))
+		return
+	var fp: Rect2i = _parcel_footprint(members)
+	var elevated: Dictionary = tile.duplicate()
+	elevated.elev = world.tiles[fp.position.y * N + fp.position.x].get("elev", 0)
+	if kind == "apt" and fp.size == Vector2i(3, 3):
+		# Four wings around a shared courtyard make a complex, not an enlarged
+		# single-family house. All wings share the property's architecture/color.
+		for dy in range(3):
+			for dx in range(3):
+				_surface(_new_layer(fp.position.x + dx + fp.position.y + dy + 1.05), "pavement", fp.position.x + dx, fp.position.y + dy, elevated.elev, 0, 0, 1, 1, Color("a8acaa", 0))
+		for offset in [Vector2(0.75, 0.75), Vector2(2.25, 0.75), Vector2(0.75, 2.25), Vector2(2.25, 2.25)]:
+			var x: float = fp.position.x + offset.x
+			var y: float = fp.position.y + offset.y
+			# Include every tile touched by the wing's footprint; otherwise a
+			# courtyard cap can be submitted later and cut through its front wall.
+			var front_x: int = floori(x + 0.38 * 1.2 - 0.00001)
+			var front_y: int = floori(y + 0.38 * 1.2 - 0.00001)
+			_draw_development(_new_layer(front_x + front_y + 1.9, true), elevated, x, y, 1.2, index)
+		return
+	_draw_development(_new_layer(fp.position.x + fp.position.y + fp.size.x + fp.size.y - 0.1, true), elevated,
+		fp.position.x + fp.size.x * 0.5, fp.position.y + fp.size.y * 0.5, mini(fp.size.x, fp.size.y), index)
+
+func _draw_development(layer, tile: Dictionary, x: float, y: float, span: float, index: int, slot: int = 0) -> void:
 	var zone: String = str(tile.get("zone", "res"))
 	var type: String = str(tile.get("zoneType", ""))
 	if type.is_empty(): type = str(tile.get("resType", ""))
@@ -528,24 +568,47 @@ func _draw_development(layer, tile: Dictionary, x: float, y: float, span: float,
 	var level: int = int(tile.get("level", 1))
 	var elevation: float = float(tile.get("elev", 0))
 	var abandoned: bool = bool(tile.get("abandoned", false))
+	var style: Dictionary = _building_catalog.style_for(int(world.get("seed")) if world.get("seed") != null else 0, int(tile.get("parcel", index)), type, slot)
 	if zone == "ind":
-		var size_factor: float = BASE * span
-		var footprint: float = 0.7 * span
-		var height: float = size_factor * ((0.4 if type == "heavy" else 0.25) + mini(4, level) * 0.1)
-		_box(layer, x - footprint * 0.5, y - footprint * 0.5, elevation, footprint, footprint, height, ["99968a", "69665b", "817e70"] if abandoned else ["c3b793", "6c716d", "999482"])
-		if type == "heavy": _box(layer, x + footprint * 0.25, y - footprint * 0.2, elevation, footprint * 0.16, footprint * 0.16, size_factor * 1.4, ["a18464", "5d5350", "8b7268"])
-		layer.label_at("H" if type == "heavy" else "IND", _point(x, y, elevation) + Vector2(0, -height + 3), 10, Color("342f29"))
+		_draw_factory(layer, style, x, y, span, elevation, level, type == "heavy", abandoned)
 		return
-	var floors: int = clampi(level, 1, 3) if type in ["house", "shop"] else mini(5, level + 1)
-	var variant: int = int(tile.get("parcel", index)) % 2
-	var sprite: String = ("house" if variant else "houseBeige") if type == "house" else "office" if type in ["shop", "office"] else "house"
-	var step: float = 35.5
+	var floors: int = (2 if level >= 3 else 1) if type == "house" else mini(2, level) if type == "shop" else mini(6, level + 2) if type == "apt" else mini(5, level + 1)
+	var step: float = float(style.recipe.get("step", 35.5))
 	var tint: Color = Color(0.65, 0.65, 0.65, 0.65) if abandoned else Color.WHITE
 	for floor_number in range(floors):
-		_sprite(layer, sprite, _point(x, y, elevation), span, floor_number * step, tint)
-	_sprite(layer, "roof" if type == "house" else "flatRoof", _point(x, y, elevation), span, floors * step, tint)
+		_sprite(layer, style.floor, _point(x, y, elevation), span, floor_number * step, tint)
+	_sprite(layer, style.roof, _point(x, y, elevation), span, floors * step, tint)
+	if type == "shop" and bool(style.recipe.get("awning", false)):
+		_draw_awning(layer, style, x, y, elevation, span, abandoned)
 	if abandoned:
 		layer.label_at("×", _point(x, y, elevation) - Vector2(0, floors * step * BASE / 66.0 * span + 8), 11, Color("f5ba90"))
+
+func _draw_awning(layer, style: Dictionary, x: float, y: float, elevation: float, span: float, abandoned: bool) -> void:
+	var lift := Vector2(0, BASE * 0.31 * span)
+	for stripe in range(4):
+		var color: Color = Color("d8d0ba") if stripe % 2 else style.roof_color.lightened(0.15)
+		if abandoned: color = color.darkened(0.35)
+		var points: PackedVector2Array = _rect_points(x - 0.32 * span, y + 0.26 * span, elevation, stripe * 0.16 * span, 0, 0.16 * span, 0.18 * span)
+		for i in range(points.size()): points[i] -= lift
+		layer.polygon(points, color)
+		layer.polygon(PackedVector2Array([points[3], points[2], points[2] + Vector2(0, 2 * span), points[3] + Vector2(0, 2 * span)]), color.darkened(0.2))
+
+func _draw_factory(layer, style: Dictionary, x: float, y: float, span: float, elevation: float, level: int, heavy: bool, abandoned: bool) -> void:
+	var footprint: float = span * 0.75
+	var height: float = BASE * span * (0.38 + mini(level, 4) * 0.07)
+	var wall: Color = style.wall.darkened(0.35) if abandoned else style.wall
+	_box(layer, x - footprint * 0.5, y - footprint * 0.5, elevation, footprint, footprint, height,
+		[wall.lightened(0.12).to_html(), wall.darkened(0.28).to_html(), wall.darkened(0.12).to_html()])
+	# A large loading door identifies a workshop without putting house windows
+	# on it. Its four vertices sit on the front face, below the roof.
+	var left: Vector2 = _point(x - footprint * 0.22, y + footprint * 0.5, elevation)
+	var right: Vector2 = _point(x + footprint * 0.22, y + footprint * 0.5, elevation)
+	layer.polygon(PackedVector2Array([left, right, right - Vector2(0, height * 0.76), left - Vector2(0, height * 0.76)]), wall.darkened(0.6))
+	_sprite(layer, style.roof, _point(x, y, elevation), span, height / (BASE / 66.0 * span), Color("aaaaaa") if abandoned else Color.WHITE)
+	if heavy:
+		for offset in [-0.2, 0.15]:
+			_box(layer, x + offset * span, y - footprint * 0.25, elevation + height / (BASE * ELEVATION), span * 0.13, span * 0.13,
+				BASE * span * (0.65 + level * 0.08), ["b2aca2", "66676a", "8a8884"])
 
 func _field(name: String, index: int, fallback: float = 0.0) -> float:
 	var values = world.fields.get(name, [])

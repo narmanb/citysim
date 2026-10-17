@@ -31,11 +31,11 @@ const OVERLAYS: Dictionary = {
 }
 const TOOL_HELP: Dictionary = {
 	"pan": "Drag to pan. Tap a tile to inspect its parcel and services. Pinch or use + / − to zoom.",
-	"res": "Zone homes beside roads, then supply power and water. Tap for one lot; Paint drag for one larger property.",
+	"res": "Zone homes beside roads, then supply utilities. Larger serviced properties may develop apartments as the city grows.",
 	"apt": "Larger apartment parcels support larger buildings. Add road access, power, water and jobs.",
-	"shop": "Zone businesses for shops, services and jobs. They need customers, road access, power and water.",
+	"shop": "Zone businesses for shops and services. Larger suitable properties can develop offices as population and demand grow.",
 	"office": "Offices provide denser employment and need a stronger population base.",
-	"light": "Zone industrial jobs with road access, power and water. Keep housing away from industrial pollution.",
+	"light": "Zone industrial jobs. Suitable larger properties may develop factories when demand and road access support them. Keep homes away from pollution.",
 	"heavy": "Heavy industry provides more jobs per tile and prefers properties of at least four tiles. Keep homes away from pollution.",
 	"road": "Paint a road between dry banks to bridge up to eight water tiles. Roads must touch zones.",
 	"rail": "Connect two rail stations on one rail line. Paint between dry banks to build a bridge.",
@@ -53,7 +53,7 @@ const TOOL_HELP: Dictionary = {
 	"tree": "Plant an individual tree on clear land.", "forest": "Paint forest on clear land. Power lines and buildings exclude trees."
 }
 const GUIDE: String = """1. BUILD A CONNECTED CITY
-Choose Housing zone for homes, Business zone for shops and services, or Industrial zone for industrial jobs. Each property needs adjacent road access. A tap makes a 1×1 lot; one connected Paint-drag stroke makes one larger property. Painting the same zone family leaves existing properties intact.
+Choose Housing, Business or Industrial. A tap makes a 1×1 property; one connected Paint-drag stroke makes one larger property. Small properties grow homes, shops or workshops. Larger properties can also grow apartments, offices or factories when demand, services, roads and utilities support them. Lot size allows larger buildings; it does not guarantee them. Painting the same zone family leaves existing properties intact.
 
 2. SUPPLY POWER
 Build a power plant and connect a power line to the first zone tile. Developed powered buildings pass electricity to neighboring developed buildings. Empty zoning cannot carry power onward. Lines can cross roads.
@@ -323,6 +323,8 @@ func _place_one(index: int, bridge: bool = false) -> bool:
 	var cash_before: float = world.cash
 	if not world.place(index, selected_tool, bridge, _stroke_parcel):
 		return false
+	if selected_tool in CATEGORIES.Zoning:
+		world.tiles[index].autoGrow = true
 	var after: Dictionary = {}
 	for key in before:
 		after[key] = world.tiles[key].duplicate(true)

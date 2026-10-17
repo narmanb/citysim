@@ -18,7 +18,7 @@ func _initialize() -> void:
 	var images: Dictionary = {}
 	for name in manifest.atlases:
 		images[name] = (load("res://" + manifest.atlases[name].file) as Texture2D).get_image()
-	if layout.sprites.size() != manifest.sprites.size():
+	if layout.sprites.size() < manifest.sprites.size():
 		push_error("The compact atlas must preserve every selected sprite")
 		quit(1)
 		return
@@ -38,5 +38,5 @@ func _initialize() -> void:
 					quit(1)
 					return
 				count += 1
-	print("Render atlas: %s selected sprites, %s exact source/border texels: PASS" % [layout.sprites.size(), count])
+	print("Render atlas: %s original sprites retained among %s entries, %s exact source/border texels: PASS" % [manifest.sprites.size(), layout.sprites.size(), count])
 	quit()

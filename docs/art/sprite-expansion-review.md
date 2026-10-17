@@ -1,5 +1,7 @@
 # MetroForge sprite expansion review
 
+Historical research snapshot: the subsequent 0.3.2 optimization improved populated-city performance, and the first building expansion is now implemented in source. See [the performance report](../../godot/docs/performance-0.3.2.md) and [building variety and automatic growth](../../godot/docs/building-variety.md) for current behavior.
+
 The strongest first expansion is **more variety from the Kenney atlases already shipped in the app**, followed by distinctive civic/industrial artwork. Harbor City's Galaxy S25+ slowdown remains unresolved; the user explicitly deferred optimization to a later request. This pass reviews artwork and records future work only.
 
 ![Candidate sprites from existing atlases](MetroForge-Sprite-Candidates.png)

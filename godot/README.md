@@ -2,6 +2,12 @@
 
 Open `project.godot` with **Godot 4.6.3 standard edition** and press Play. This project runs the city simulation and renders its scene natively with GDScript and Godot 2D. The earlier browser/WebView game is retained separately in the repository.
 
+## Unreleased source changes
+
+Housing, Business and Industrial remain the three zoning choices. New painted properties choose their building type automatically: lot shape, demand, population, services, land value, utilities and roads influence development. A flat 3×3 housing property can grow nine homes or a four-wing apartment complex; size permits denser buildings without guaranteeing them.
+
+The renderer now uses 24 building recipes and six selective wall/roof palettes. Styles stay stable across camera movement and save/reload. Windows, transparency and authored shading are preserved. See [building variety and automatic growth](docs/building-variety.md) for rules, validation and desktop performance comparisons. These changes have not been packaged into a new APK.
+
 ## Changes in 0.3.2
 
 Populated cities now batch roads, railways, utility strokes, terrain and sprites in ordered meshes. Harbor City's full-view submissions drop from 20,134 draw calls to 598 in the desktop probe. Local amenity influence updates reduce monthly simulation CPU work. A visible FPS / frame-time display above the zoom controls reports real rendered frames, including stalls. Existing sprites and depth order are preserved; the APK uses the release engine with preview signing.
@@ -44,7 +50,7 @@ The two apps use different private storage, so existing browser local storage do
 
 ## Controls
 
-The zoning palette has three choices: Housing zone, Business zone and Industrial zone. New properties currently use the existing house, shop and light-industry rules respectively; automatic selection of building subtypes is not implemented. Apartments, offices and heavy industry remain supported building subtypes. Painting the same zone family preserves an existing property without charging or resetting its development. Logistics has been removed from tools, simulation rules and accepted save subtypes; this source revision targets fresh saves.
+The zoning palette has three choices: Housing zone, Business zone and Industrial zone. New properties automatically select homes/apartments, shops/offices or workshops/factories as conditions permit. Apartments, offices and heavy industry remain internal building subtypes rather than separate zone buttons. Painting the same zone family preserves an existing property without charging or resetting its development. Logistics has been removed from tools, simulation rules and accepted save subtypes; this source revision targets fresh saves.
 
 Tap with a construction tool to place one tile; dragging in Tap + pan mode moves the camera. Paint mode commits a connected stroke on release. Two fingers pan and pinch without spending money. Fit shows the whole city; +/− and pinching zoom into a district. The native controls include all current tools, overlays, budgets, events, guide, pause/speeds, selection details, files and construction-only undo/redo.
 
@@ -54,7 +60,7 @@ Tap with a construction tool to place one tile; dragging in Tap + pan mode moves
 python tools/check_project.py
 ```
 
-This first imports source textures and registers script classes, then runs the native model/environment, persistence, mixed mesh/atlas, view/gesture, render-cache, game/controller, UI layout and FPS tests with timeouts. It rejects GDScript runtime errors even if the engine returns exit code zero. `tests/test_view.gd -- --capture` can capture the rendered fixture when run with a real display and `--rendering-method gl_compatibility`.
+This first imports source textures and registers script classes, then runs the native model/environment, automatic growth, persistence, mixed mesh/atlas, selective recoloring, building layouts, view/gesture, render-cache, game/controller, UI layout and FPS tests with timeouts. It rejects GDScript runtime errors even if the engine returns exit code zero. `tests/test_view.gd -- --capture` can capture the rendered fixture when run with a real display and `--rendering-method gl_compatibility`.
 
 The model tests compare deterministic results against the original JavaScript at months 1, 6, and 12, as well as all 2,704 generated terrain/tree tiles for a known seed. Tests and software-rendered captures do not establish behavior on a particular Android phone.
 

@@ -26,7 +26,7 @@ def main():
     sources = [PROJECT / 'project.godot', PROJECT / 'export_presets.cfg',
                PROJECT / 'main.tscn', PROJECT / 'assets/icon.svg',
                PROJECT / 'assets/manifest.json', PROJECT / 'assets/render_atlas.json',
-               PROJECT / 'assets/render_atlas.png']
+               PROJECT / 'assets/render_atlas.png', PROJECT / 'assets/building_styles.json']
     for folder in ('model', 'view', 'ui', 'persistence'):
         sources.extend(sorted((PROJECT / folder).glob('*.gd')))
     sources.extend(sorted((PROJECT / 'view').glob('*.gdshader')))

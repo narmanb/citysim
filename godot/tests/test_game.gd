@@ -70,6 +70,7 @@ func run() -> void:
 	game.construct_at(611)
 	game.end_stroke()
 	check(world.tiles[610].parcel > 0 and world.tiles[610].parcel == world.tiles[611].parcel, "Paint stroke shares one parcel")
+	check(world.tiles[610].autoGrow and world.tiles[611].autoGrow, "Generic zone brushes enable automatic building choice across the property")
 	check(game.undo() and not world.tiles[610].zone and not world.tiles[611].zone, "Undo restores whole construction stroke")
 	world.cash = 0
 	check(not game.redo() and not world.tiles[610].zone, "Unaffordable redo preserves undone construction")
