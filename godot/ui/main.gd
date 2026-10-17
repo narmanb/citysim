@@ -5,6 +5,7 @@ const World = preload("res://model/city_world.gd")
 const CityView = preload("res://view/isometric_view.gd")
 const Store = preload("res://persistence/city_store.gd")
 const ConstructionHistory = preload("res://ui/construction_history.gd")
+const PerformanceDisplay = preload("res://ui/performance_display.gd")
 const CATEGORIES: Dictionary = {
 	"Transport": ["road", "rail", "station"],
 	"Zoning": ["res", "apt", "shop", "office", "light", "logistics", "heavy"],
@@ -782,6 +783,13 @@ func _build_ui() -> void:
 	_button("Fit", _fit_view, camera)
 	for child in camera.get_children():
 		child.add_theme_font_size_override("font_size", 19 if child.text != "Fit" else 12)
+	var performance_display = PerformanceDisplay.new()
+	performance_display.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	performance_display.offset_left = -156
+	performance_display.offset_right = -8
+	performance_display.offset_top = -78
+	performance_display.offset_bottom = -54
+	map_area.add_child(performance_display)
 	_status = _label("", map_area)
 	_status.name = "Status"
 	_status.z_index = 3900

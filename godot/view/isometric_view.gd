@@ -101,9 +101,15 @@ func _ready() -> void:
 	var parsed = JSON.parse_string(text)
 	if parsed is Dictionary:
 		_manifest = parsed
-		for atlas_name in _manifest.get("atlases", {}):
-			var path: String = "res://" + str(_manifest.atlases[atlas_name].file)
-			_textures[atlas_name] = load(path)
+		# The original atlases/manifest remain the provenance record. The renderer
+		# needs only their selected crops, packed together to avoid texture switches
+		# between terrain, roads, trees and buildings in each depth-ordered mesh.
+		var layout: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/render_atlas.json"))
+		_textures["runtime"] = load("res://" + str(layout.file))
+		for name in _manifest.sprites:
+			_manifest.sprites[name].atlas = "runtime"
+			_manifest.sprites[name].x = layout.sprites[name].x
+			_manifest.sprites[name].y = layout.sprites[name].y
 	resized.connect(_on_resized)
 	_apply_camera()
 	queue_redraw()

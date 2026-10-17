@@ -15,24 +15,30 @@ PROJECT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--godot', default=shutil.which('godot') or shutil.which('godot4') or 'godot')
-    parser.add_argument('--output', type=Path, default=PROJECT / 'build/MetroForge-Godot-0.3.1-debug.apk')
+    parser.add_argument('--output', type=Path, default=PROJECT / 'build/MetroForge-Godot-0.3.2-preview.apk')
     args = parser.parse_args()
     version = subprocess.check_output([args.godot, '--version'], text=True).strip()
     if not version.startswith('4.6.3.stable'):
         raise SystemExit('Use Godot 4.6.3 with matching Android export templates.')
+    template = Path.home() / '.local/share/godot/export_templates/4.6.3.stable/android_release.apk'
+    if not template.is_file():
+        raise SystemExit('Install the matching official Godot 4.6.3 Android release template.')
     sources = [PROJECT / 'project.godot', PROJECT / 'export_presets.cfg',
-               PROJECT / 'main.tscn', PROJECT / 'assets/icon.svg']
+               PROJECT / 'main.tscn', PROJECT / 'assets/icon.svg',
+               PROJECT / 'assets/manifest.json', PROJECT / 'assets/render_atlas.json',
+               PROJECT / 'assets/render_atlas.png']
     for folder in ('model', 'view', 'ui', 'persistence'):
         sources.extend(sorted((PROJECT / folder).glob('*.gd')))
     sources.extend(sorted((PROJECT / 'view').glob('*.gdshader')))
     receipts = {p.relative_to(PROJECT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}
-    info = {'version': '0.3.1-godot-preview', 'engine': version,
+    info = {'version': '0.3.2-godot-preview', 'engine': version, 'export_mode': 'release',
+            'android_template_sha256': hashlib.sha256(template.read_bytes()).hexdigest(),
             'built_utc': datetime.now(timezone.utc).isoformat(), 'source_sha256': receipts}
     (PROJECT / 'assets/build_info.json').write_text(json.dumps(info, indent=2) + '\n')
     output = args.output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     command = [args.godot, '--headless', '--audio-driver', 'Dummy', '--path', str(PROJECT),
-               '--export-debug', 'Android', str(output)]
+               '--export-release', 'Android', str(output)]
     run = subprocess.run(command, text=True, capture_output=True, timeout=180)
     log = run.stdout + run.stderr
     (output.parent / 'godot-export.log').write_text(log)
@@ -42,11 +48,16 @@ def main():
     with ZipFile(output) as archive:
         assert archive.testzip() is None
         assert json.loads(archive.read('assets/assets/build_info.json')) == info
+        assert json.loads(archive.read('assets/assets/render_atlas.json')) == json.loads((PROJECT / 'assets/render_atlas.json').read_text())
         for source in receipts:
             if source.endswith('.gd'):
                 assert 'assets/' + source[:-3] + '.gdc' in archive.namelist(), source
         assert 'lib/arm64-v8a/libgodot_android.so' in archive.namelist()
         assert not any(name.endswith(('.html', '.js')) for name in archive.namelist())
+        with ZipFile(template) as official:
+            for abi in ('arm64-v8a', 'armeabi-v7a'):
+                name = f'lib/{abi}/libgodot_android.so'
+                assert hashlib.sha256(archive.read(name)).digest() == hashlib.sha256(official.read(name)).digest(), 'APK must contain the release runtime'
     print(f'Native Android export verified: {output} ({output.stat().st_size:,} bytes)')
     print('SHA256:', hashlib.sha256(output.read_bytes()).hexdigest())
 

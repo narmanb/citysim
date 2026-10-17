@@ -696,12 +696,27 @@ func _environment_update() -> void:
 	var hospital = fields.hospital
 	var has_traffic = trafficHeat.size() == COUNT
 	var economic = stats.get("unemployment",0)
-	var parks: Array = []
-	var stations: Array = []
+	# Deposit finite amenity influence once instead of measuring every tile
+	# against every park and station. Park sums are integral until applied below.
+	var park_influence = PackedInt32Array()
+	var station_access = PackedByteArray()
+	park_influence.resize(COUNT)
+	station_access.resize(COUNT)
 	for i in range(COUNT):
 		var t = tiles[i]
-		if t.civic == "park": parks.append(i)
-		if t.civic == "station" and t.rail: stations.append(i)
+		if t.civic == "park" or (t.civic == "station" and t.rail):
+			var x = i%N
+			var y = int(i/N)
+			var is_park = t.civic == "park"
+			# Parks have zero benefit at distance five; station access includes it.
+			var radius = 4 if is_park else 5
+			for yy in range(maxi(0,y-radius),mini(N-1,y+radius)+1):
+				var vertical = abs(y-yy)
+				var reach = radius-vertical
+				for xx in range(maxi(0,x-reach),mini(N-1,x+reach)+1):
+					var target = yy*N+xx
+					if is_park: park_influence[target] += 5-vertical-abs(x-xx)
+					else: station_access[target] = 1
 		var strength = 70.0 if t.civic == "plant" else t.level*(15+t.occupancy*0.08) if t.zone == "ind" else 0.0
 		if not strength: continue
 		var x = i%N
@@ -727,15 +742,10 @@ func _environment_update() -> void:
 				bad_road += 1-neighbor.condition
 				adjacent_road = true
 				if has_traffic: local_traffic = maxf(local_traffic,trafficHeat[j])
-		for p in parks:
-			var distance = _man(i,p)
-			if distance <= 5: park += maxi(0,5-distance)
+		park += park_influence[i]
 		pollution[i] = clampf(pollution[i]-park*0.65,0.0,100.0)
 		var transport = 12 if (road_near(i) if t.parcel else adjacent_road) else 0
-		for j in stations:
-			if _man(i,j) <= 5:
-				transport += 8
-				break
+		if station_access[i]: transport += 8
 		traffic_impact[i] = local_traffic
 		crime[i] = clampf(15+t.level*4+economic*0.2+abandoned+pollution[i]*0.13-police[i]*55-park*0.1,0.0,100.0)
 		land_value[i] = clampf(48+park+transport+school[i]*20+hospital[i]*13+police[i]*8-pollution[i]*0.48-crime[i]*0.34-traffic_impact[i]*0.25-bad_road*12-(45 if t.fire else 0),0.0,100.0)

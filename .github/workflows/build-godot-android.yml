@@ -61,7 +61,7 @@ jobs:
                       shutil.copyfileobj(source, output)
           PY
 
-      - name: Configure Godot Android debug export
+      - name: Configure Godot Android test signing
         env:
           DEBUG_KEYSTORE_BASE64: ${{ secrets.GODOT_ANDROID_DEBUG_KEYSTORE_BASE64 }}
         run: |
@@ -94,15 +94,18 @@ jobs:
                               '\n'.join(name + ' = ' + json.dumps(value)
                                         for name, value in values.items()) + '\n')
           PY
+          echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$RUNNER_TEMP/godot-debug.keystore" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=androiddebugkey" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=android" >> "$GITHUB_ENV"
 
       - name: Verify native simulation, saves, controls and source art
         run: python godot/tools/check_project.py --godot "$GODOT_BIN"
 
       - name: Export and verify native Android APK
         run: |
-          python godot/tools/build_android.py --godot "$GODOT_BIN" --output dist/MetroForge-Godot-0.3.1-debug.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/MetroForge-Godot-0.3.1-debug.apk
-          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 dist/MetroForge-Godot-0.3.1-debug.apk
+          python godot/tools/build_android.py --godot "$GODOT_BIN" --output dist/MetroForge-Godot-0.3.2-preview.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/MetroForge-Godot-0.3.2-preview.apk
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 dist/MetroForge-Godot-0.3.2-preview.apk
           python - <<'PY'
           from pathlib import Path
           import hashlib
@@ -137,6 +140,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view v0.3.1-godot-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"
+          gh release view v0.3.2-godot-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"
           python -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"] + "/godot-draft.json"))["isDraft"], "Only an unpublished draft may be updated"'
-          gh release upload v0.3.1-godot-preview dist/*.apk dist/*.zip dist/MetroForge-Godot-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber
+          gh release upload v0.3.2-godot-preview dist/*.apk dist/*.zip dist/MetroForge-Godot-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber

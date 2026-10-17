@@ -1,0 +1,447 @@
+{
+  "baseline_commit": "3b6220875d560c0e01085b8172846c0c201256b5",
+  "fixture_sha256": "d499e3947edce20061b5ff2c3563c9fe8a82d25a8f4578dfba7299cd51a2191a",
+  "baseline_render": {
+    "commands": {
+      "0": 6169,
+      "1": 5428,
+      "2": 836,
+      "3": 60
+    },
+    "ground_commands": {
+      "0": 5947,
+      "1": 3506
+    },
+    "logical": [
+      854,
+      394
+    ],
+    "object_commands": {
+      "0": 222,
+      "1": 1922,
+      "2": 836,
+      "3": 60
+    },
+    "population": 4371,
+    "renderer": "llvmpipe (LLVM 19.1.7, 256 bits); desktop measurements do not establish Android FPS",
+    "results": [
+      {
+        "case": "fit_static",
+        "draw_calls_median": 20134,
+        "frame_median_ms": 101.993,
+        "frame_p95_ms": 124.533,
+        "input_agents_cpu_median_ms": 0.0,
+        "objects_median": 21120,
+        "scale": 4.24561403508772
+      },
+      {
+        "case": "fit_agents",
+        "draw_calls_median": 20133,
+        "frame_median_ms": 104.358,
+        "frame_p95_ms": 118.722,
+        "input_agents_cpu_median_ms": 1.064,
+        "objects_median": 21120,
+        "scale": 4.24985964912281
+      },
+      {
+        "case": "district_agents",
+        "draw_calls_median": 16119,
+        "frame_median_ms": 114.679,
+        "frame_p95_ms": 142.608,
+        "input_agents_cpu_median_ms": 1.111,
+        "objects_median": 17011,
+        "scale": 14.5145
+      },
+      {
+        "case": "close_agents",
+        "draw_calls_median": 8621,
+        "frame_median_ms": 93.107,
+        "frame_p95_ms": 101.835,
+        "input_agents_cpu_median_ms": 1.079,
+        "objects_median": 9247,
+        "scale": 35.035
+      },
+      {
+        "case": "fit_ground_only",
+        "draw_calls_median": 13916,
+        "frame_median_ms": 82.352,
+        "frame_p95_ms": 100.899,
+        "input_agents_cpu_median_ms": 0.0,
+        "objects_median": 14196,
+        "scale": 4.24561403508772
+      },
+      {
+        "case": "fit_objects_only",
+        "draw_calls_median": 6350,
+        "frame_median_ms": 46.558,
+        "frame_p95_ms": 53.738,
+        "input_agents_cpu_median_ms": 0.0,
+        "objects_median": 7357,
+        "scale": 4.24561403508772
+      },
+      {
+        "case": "fit_without_poles",
+        "draw_calls_median": 14273,
+        "frame_median_ms": 78.058,
+        "frame_p95_ms": 130.698,
+        "input_agents_cpu_median_ms": 0.0,
+        "objects_median": 15260,
+        "scale": 4.24561403508772
+      }
+    ],
+    "viewport": [
+      1280,
+      591
+    ]
+  },
+  "candidate_render": {
+    "commands": {
+      "0": 6169,
+      "1": 5428,
+      "2": 836,
+      "3": 60
+    },
+    "ground_commands": {
+      "0": 5947,
+      "1": 3506
+    },
+    "logical": [
+      854,
+      394
+    ],
+    "object_commands": {
+      "0": 222,
+      "1": 1922,
+      "2": 836,
+      "3": 60
+    },
+    "population": 4371,
+    "renderer": "llvmpipe (LLVM 19.1.7, 256 bits); desktop measurements do not establish Android FPS",
+    "results": [
+      {
+        "case": "fit_static",
+        "draw_calls_median": 598,
+        "frame_median_ms": 49.261,
+        "frame_p95_ms": 62.401,
+        "input_agents_cpu_median_ms": 0.0,
+        "objects_median": 915,
+        "scale": 4.24561403508772
+      },
+      {
+        "case": "fit_agents",
+        "draw_calls_median": 599,
+        "frame_median_ms": 51.312,
+        "frame_p95_ms": 61.319,
+        "input_agents_cpu_median_ms": 0.785,
+        "objects_median": 915,
+        "scale": 4.24985964912281
+      },
+      {
+        "case": "district_agents",
+        "draw_calls_median": 444,
+        "frame_median_ms": 84.617,
+        "frame_p95_ms": 102.688,
+        "input_agents_cpu_median_ms": 0.952,
+        "objects_median": 745,
+        "scale": 14.5145
+      },
+      {
+        "case": "close_agents",
+        "draw_calls_median": 250,
+        "frame_median_ms": 77.059,
+        "frame_p95_ms": 87.272,
+        "input_agents_cpu_median_ms": 0.892,
+        "objects_median": 527,
+        "scale": 35.035
+      },
+      {
+        "case": "fit_ground_only",
+        "draw_calls_median": 242,
+        "frame_median_ms": 32.91,
+        "frame_p95_ms": 55.663,
+        "input_agents_cpu_median_ms": 0.0,
+        "objects_median": 535,
+        "scale": 4.24561403508772
+      },
+      {
+        "case": "fit_objects_only",
+        "draw_calls_median": 489,
+        "frame_median_ms": 35.261,
+        "frame_p95_ms": 58.361,
+        "input_agents_cpu_median_ms": 0.0,
+        "objects_median": 812,
+        "scale": 4.24561403508772
+      },
+      {
+        "case": "fit_without_poles",
+        "draw_calls_median": 457,
+        "frame_median_ms": 41.392,
+        "frame_p95_ms": 66.665,
+        "input_agents_cpu_median_ms": 0.0,
+        "objects_median": 757,
+        "scale": 4.24561403508772
+      }
+    ],
+    "viewport": [
+      1280,
+      591
+    ]
+  },
+  "model": {
+    "candidate_count": 1,
+    "equivalence": {
+      "snapshots": 42,
+      "bytes_per_implementation": 64614480,
+      "differences": 0,
+      "snapshots_sha256": [
+        {
+          "snapshot": "boundary-agents.bin",
+          "bytes": 1511712,
+          "sha256": "7bf83dacb54f2ccb14bb0e3cb282e2249b95dab56a07c1228dc0d0993da2d3de"
+        },
+        {
+          "snapshot": "boundary-initial.bin",
+          "bytes": 1511540,
+          "sha256": "7521b2f01ea6f97059115927a7cedf1a2156306cc8027df5e53b3a378acd8e3d"
+        },
+        {
+          "snapshot": "boundary-month-01.bin",
+          "bytes": 1511868,
+          "sha256": "b11c22ccea60e0070d5bde17b37caae10b64824ee78f546c34630d6c79dadc7c"
+        },
+        {
+          "snapshot": "boundary-month-02.bin",
+          "bytes": 1511868,
+          "sha256": "9d7e8a1fe99c7d6ac9f8ec2a3562e323149b9cba627ec61ed38bf73c9eb603a5"
+        },
+        {
+          "snapshot": "boundary-month-03.bin",
+          "bytes": 1511868,
+          "sha256": "07e3f1be7ad40aab33bc76e91ff788b93ea5429070d8643ce9cf29709d14e508"
+        },
+        {
+          "snapshot": "boundary-month-04.bin",
+          "bytes": 1511868,
+          "sha256": "08e32c3ac70ab2b2be9925c9a9e5f0575adfedf3bc1bb205b928a8f5a12df38a"
+        },
+        {
+          "snapshot": "boundary-month-05.bin",
+          "bytes": 1511868,
+          "sha256": "f8a5adbbb384c62a5f3900922d661b6f9bd12110fbf8b57f084dcdd063206314"
+        },
+        {
+          "snapshot": "boundary-month-06.bin",
+          "bytes": 1511868,
+          "sha256": "ff31eb2c1bcabc29dc9b2e54dbd59a5caeec77ce4d819d5402084aee56ac7123"
+        },
+        {
+          "snapshot": "boundary-recalculate.bin",
+          "bytes": 1511708,
+          "sha256": "43133879ce03025a3cdc69749705d8eddba7e1cd3901876fbfe449dcb706fe34"
+        },
+        {
+          "snapshot": "boundary-reload.bin",
+          "bytes": 1511892,
+          "sha256": "ba39433608d59d2c72c9e5a0861680890227903967c0e06f903b808fda854de3"
+        },
+        {
+          "snapshot": "dense-agents.bin",
+          "bytes": 1523800,
+          "sha256": "7f34b1a6d968fb307a7737dba92e21c48ff8eddc1329ab8822a90c4dde3edcac"
+        },
+        {
+          "snapshot": "dense-initial.bin",
+          "bytes": 1522228,
+          "sha256": "fc9abe308ed2191a4154b068d36c7d50dc522c6eb4c2dda524083c3d77d5dc3f"
+        },
+        {
+          "snapshot": "dense-month-01.bin",
+          "bytes": 1524524,
+          "sha256": "d8481e88284e6880ded563790b922d9da72a0e6307eed6ada1a433c1b19cbe87"
+        },
+        {
+          "snapshot": "dense-month-02.bin",
+          "bytes": 1525284,
+          "sha256": "e882fc7681e87edfbb2588a8fd8a73628a030c28c01aae9e7160db8df89ea6d3"
+        },
+        {
+          "snapshot": "dense-month-03.bin",
+          "bytes": 1525480,
+          "sha256": "c30ea9e538c94d5a4f184140b59f8a6f93cfeb04e9a5e8056c0e407407da8eac"
+        },
+        {
+          "snapshot": "dense-month-04.bin",
+          "bytes": 1524452,
+          "sha256": "f249737369ac9a9e9443f97f632864022b84a4ab465a8833029f74b436dff0b1"
+        },
+        {
+          "snapshot": "dense-month-05.bin",
+          "bytes": 1524632,
+          "sha256": "35b9b4ce848e7a12ef9c86dea0382d4f8794115ad7fe86af3e309013b6cb9c86"
+        },
+        {
+          "snapshot": "dense-month-06.bin",
+          "bytes": 1524580,
+          "sha256": "1c38528e4a208baf798efdbd5d79ca4ad39445392f4e0de309d8bd587fbdd905"
+        },
+        {
+          "snapshot": "dense-recalculate.bin",
+          "bytes": 1522228,
+          "sha256": "a7104b45c55d19d7fb2715aee18798a878a5f6fdbd88e9c814e8fa3732ba785e"
+        },
+        {
+          "snapshot": "dense-reload.bin",
+          "bytes": 1524576,
+          "sha256": "7a48f8263b0669bc82ad53d9b1c6439ca39869d94dff16f68810b9c284f93dbf"
+        },
+        {
+          "snapshot": "empty-agents.bin",
+          "bytes": 1511304,
+          "sha256": "ba45e4c3a310376853236b76f2b1aea01a4d0de59bdede10b4a6fdb8d88691bd"
+        },
+        {
+          "snapshot": "empty-initial.bin",
+          "bytes": 1511300,
+          "sha256": "0c56fbf0f33aeb4ccb04323990780cd87b0f0f88195a3bcc80ba4325f69a5fe2"
+        },
+        {
+          "snapshot": "empty-month-01.bin",
+          "bytes": 1511332,
+          "sha256": "88c0453e75b75a13081bfa44e3a6ebd7661190d637db6554a2c305d9743b1811"
+        },
+        {
+          "snapshot": "empty-month-02.bin",
+          "bytes": 1511332,
+          "sha256": "74c82de99c96e25b7c72521ffd4ec6f61ddb5ff0543892635ea2357ae2fd1f3c"
+        },
+        {
+          "snapshot": "empty-recalculate.bin",
+          "bytes": 1511300,
+          "sha256": "0c56fbf0f33aeb4ccb04323990780cd87b0f0f88195a3bcc80ba4325f69a5fe2"
+        },
+        {
+          "snapshot": "empty-reload.bin",
+          "bytes": 1511356,
+          "sha256": "196981b372d9cd9945cccaf918542018cb11b993249f2ee646fbddfafe21480c"
+        },
+        {
+          "snapshot": "harbor-agents.bin",
+          "bytes": 1573812,
+          "sha256": "f2e8dad60bdddb514a99526594fe4547aeaa0877fbeda342e51cf2926a1bed8e"
+        },
+        {
+          "snapshot": "harbor-initial.bin",
+          "bytes": 1573808,
+          "sha256": "ce818efd423497806ca702cfaaab1a3af359b81409b7c6a53dece537e3147588"
+        },
+        {
+          "snapshot": "harbor-month-01.bin",
+          "bytes": 1574160,
+          "sha256": "aaeb79aebf45011407acce3a8619cc9b661084afe819891ca294eb54d637c04f"
+        },
+        {
+          "snapshot": "harbor-month-02.bin",
+          "bytes": 1574164,
+          "sha256": "42685ed9feab5435c0adfb7c04fe4a913249be125d8a3852a804c36daeafb3ac"
+        },
+        {
+          "snapshot": "harbor-month-03.bin",
+          "bytes": 1574164,
+          "sha256": "54477e3a267016ff345117a9d8711c8516cfa3c1f723f64c94e72fd4acfcd91f"
+        },
+        {
+          "snapshot": "harbor-month-04.bin",
+          "bytes": 1574280,
+          "sha256": "db88438ba0ae73c59380df97c0a441a9b3c4ed09f1c68a89a757172edbbd22f3"
+        },
+        {
+          "snapshot": "harbor-month-05.bin",
+          "bytes": 1574280,
+          "sha256": "79d66d6b693eddfa2dc07be5f25e41a511aa5ce30f14fc278bdf2de8b460b63b"
+        },
+        {
+          "snapshot": "harbor-month-06.bin",
+          "bytes": 1574280,
+          "sha256": "043ebba7c9a5ba406d27fe346ee6d75db3f86c2f119d9b3c1181d08f3443d89b"
+        },
+        {
+          "snapshot": "harbor-month-07.bin",
+          "bytes": 1574280,
+          "sha256": "c167e14fb4d67fc8f21f24c7f14574515e242e180107ce07c52aaaebb7b91196"
+        },
+        {
+          "snapshot": "harbor-month-08.bin",
+          "bytes": 1574280,
+          "sha256": "92cbf5cab90c908088a0a242460542210c549c125338ccb2d83f8f740b40e911"
+        },
+        {
+          "snapshot": "harbor-month-09.bin",
+          "bytes": 1574280,
+          "sha256": "01582a844b2db6b664cbb4d1d8574553b3868d34659a9d3394bff0f053f277f9"
+        },
+        {
+          "snapshot": "harbor-month-10.bin",
+          "bytes": 1574280,
+          "sha256": "cec22dceb7b7804a1b762a89690663591d38a910c63d25fdba1223549dcbcd53"
+        },
+        {
+          "snapshot": "harbor-month-11.bin",
+          "bytes": 1574280,
+          "sha256": "7340752aab8b3cf66e3a948023483748294a35a948c5d34898659fb4e7d0d7a8"
+        },
+        {
+          "snapshot": "harbor-month-12.bin",
+          "bytes": 1574280,
+          "sha256": "1e518292b8f6901197c968229035e3a8356aa617d670b7da114ea1787dede3dd"
+        },
+        {
+          "snapshot": "harbor-recalculate.bin",
+          "bytes": 1573808,
+          "sha256": "42d9da304fdd4681df1182fc7e20cdc3f8a5e50a7f7922cb3936c110b1f5f5a8"
+        },
+        {
+          "snapshot": "harbor-reload.bin",
+          "bytes": 1574276,
+          "sha256": "6034e3ff3af78976f63521c64858e70c4beab26ffe24b7c7248f52d0d4dff71c"
+        }
+      ]
+    },
+    "timings_ms": {
+      "_environment_update": {
+        "baseline": 71.551,
+        "candidate": 29.237,
+        "reduction_percent": 59.13823706167629
+      },
+      "recalculate": {
+        "baseline": 136.796,
+        "candidate": 83.841,
+        "reduction_percent": 38.71092722009416
+      },
+      "monthly_step_median_ms": {
+        "baseline": 273.094,
+        "candidate": 161.372,
+        "reduction_percent": 40.90972339194563
+      }
+    },
+    "tests": {
+      "test_environment": {
+        "checks": 17,
+        "failures": 0,
+        "baseline_failure": "5408 map-wide distance calls exceed the 122 bounded-distance budget"
+      },
+      "test_world": {
+        "checks": 104,
+        "failures": 0
+      }
+    },
+    "baseline_head": "3b6220875d560c0e01085b8172846c0c201256b5",
+    "godot": "4.6.3.stable.official.7d41c59c4",
+    "notes": [
+      "Identical profile_model.gd, frozen baseline then candidate, exclusive timing window.",
+      "Monthly median uses six months; environment and recalculate use seven samples after one warmup.",
+      "Exact serialized, fields, demand, network, trafficHeat and RNG/transient bytes match.",
+      "Harbor:12 months; dense:6; boundary:6; empty:2; includes recalculation, agent advancement and reload.",
+      "No second optimization candidate, commits or pushes."
+    ]
+  }
+}

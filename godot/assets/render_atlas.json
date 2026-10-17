@@ -1,0 +1,113 @@
+{
+	"file": "assets/render_atlas.png",
+	"height": 512,
+	"padding": 2,
+	"sha256": "d0c23192de35992d3cb82fd853f2b22f865637ccd2ab696bede22fb671d56f70",
+	"source_manifest_sha256": "e3ac0d47f0f090dbab93e28600f32c49cab410bed215a17202efabf9ebfeb139",
+	"sprites": {
+		"asphalt": {
+			"height": 99,
+			"width": 132,
+			"x": 2,
+			"y": 2
+		},
+		"carNE": {
+			"height": 25,
+			"width": 32,
+			"x": 138,
+			"y": 2
+		},
+		"carNW": {
+			"height": 25,
+			"width": 32,
+			"x": 174,
+			"y": 2
+		},
+		"carSE": {
+			"height": 26,
+			"width": 32,
+			"x": 210,
+			"y": 2
+		},
+		"carSW": {
+			"height": 26,
+			"width": 32,
+			"x": 246,
+			"y": 2
+		},
+		"dirt": {
+			"height": 83,
+			"width": 132,
+			"x": 282,
+			"y": 2
+		},
+		"flatRoof": {
+			"height": 54,
+			"width": 99,
+			"x": 2,
+			"y": 105
+		},
+		"grass": {
+			"height": 99,
+			"width": 132,
+			"x": 105,
+			"y": 105
+		},
+		"house": {
+			"height": 85,
+			"width": 99,
+			"x": 241,
+			"y": 105
+		},
+		"houseBeige": {
+			"height": 85,
+			"width": 99,
+			"x": 344,
+			"y": 105
+		},
+		"industry": {
+			"height": 85,
+			"width": 99,
+			"x": 2,
+			"y": 208
+		},
+		"office": {
+			"height": 85,
+			"width": 99,
+			"x": 105,
+			"y": 208
+		},
+		"pavement": {
+			"height": 101,
+			"width": 132,
+			"x": 208,
+			"y": 208
+		},
+		"roof": {
+			"height": 61,
+			"width": 99,
+			"x": 344,
+			"y": 208
+		},
+		"sand": {
+			"height": 99,
+			"width": 132,
+			"x": 2,
+			"y": 313
+		},
+		"tree": {
+			"height": 45,
+			"width": 32,
+			"x": 138,
+			"y": 313
+		},
+		"water": {
+			"height": 83,
+			"width": 132,
+			"x": 174,
+			"y": 313
+		}
+	},
+	"version": 1,
+	"width": 512
+}

@@ -1,8 +1,20 @@
 extends Node2D
-## Retained draw commands. Static records never redraw when an agent moves.
+## Retained, ordered meshes: network strokes and sprites share the same GPU batch.
+
+const BatchShader = preload("res://view/opaque_ground.gdshader")
+const LINE_UV_ORIGIN: float = -32.0
+# Half a diagonal pixel footprint at minimum zoom (tile_scale 2/BASE 28).
+const LINE_FRINGE: float = 10.0
+static var _shared_material: ShaderMaterial
 
 var commands: Array = []
 var _meshes: Array = []
+
+func _init() -> void:
+	if _shared_material == null:
+		_shared_material = ShaderMaterial.new()
+		_shared_material.shader = BatchShader
+	material = _shared_material
 
 func polygon(points: PackedVector2Array, color: Color, texture: Texture2D = null, uv: PackedVector2Array = PackedVector2Array()) -> void:
 	commands.append([0, points, color, texture, uv])
@@ -21,24 +33,17 @@ func ring(at: Vector2, radius: float, color: Color, width: float = 1.0) -> void:
 
 func _draw() -> void:
 	_meshes.clear()
-	var index: int = 0
-	while index < commands.size():
-		var command: Array = commands[index]
-		if _is_textured_quad(command):
-			var end: int = index + 1
-			while end < commands.size() and _is_textured_quad(commands[end]) and commands[end][3] == command[3]:
-				end += 1
-			if end - index > 1:
-				_draw_textured_quads(index, end)
-				index = end
-				continue
+	# Cars are separate depth-sorted moving layers; don't allocate a mesh for a
+	# single sprite every animation frame. Static layers compile only on edits.
+	if commands.size() == 1 and commands[0][0] == 2:
+		var c: Array = commands[0]
+		draw_texture_rect_region(c[1], c[2], c[3], c[4], false, true)
+		return
+	for command in compile_batches():
 		match command[0]:
-			0:
-				draw_polygon(command[1], PackedColorArray([command[2]]), command[4], command[3])
-			1:
-				draw_polyline(command[1], command[2], command[3], true)
-			2:
-				draw_texture_rect_region(command[1], command[2], command[3], command[4], false, true)
+			5:
+				_meshes.append(command[1])
+				draw_mesh(command[1], command[2])
 			3:
 				var font: Font = ThemeDB.fallback_font
 				var at: Vector2 = command[2]
@@ -46,40 +51,86 @@ func _draw() -> void:
 				draw_string(font, at, command[1], HORIZONTAL_ALIGNMENT_LEFT, -1, command[3], command[4])
 			4:
 				draw_arc(command[1], command[2], 0, TAU, 32, command[3], command[4], true)
-		index += 1
 
-func _is_textured_quad(command: Array) -> bool:
-	return command[0] == 0 and command[3] != null and command[1].size() == 4 and command[4].size() == 4
+func compile_batches() -> Array:
+	# Triangle order is command order. Never sort by texture: that would place
+	# terrain over roads or wires over buildings at the wrong depth.
+	var output: Array = []
+	var batch: Dictionary = _empty_batch()
+	for command in commands:
+		var kind: int = command[0]
+		if kind == 3 or kind == 4:
+			_flush_batch(batch, output)
+			output.append(command)
+			continue
+		var texture: Texture2D = null
+		if kind == 0: texture = command[3]
+		if kind == 2: texture = command[1]
+		if texture != null:
+			if batch.texture != null and batch.texture != texture:
+				_flush_batch(batch, output)
+			batch.texture = texture
+		match kind:
+			0:
+				_append_polygon(batch, command[1], command[2], command[4] if texture != null else PackedVector2Array())
+			1:
+				_append_line(batch, command[1], command[2], command[3])
+			2:
+				var rect: Rect2 = command[2]
+				var source: Rect2 = command[3]
+				var texture_size: Vector2 = texture.get_size()
+				var corners := PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)])
+				var uv := PackedVector2Array([source.position / texture_size, Vector2(source.end.x, source.position.y) / texture_size,
+					source.end / texture_size, Vector2(source.position.x, source.end.y) / texture_size])
+				_append_polygon(batch, corners, command[4], uv)
+	_flush_batch(batch, output)
+	return output
 
-func _draw_textured_quads(first: int, end: int) -> void:
-	# One mesh per contiguous atlas run, with independent triangles for each cap.
-	# Keeping the command order also keeps shorelines, roads and zoning above it.
-	var count: int = end - first
-	var vertices = PackedVector3Array()
-	var colors = PackedColorArray()
-	var uv = PackedVector2Array()
-	var indices = PackedInt32Array()
-	vertices.resize(count * 4)
-	colors.resize(count * 4)
-	uv.resize(count * 4)
-	indices.resize(count * 6)
-	for tile in range(count):
-		var command: Array = commands[first + tile]
-		var offset: int = tile * 4
-		for corner in range(4):
-			var point: Vector2 = command[1][corner]
-			vertices[offset + corner] = Vector3(point.x, point.y, 0)
-			colors[offset + corner] = command[2]
-			uv[offset + corner] = command[4][corner]
-		for triangle in range(6):
-			indices[tile * 6 + triangle] = offset + [0, 1, 2, 0, 2, 3][triangle]
-	var arrays: Array = []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = vertices
-	arrays[Mesh.ARRAY_COLOR] = colors
-	arrays[Mesh.ARRAY_TEX_UV] = uv
-	arrays[Mesh.ARRAY_INDEX] = indices
-	var mesh = ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	_meshes.append(mesh)
-	draw_mesh(mesh, commands[first][3])
+func _empty_batch() -> Dictionary:
+	# Ordinary arrays are reference types; packed arrays here would copy on each
+	# helper call. Convert once when uploading the finished mesh.
+	return {"vertices": [], "colors": [], "uv": [], "indices": [], "texture": null}
+
+func _append_polygon(batch: Dictionary, points: PackedVector2Array, color: Color, uv: PackedVector2Array) -> void:
+	if points.size() < 3: return
+	var triangles: PackedInt32Array = Geometry2D.triangulate_polygon(points)
+	if triangles.is_empty(): return
+	var offset: int = batch.vertices.size()
+	for i in range(points.size()):
+		batch.vertices.append(Vector3(points[i].x, points[i].y, 0.0))
+		batch.colors.append(color)
+		batch.uv.append(uv[i] if uv.size() == points.size() else Vector2(-1, 0))
+	for index in triangles:
+		batch.indices.append(offset + index)
+
+func _append_line(batch: Dictionary, points: PackedVector2Array, color: Color, width: float) -> void:
+	var half_width: float = maxf(width, 0.0) * 0.5
+	if half_width <= 0.0: return
+	var outer: float = half_width + LINE_FRINGE
+	for i in range(1, points.size()):
+		var delta: Vector2 = points[i] - points[i - 1]
+		if delta.length_squared() < 0.000001: continue
+		var normal := Vector2(-delta.y, delta.x).normalized() * outer
+		var corners := PackedVector2Array([points[i - 1] - normal, points[i] - normal, points[i] + normal, points[i - 1] + normal])
+		# Negative UVs identify untextured geometry. The shader integrates line
+		# coverage over a screen pixel, keeping thin wires visible when zoomed out.
+		var uv := PackedVector2Array([Vector2(LINE_UV_ORIGIN - outer, half_width), Vector2(LINE_UV_ORIGIN - outer, half_width),
+			Vector2(LINE_UV_ORIGIN + outer, half_width), Vector2(LINE_UV_ORIGIN + outer, half_width)])
+		_append_polygon(batch, corners, color, uv)
+
+func _flush_batch(batch: Dictionary, output: Array) -> void:
+	if not batch.indices.is_empty():
+		var arrays: Array = []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array(batch.vertices)
+		arrays[Mesh.ARRAY_COLOR] = PackedColorArray(batch.colors)
+		arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array(batch.uv)
+		arrays[Mesh.ARRAY_INDEX] = PackedInt32Array(batch.indices)
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		output.append([5, mesh, batch.texture])
+	batch.vertices.clear()
+	batch.colors.clear()
+	batch.uv.clear()
+	batch.indices.clear()
+	batch.texture = null

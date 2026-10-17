@@ -1,18 +1,24 @@
 {
-  "version": "0.3.1-godot-preview",
+  "version": "0.3.2-godot-preview",
   "engine": "4.6.3.stable.official.7d41c59c4",
-  "built_utc": "2026-10-16T21:28:56.223070+00:00",
+  "export_mode": "release",
+  "android_template_sha256": "e91ef7e517e73aec1ddcc4c455c5fd53de1837c240a7c520ac438b73874b54c1",
+  "built_utc": "2026-10-17T01:56:05.170627+00:00",
   "source_sha256": {
-    "project.godot": "cc01be292539e23961192b7ecaad008b3344abe341653cab0fe448b3f2156807",
-    "export_presets.cfg": "fa94a598a3384c578765f9b9d692613f103794b43f16a225234150c280c437e7",
+    "project.godot": "d44a8884dfb5777d96f0fedd3d4931d6aa649a076bcb3c77a9014ed87c175c2c",
+    "export_presets.cfg": "7af1f2d50c30575527af1cc1e756689fdb5f2d9c0ca1eb6cfcbed37f81e59e56",
     "main.tscn": "ad4499da50ab709a4399781ae828748134242d9d683907748d23253459005a70",
     "assets/icon.svg": "dbddc1b04178fd131d3734c942d0fdf77e3c618e311067ac2d04293081d728c9",
-    "model/city_world.gd": "bda3cca48909408be80c308e115badad0b14eb518d3a44ea5f8649a57550657f",
-    "view/iso_layer.gd": "41c0aa16662241f12376a9c10cb8d2176ada21315bc4a2fdfcbb2f53e14f0aca",
-    "view/isometric_view.gd": "f90ae2c6291964e5eae525267c78c29d098384e85d9e901395339cf7d34d6fd0",
+    "assets/manifest.json": "e3ac0d47f0f090dbab93e28600f32c49cab410bed215a17202efabf9ebfeb139",
+    "assets/render_atlas.json": "fa9114fc353488f483732597ec77c56d0fc5a4c50d0405eb56b68171aeeb0338",
+    "assets/render_atlas.png": "d0c23192de35992d3cb82fd853f2b22f865637ccd2ab696bede22fb671d56f70",
+    "model/city_world.gd": "aadb8dbdda4c8b5be3eca9d34725b89cfbe61f8acc801a85ff892cb5608e6eac",
+    "view/iso_layer.gd": "cb9e191b91a2a525d8442168f6a1deb8b7988478d0656f697a1cbb8e36e49941",
+    "view/isometric_view.gd": "05d38aa0ea0e9e021c34cc1e75a5390e07f980826e59c8d5b3bf43ac57f2fbe0",
     "ui/construction_history.gd": "23b7a443708bba85df7960d0a58dedd1b13fc541b96019769a71cfe8595ade4d",
-    "ui/main.gd": "65ff96a878116161974a4f402d2b48a5c1db72592cf452c9c1455a81303d02fe",
+    "ui/main.gd": "d4caaf9f5a72c930841b9bd40d8cb2e1acd43c59220fc67bdbade5bc54083216",
+    "ui/performance_display.gd": "fda03ec25a7a9918b1bf576890898ec61bb01b658ab2e11a8dca0499fa2a3b29",
     "persistence/city_store.gd": "29730970134849d4e859ec7ea51ebf06f46db7f18c2a5db9207f419f5b0a854b",
-    "view/opaque_ground.gdshader": "ee05cc8edcf968582a000133a8a47675fa27281db1e22495433d96ed3575175a"
+    "view/opaque_ground.gdshader": "6101b72cef527bcf547b3225bb41a43186489dae92e2726a52a7bf53bca79b6d"
   }
 }

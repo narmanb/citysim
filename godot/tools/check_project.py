@@ -21,7 +21,9 @@ def main():
     if prepare.returncode or 'SCRIPT ERROR:' in preparation_log or '\nERROR:' in preparation_log:
         print(preparation_log, file=sys.stderr)
         raise SystemExit('Godot source import failed')
-    for name in ('test_world', 'test_store', 'test_view', 'test_render_cache', 'test_game', 'test_ui'):
+    for name in ('test_world', 'test_environment', 'test_store', 'test_layer_batch',
+                 'test_render_atlas', 'test_view', 'test_render_cache', 'test_game',
+                 'test_ui', 'test_performance_display'):
         command = [args.godot, '--headless', '--audio-driver', 'Dummy', '--path', str(PROJECT), '--script', f'tests/{name}.gd']
         result = subprocess.run(command, text=True, capture_output=True, timeout=90)
         output = result.stdout + result.stderr
@@ -34,6 +36,11 @@ def main():
         source = PROJECT / entry['file']
         if hashlib.sha256(source.read_bytes()).hexdigest() != entry['sha256']:
             raise SystemExit(f'Artwork/license receipt mismatch: {source}')
+    layout = json.loads((PROJECT / 'assets/render_atlas.json').read_text())
+    if hashlib.sha256((PROJECT / 'assets/manifest.json').read_bytes()).hexdigest() != layout['source_manifest_sha256']:
+        raise SystemExit('Render atlas was generated from a different source manifest')
+    if hashlib.sha256((PROJECT / layout['file']).read_bytes()).hexdigest() != layout['sha256']:
+        raise SystemExit('Compact render atlas receipt mismatch')
     print('All five original source atlases and four CC0 licenses: PASS')
 
 
