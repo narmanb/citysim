@@ -51,3 +51,9 @@ Brushes are centered squares with radius 0/1/2 (1×1,3×3,5×5), clipped at map 
 Planning is pure: determine affected cells, targets, reasons and total cost before changing the world. Overlapping stamps use one stroke-start state and deduplicate cells. Reject an unaffordable transaction in full. Capture edited cells and every changed channel; reflow once, recalculate once, refresh once and record one undo action. During a staged terrain stroke, the city clock is held so costs and protected state cannot change under the preview. Two-finger/canceled gestures discard their pending footprints.
 
 The compact Terraform popup exposes only implemented operations/settings. A live footprint/cost preview follows mouse/touch; the selected tool summary always shows brush/step or Flatten target. Flat stepped geometry is explicitly labeled. No disabled placeholder slope/smooth controls are shown.
+
+## Phase 1 result
+
+The new bounds suite first failed 269 of 431 assertions against the baseline, then passed 431/431 after the bounds/picking/Fit changes. All 14 registered suites pass, including the untouched automatic-growth, color asset, persistence, UI, cache and FPS checks. Picking tests all 18 heights and four corners; front retaining faces use the exact same polygons for drawing and hit-testing. Fit scans retained command extents only when requested. Existing world bound assertions now test +12/−5 and reject −6/+13 imports.
+
+Source changes: centralized `CityWorld` limits, validated imports and placement; shared visible-face geometry and actual command bounds in `isometric_view.gd`; corrected help text; a dedicated terrain-bounds suite and expanded existing view tests. No shape metadata or art changed. Version-6 exports containing heights outside −3…+5 require this updated build; old builds will reject those new heights rather than read them incorrectly.

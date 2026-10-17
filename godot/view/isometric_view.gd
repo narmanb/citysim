@@ -12,7 +12,8 @@ signal selection_changed(index: int)
 const Layer = preload("res://view/iso_layer.gd")
 const GroundShader = preload("res://view/opaque_ground.gdshader")
 const BuildingCatalog = preload("res://view/building_catalog.gd")
-const N: int = 52
+const World = preload("res://model/city_world.gd")
+const N: int = World.N
 const BASE: float = 28.0
 const ELEVATION: float = 0.15
 const ZCOL: Dictionary = {"res": Color("85dca3"), "com": Color("5aa8ed"), "ind": Color("dcac75")}
@@ -134,12 +135,25 @@ func set_world(value) -> void:
 		refresh()
 
 func fit_city() -> void:
-	# Include the full diamond with space above it for raised terrain and
-	# buildings. Unlike the former fixed-scale Fit, this works on phones too.
-	var bounds: Rect2 = Rect2(-float(N), -4.0, N * 2.0, N + 5.0)
+	# Fit actual retained geometry, including tall roof sprites, instead of
+	# reserving maximum mountain height for every ordinary flat city.
+	if _refresh_pending: _rebuild()
+	var bounds := Rect2(_point(0, 0), Vector2.ZERO)
+	for records in _tile_records:
+		for commands in records.values():
+			for command in commands:
+				if command[0] == 2:
+					bounds = bounds.merge(command[2])
+				elif command[0] in [0, 1]:
+					for point in command[1]: bounds = bounds.expand(point)
+				elif command[0] == 3:
+					bounds = bounds.expand(command[2] - Vector2(command[3], command[3]))
+					bounds = bounds.expand(command[2] + Vector2(command[3], command[3]))
+	if bounds.size == Vector2.ZERO:
+		bounds = Rect2(-N * BASE, 0, N * BASE * 2, N * BASE)
 	var available: Vector2 = (size - Vector2(32, 32)).max(Vector2.ONE)
-	tile_scale = minf(available.x / bounds.size.x, available.y / bounds.size.y)
-	camera = size * 0.5 - bounds.get_center() * tile_scale
+	tile_scale = minf(available.x / bounds.size.x, available.y / bounds.size.y) * BASE
+	camera = size * 0.5 - bounds.get_center() * tile_scale / BASE
 
 func zoom_at(factor: float, at: Vector2) -> void:
 	if factor <= 0.0:
@@ -168,25 +182,45 @@ func tile_to_screen(index: int) -> Vector2:
 	return camera + _point(index % N + 0.5, floori(float(index) / N) + 0.5, float(tile.get("elev", 0))) * tile_scale / BASE
 
 func screen_to_tile(point: Vector2) -> int:
-	if world == null:
-		return -1
+	if world == null: return -1
+	var candidates: Dictionary = {}
+	# A vertical face can cover a lower/background cap. Collect local cells
+	# along the height ray, then test the same cap/front faces that we draw.
+	for elevation in range(World.MIN_TERRAIN_ELEV, World.MAX_TERRAIN_ELEV + 1):
+		var p := _unproject(point + Vector2(0, elevation * tile_scale * ELEVATION))
+		for y in range(floori(p.y) - 1, floori(p.y) + 1):
+			for x in range(floori(p.x) - 1, floori(p.x) + 1):
+				if x >= 0 and y >= 0 and x < N and y < N: candidates[y * N + x] = true
+	var local := (point - camera) * BASE / tile_scale
 	var best: int = -1
 	var depth: int = -1
-	# The model validates elevations to this range. Check all planes and keep
-	# the frontmost cap, just as the retained records are depth ordered.
-	for elevation in range(-3, 6):
-		var p: Vector2 = _unproject(point + Vector2(0, elevation * tile_scale * ELEVATION))
-		var x: int = floori(p.x)
-		var y: int = floori(p.y)
-		if x < 0 or y < 0 or x >= N or y >= N:
-			continue
-		var index: int = y * N + x
-		if index >= world.tiles.size() or int(world.tiles[index].get("elev", 0)) != elevation:
-			continue
-		if x + y >= depth:
+	for index in candidates:
+		var x: int = index % N
+		var y: int = floori(float(index) / N)
+		var elevation: float = float(world.tiles[index].get("elev", 0))
+		var hit: bool = Geometry2D.is_point_in_polygon(local, _rect_points(x, y, elevation))
+		if not hit:
+			for face in _terrain_faces(index):
+				if Geometry2D.is_point_in_polygon(local, face[0]): hit = true; break
+		if hit and (x + y > depth or (x + y == depth and index > best)):
 			best = index
 			depth = x + y
 	return best
+
+func _terrain_faces(index: int) -> Array:
+	var faces: Array = []
+	var tile: Dictionary = world.tiles[index]
+	var x: int = index % N
+	var y: int = floori(float(index) / N)
+	var elevation: float = float(tile.get("elev", 0))
+	for axis in [Vector2i(1, 0), Vector2i(0, 1)]:
+		var next: Vector2i = Vector2i(x, y) + axis
+		var lower: float = float(world.tiles[next.y * N + next.x].get("elev", 0)) if next.x < N and next.y < N else 0.0
+		if elevation > lower:
+			var a := Vector2(x + 1, y) if axis.x else Vector2(x, y + 1)
+			var b := Vector2(x + 1, y + 1)
+			faces.append([PackedVector2Array([_point(a.x, a.y, elevation), _point(b.x, b.y, elevation), _point(b.x, b.y, lower), _point(a.x, a.y, lower)]), Color("8b7954") if axis.x else Color("a18b62")])
+	return faces
 
 func _neighbors(index: int) -> Array:
 	var out: Array = []
@@ -373,13 +407,7 @@ func _draw_ground(layer, index: int) -> void:
 	var x: int = index % N
 	var y: int = floori(float(index) / N)
 	var elevation: float = float(tile.get("elev", 0))
-	for axis in [Vector2i(1, 0), Vector2i(0, 1)]:
-		var next: Vector2i = Vector2i(x, y) + axis
-		var lower: float = float(world.tiles[next.y * N + next.x].get("elev", 0)) if next.x < N and next.y < N else 0.0
-		if elevation > lower:
-			var a: Vector2 = Vector2(x + 1, y) if axis.x else Vector2(x, y + 1)
-			var b: Vector2 = Vector2(x + 1, y + 1)
-			layer.polygon(PackedVector2Array([_point(a.x, a.y, elevation), _point(b.x, b.y, elevation), _point(b.x, b.y, lower), _point(a.x, a.y, lower)]), Color("8b7954") if axis.x else Color("a18b62"))
+	for face in _terrain_faces(index): layer.polygon(face[0], face[1])
 	var name: String = "water" if tile.get("terrain", "grass") == "water" else "dirt" if tile.get("channel", false) else "sand" if tile.get("biome", "") == "desert" else "grass"
 	# The atlas cap is opaque inside the diamond and already contains the grid.
 	# A second fill and antialiased outline broke batching for every empty tile.

@@ -46,8 +46,8 @@ const TOOL_HELP: Dictionary = {
 	"pump": "Power this pump. Waterfront capacity: 520; inland well: 286. Connect pipes to zones.",
 	"tower": "Stores up to 180 surplus water. Join a powered pump by pipe; towers do not create water.",
 	"bulldoze": "Remove one layer at a time: fire, building, zoning, road, rail, line, pipe or tree.",
-	"raise": "Raise natural terrain one step. Hills can reach elevation 5.",
-	"lower": "Lower natural terrain one step. Basins can reach elevation −3.",
+	"raise": "Raise natural terrain one step. Hills can reach elevation +12.",
+	"lower": "Lower natural terrain one step. Basins can reach elevation −5.",
 	"river": "Dig a channel. It fills only when connected to existing water.",
 	"grass": "Paint grass biome on dry, undeveloped ground.", "desert": "Paint desert biome and clear trees.",
 	"tree": "Plant an individual tree on clear land.", "forest": "Paint forest on clear land. Power lines and buildings exclude trees."

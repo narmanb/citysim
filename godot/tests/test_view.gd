@@ -69,7 +69,7 @@ func _run() -> void:
 		check(view.screen_to_tile(view.tile_to_screen(i)) == i, "flat projected center round trip %s" % i)
 	# Uniform planes ensure the centers are visible. Arbitrary neighboring
 	# height jumps can correctly hide a back tile beneath a nearer cap.
-	for elevation in range(-3, 6):
+	for elevation in range(-5, 13):
 		for i in range(2704):
 			world.tiles[i].elev = elevation
 		for i in range(0, 2704, 37):

@@ -4,6 +4,8 @@ extends RefCounted
 
 const N = 52
 const COUNT = N * N
+const MIN_TERRAIN_ELEV = -5
+const MAX_TERRAIN_ELEV = 12
 const COST = {"bulldoze":18,"road":18,"rail":36,"line":13,"pipe":12,"res":9,"apt":14,"shop":12,"office":16,"light":12,"heavy":22,"park":95,"plant":3000,"pump":950,"tower":800,"police":1200,"fire":1200,"school":1600,"hospital":1900,"station":550,"raise":20,"lower":20,"river":24,"grass":5,"desert":5,"tree":4,"forest":6}
 const CONFIG = {"monthSeconds":4,"startingCash":36000,"powerPlantCapacity":550,"waterPumpCapacity":520,"waterTowerCapacity":180,"waterTowerLoss":1,"bondAmount":10000,"bondPayment":150,"bondTerm":80,"maxCars":70,"maxTrains":9,"bridgeSpan":8,"milestones":[500,1000,2500,5000,10000],"buildingCapacity":{"res":[0,12,28,68,150],"com":[0,10,24,58,125],"ind":[0,12,30,68,130]},"maintenance":{"road":1.5,"rail":2.4,"line":0.4,"pipe":0.45,"park":8,"plant":120,"pump":32,"tower":18,"police":80,"fire":80,"school":110,"hospital":130,"station":28},"serviceRadius":{"police":8,"fire":8,"school":9,"hospital":9}}
 const TOOLS = [["pan","✋ Pan"],["bulldoze","▧ Bulldoze"],["road","═ Road"],["rail","≡ Rail"],["line","⚡ Power line"],["pipe","◌ Water pipe"],["res","⌂ House lots"],["apt","▥ Apartment lots"],["shop","▣ Shops & services"],["office","▥ Offices"],["light","▤ Light industry"],["heavy","♨ Heavy industry"],["park","♣ Park"],["plant","⚙ Power plant"],["pump","◉ Water pump"],["tower","◍ Water tower"],["police","✦ Police"],["fire","▲ Fire station"],["school","◆ School"],["hospital","✚ Hospital"],["station","▥ Rail station"],["raise","▲ Raise terrain"],["lower","▼ Lower terrain"],["river","≈ Dig water channel"],["grass","· Grass biome"],["desert","░ Desert biome"],["tree","♠ Tree"],["forest","♣ Forest brush"]]
@@ -127,6 +129,8 @@ func take_bond() -> bool:
 func can_place(i: int, tool: String, bridge: bool = false) -> bool:
 	if i < 0 or i >= tiles.size() or not COST.has(tool): return false
 	var t = tiles[i]
+	if tool == "raise" and t.elev >= MAX_TERRAIN_ELEV: return false
+	if tool == "lower" and t.elev <= MIN_TERRAIN_ELEV: return false
 	if tool in TERRAIN_TOOLS:
 		if tool in ["grass","desert"]: return t.terrain != "water" and not t.civic and not t.level
 		if tool in ["tree","forest"]: return t.terrain != "water" and not t.civic and not t.road and not t.rail and not t.line and not t.level
@@ -148,8 +152,8 @@ func place(i: int, tool: String, bridge: bool = false, parcel_id: int = 0) -> bo
 	var meta = ZONE_TOOL.get(tool,{})
 	if tool in ["road","rail","line","pipe"] and t[tool]: return false
 	if not meta.is_empty() and t.zone == meta.zone and t.zoneType == meta.type: return false
-	if tool == "raise" and t.elev >= 5: return false
-	if tool == "lower" and t.elev <= -3: return false
+	if tool == "raise" and t.elev >= MAX_TERRAIN_ELEV: return false
+	if tool == "lower" and t.elev <= MIN_TERRAIN_ELEV: return false
 	if tool == "grass" and t.biome == "grass": return false
 	if tool == "desert" and t.biome == "desert" and not t.tree: return false
 	if tool in ["tree","forest"] and t.tree and t.biome == "grass": return false
@@ -183,8 +187,8 @@ func place(i: int, tool: String, bridge: bool = false, parcel_id: int = 0) -> bo
 		else: t.tree = false
 		_terrain_reflow()
 	elif tool in TERRAIN_TOOLS:
-		if tool == "raise": t.elev = clampi(int(t.elev)+1,-3,5)
-		elif tool == "lower": t.elev = clampi(int(t.elev)-1,-3,5)
+		if tool == "raise": t.elev = clampi(int(t.elev)+1,MIN_TERRAIN_ELEV,MAX_TERRAIN_ELEV)
+		elif tool == "lower": t.elev = clampi(int(t.elev)-1,MIN_TERRAIN_ELEV,MAX_TERRAIN_ELEV)
 		elif tool == "river":
 			t.channel = true
 			t.waterSource = false
@@ -362,7 +366,7 @@ static func from_dict(data: Dictionary) -> CityWorld:
 		for key in ["level","parcel","elev"]:
 			if q[key] == null: q[key] = defaults[key]
 			if not _finite(q[key]) or float(q[key]) != floor(float(q[key])): return null
-		if q.level < 0 or q.level > 4 or q.parcel < 0 or q.elev < -3 or q.elev > 5: return null
+		if q.level < 0 or q.level > 4 or q.parcel < 0 or q.elev < MIN_TERRAIN_ELEV or q.elev > MAX_TERRAIN_ELEV: return null
 		q.level = int(q.level)
 		q.parcel = int(q.parcel)
 		q.elev = int(q.elev)
