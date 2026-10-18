@@ -34,7 +34,7 @@ func run():
   check(history.redo(w) and S.export_json(w)==after,"Redo exact foundation/cash " +operation)
   var restored=S.import_json(after)
   check(restored!=null and G.sample(restored.tiles,c,.25,.25)==G.sample(w.tiles,c,.25,.25),"Foundation survives import " +operation)
-  for invalid in [null,INF,5.5,13,-6]:
+  for invalid in [null,INF,5.5,31,-6]:
    var bad=w.serialize();bad.tiles[c].roundedBase=invalid
    check(W.from_dict(bad)==null,"Reject invalid base " +str(invalid))
   p=E.plan(w,[c],"flatten",1,3);E.commit(w,p)

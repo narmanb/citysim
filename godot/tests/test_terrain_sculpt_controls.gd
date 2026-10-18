@@ -52,6 +52,11 @@ func run():
 	check(not game.view.terrain_preview.is_empty() and w.cash==cash,"Preset native down previews only")
 	touch(game.view,1,at+Vector2(40,0),true);touch(game.view,1,at+Vector2(40,0),false);touch(game.view,0,at,false)
 	check(w.cash==cash,"Preset pinch cancels all pending spending")
+	game.choose_tool("mountain");game._terrain_panel._peak.value=30
+	check(game.terrain_settings.mountain_peak==30,"Native peak control reaches30")
+	check(not game.set_sculpt_settings({"mountain_peak":31}),"Peak above30 rejected")
+	var tall=game.terrain_preview_at(40*52+40,[40*52+40])
+	check(tall.after.has(40*52+40) and tall.after[40*52+40].elev==30,"New large mountain preview reaches reference30")
 	game.queue_free();await process_frame
 	for message in failures: push_error(message)
 	print("Sculpt controls: %d checks, %d failures"%[checks,failures.size()])

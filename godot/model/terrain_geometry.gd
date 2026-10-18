@@ -2,7 +2,7 @@ extends RefCounted
 ## Shared deterministic map-space surface contract. No world/UI dependencies.
 const N = 52
 const MIN_HEIGHT = -5
-const MAX_HEIGHT = 12
+const MAX_HEIGHT = 30
 const SHAPES = ["flat", "slope", "cliff", "rounded"]
 const DIRECTIONS = ["auto", "N", "E", "S", "W"]
 
@@ -69,9 +69,30 @@ static func rounded_sample(tiles: Array,index: int,u: float,v: float,overrides: 
 	var tile = tile_at(tiles,index,overrides)
 	var based: bool = tile.has("roundedBase")
 	var result = field_sample(tiles,float(index%N)+u,float(int(index/N))+v,overrides,tile.get("roundedBase"))
-	if based: result.x+=float(tile.roundedBase)
+	if based:
+		var base: float = tile.roundedBase
+		var foot: Vector3 = _foot_weight(tiles,float(index%N)+u,float(int(index/N))+v,base,overrides)
+		result=Vector3(base+result.x*foot.x,result.y*foot.x+result.x*foot.y,result.z*foot.x+result.x*foot.z)
 	if result.x<=MIN_HEIGHT or result.x>=MAX_HEIGHT:
 		result.x=clampf(result.x,MIN_HEIGHT,MAX_HEIGHT);result.y=0;result.z=0
+	return result
+
+# Compact C1 transition to level dry caps at the same foundation height.
+# Evaluate in world coordinates so adjacent rounded caps share every sample.
+# Different-height land, authored cliffs and water keep their retaining walls.
+static func _foot_weight(tiles: Array,x: float,y: float,base: float,overrides: Dictionary) -> Vector3:
+	var result := Vector3(1,0,0)
+	for yy in range(maxi(0,floori(y)-1),mini(N,floori(y)+2)):
+		for xx in range(maxi(0,floori(x)-1),mini(N,floori(x)+2)):
+			var tile = tile_at(tiles,yy*N+xx,overrides)
+			if tile.get("terrainShape","flat")!="flat" or tile.terrain=="water" or tile.channel or float(tile.elev)!=base: continue
+			var delta := Vector2(x-clampf(x,xx,xx+1),y-clampf(y,yy,yy+1))
+			var distance: float = delta.length()
+			if distance>=1.: continue
+			if distance<=0.: return Vector3.ZERO
+			var weight: float = distance*distance*(3.-2.*distance)
+			var derivative: Vector2 = delta*(6.*(1.-distance))
+			result=Vector3(result.x*weight,result.y*weight+result.x*derivative.x,result.z*weight+result.x*derivative.y)
 	return result
 
 static func field_height(tiles: Array,x: float,y: float,overrides: Dictionary = {}) -> float:

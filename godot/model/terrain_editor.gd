@@ -23,7 +23,7 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 		out.error = "Unsupported terrain setting."
 		return out
 	if operation == "flatten" and (not World._finite(target) or float(target) != floor(float(target)) or target < World.MIN_TERRAIN_ELEV or target > World.MAX_TERRAIN_ELEV):
-		out.error = "Choose a whole-number Flatten height from -5 to +12."
+		out.error = "Choose a whole-number Flatten height from -5 to +30."
 		return out
 	if shape_settings.has("shape") and (shape_settings.get("shape") not in Geometry.SHAPES or shape_settings.get("direction") not in Geometry.DIRECTIONS or shape_settings.get("strength") not in [1,2,3]):
 		out.error = "Unsupported shape setting."

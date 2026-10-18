@@ -18,9 +18,9 @@ func run():
 		var expected = {"N":[1.,1.,-1.,-1.], "E":[-1.,1.,1.,-1.], "S":[-1.,-1.,1.,1.], "W":[1.,-1.,-1.,1.]}
 		check(Array(G.corners(w.tiles,c)) == expected[direction], "Correct high edge " + direction)
 		check(G.sample(w.tiles,c,.5,.5) == 0, "Surface center matches reference")
-		for elevation in [-5,12]:
+		for elevation in [-5,30]:
 			w.tiles[c].elev = elevation
-			for height in G.corners(w.tiles,c): check(height >= -5 and height <= 12, "Clamped real corners")
+			for height in G.corners(w.tiles,c): check(height >= -5 and height <= 30, "Clamped real corners")
 		w.tiles[c].elev = 0
 	w.tiles[c].slopeDir = "auto"
 	w.tiles[c+1].elev = 2
@@ -47,7 +47,7 @@ func run():
 	p = E.plan(w,[c],"flatten",1,0)
 	check(p.cost == 20 and E.commit(w,p).changed and w.tiles[c].terrainShape == "flat", "Flatten removes slope at same height")
 	var data = w.serialize()
-	check(data.version == 10, "New shape save version")
+	check(data.version == 11, "New shape save version")
 	var restored = S.import_json(JSON.stringify(data))
 	check(restored != null and G.corners(restored.tiles,c+1) == G.corners(w.tiles,c+1), "Shape JSON round trip deterministic")
 	for pair in [["terrainShape","invalid"],["slopeDir","bad"],["shapeStrength",0],["shapeStrength",1.5],["shapeStrength",null]]:

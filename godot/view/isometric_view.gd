@@ -252,7 +252,7 @@ func _rounded_mesh(index: int, overrides: Dictionary = {}) -> Dictionary:
 	for yy in range(maxi(0,y-2),mini(N,y+3)):
 		for xx in range(maxi(0,x-2),mini(N,x+3)):
 			var t: Dictionary = Geometry.tile_at(world.tiles,yy*N+xx,overrides)
-			signature = hash([signature,t.elev,t.terrain,t.channel,t.get("terrainShape","flat")=="cliff",t.get("roundedBase")])
+			signature = hash([signature,t.elev,t.terrain,t.channel,t.get("terrainShape","flat"),t.get("roundedBase")])
 	if cache.has(index) and cache[index].signature == signature: return cache[index]
 	var points := PackedVector2Array()
 	var heights := PackedFloat64Array()

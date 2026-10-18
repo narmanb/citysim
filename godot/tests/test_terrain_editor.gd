@@ -60,9 +60,9 @@ func run():
     plan=editor.plan(w,cells,"raise",4)
     before=w.serialize();result=editor.commit(w,plan)
     check(not plan.affordable and not result.changed and w.serialize()==before,"Insufficient cash rejects entire transaction without history/state change")
-    w=blank();w.tiles[0].elev=11;w.tiles[1].elev=-4
+    w=blank();w.tiles[0].elev=29;w.tiles[1].elev=-4
     plan=editor.plan(w,[0],"raise",4);editor.commit(w,plan)
-    check(w.tiles[0].elev==12 and plan.cost==20,"Bounded step clamps upward and charges one changed cell")
+    check(w.tiles[0].elev==30 and plan.cost==20,"Bounded step clamps upward and charges one changed cell")
     plan=editor.plan(w,[1],"lower",4);editor.commit(w,plan)
     check(w.tiles[1].elev==-5 and plan.cost==20,"Bounded step clamps downward")
     plan=editor.plan(w,[0],"raise",4)
@@ -70,7 +70,7 @@ func run():
     plan=editor.plan(w,[0,1,2],"flatten",1,3);editor.commit(w,plan)
     check(w.tiles[0].elev==3 and w.tiles[1].elev==3 and w.tiles[2].elev==3,"Flatten targets both higher and lower natural land")
     check(editor.plan(w,[0,1,2],"flatten",1,3).cost==0,"Already-flat area is free")
-    for args in [["raise",3,null],["flatten",1,13],["flatten",1,0.5],["unknown",1,null]]:
+    for args in [["raise",3,null],["flatten",1,31],["flatten",1,0.5],["unknown",1,null]]:
         plan=editor.plan(w,[0],args[0],args[1],args[2])
         check(not editor.commit(w,plan).changed,"Unsupported edit settings reject safely")
     plan=editor.plan(w,[3],"raise",1);w.tiles[3].tree=true
