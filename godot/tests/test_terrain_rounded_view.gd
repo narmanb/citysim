@@ -23,6 +23,18 @@ func run():
 	check(point==v._point(25,25,G.sample(w.tiles,c,0,0)),"Rounded vertex uses shared field")
 	var at=v.camera+v._point(25.5,25.5,G.sample(w.tiles,c))*v.tile_scale/v.BASE
 	check(v.screen_to_tile(at)==c,"Tap hits actual curved summit")
+	var seen_colors: Dictionary = {}
+	var continuous=true
+	var gradient_commands=0
+	for command in cap.commands:
+		if command[0] not in [0,6] or command[3]==null: continue
+		if command[0]==6: gradient_commands+=1
+		for j in range(command[1].size()):
+			var key: Vector2 = command[1][j].snapped(Vector2(.001,.001))
+			var color: Color = command[2][j] if command[0]==6 else command[2]
+			if seen_colors.has(key) and color!=seen_colors[key]: continuous=false
+			seen_colors[key]=color
+	check(continuous and gradient_commands>0,"Curved cap vertices share lighting across patch boundaries")
 	cap.free()
 	w.tiles[c+2].elev=11;v.refresh()
 	await process_frame;await process_frame
@@ -54,6 +66,10 @@ func run():
 			if vertex.is_equal_approx(midpoint): found=true
 	check(found,"Shore ribbon shares the curved cap midpoint instead of a straight chord")
 	shore.free()
+	w.tiles[0].merge({"elev":12,"terrainShape":"rounded","roundedBase":12},true)
+	v.refresh();v.fit_city()
+	var north_vertex: Vector2 = v.camera+v._rounded_mesh(0).points[0]*v.tile_scale/v.BASE
+	check(north_vertex.y>=15.99,"Fit includes the north vertex of a rounded corner plateau with its full margin")
 	v.queue_free();await process_frame
 	for message in failures: push_error(message)
 	print("Rounded view: %d failures"%failures.size())

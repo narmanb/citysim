@@ -49,6 +49,7 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 			after.terrainShape = shape_settings.shape
 			after.slopeDir = shape_settings.direction if shape_settings.shape == "slope" else "auto"
 			after.shapeStrength = shape_settings.strength if shape_settings.shape == "slope" else 1
+		Geometry.retain_foundation(tile,after,operation)
 		if after == tile:
 			out.blocked[i] = "Already at target" if operation in ["flatten","shape"] else "Height limit"
 			continue

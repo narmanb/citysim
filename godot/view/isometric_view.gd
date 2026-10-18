@@ -160,7 +160,7 @@ func fit_city() -> void:
 			for command in commands:
 				if command[0] == 2:
 					bounds = bounds.merge(command[2])
-				elif command[0] in [0, 1]:
+				elif command[0] in [0, 1, 6]:
 					for point in command[1]: bounds = bounds.expand(point)
 				elif command[0] == 3:
 					bounds = bounds.expand(command[2] - Vector2(command[3], command[3]))
@@ -244,13 +244,16 @@ func _rounded_mesh(index: int, overrides: Dictionary = {}) -> Dictionary:
 	for yy in range(maxi(0,y-2),mini(N,y+3)):
 		for xx in range(maxi(0,x-2),mini(N,x+3)):
 			var t: Dictionary = Geometry.tile_at(world.tiles,yy*N+xx,overrides)
-			signature = hash([signature,t.elev,t.terrain,t.channel,t.get("terrainShape","flat")=="cliff"])
+			signature = hash([signature,t.elev,t.terrain,t.channel,t.get("terrainShape","flat")=="cliff",t.get("roundedBase")])
 	if cache.has(index) and cache[index].signature == signature: return cache[index]
 	var points := PackedVector2Array()
 	var heights := PackedFloat64Array()
+	var gradients := PackedVector2Array()
 	for j in range(divisions+1):
 		for i in range(divisions+1):
-			var h: float = Geometry.sample(world.tiles,index,float(i)/divisions,float(j)/divisions,overrides)
+			var sample: Vector3 = Geometry.rounded_sample(world.tiles,index,float(i)/divisions,float(j)/divisions,overrides)
+			var h: float = sample.x
+			gradients.append(Vector2(sample.y,sample.z))
 			heights.append(h)
 			points.append(_point(x+float(i)/divisions,y+float(j)/divisions,h))
 	var patches: Array = []
@@ -258,7 +261,7 @@ func _rounded_mesh(index: int, overrides: Dictionary = {}) -> Dictionary:
 		for i in range(divisions):
 			var at: int = j*(divisions+1)+i
 			patches.append(PackedVector2Array([points[at],points[at+1],points[at+divisions+2],points[at+divisions+1]]))
-	var out: Dictionary = {"signature":signature,"points":points,"heights":heights,"patches":patches,"divisions":divisions}
+	var out: Dictionary = {"signature":signature,"points":points,"heights":heights,"gradients":gradients,"patches":patches,"divisions":divisions}
 	cache[index] = out
 	return out
 
@@ -522,25 +525,35 @@ func _surface(layer, name: String, x: float, y: float, elevation: float, left: f
 	if world.tiles[index].get("terrainShape","flat")=="rounded" and left==0 and top==0 and width==1 and height==1:
 		var mesh: Dictionary = _rounded_mesh(index)
 		var d: int = mesh.divisions
+		var colors := PackedColorArray()
+		var uv := PackedVector2Array()
+		var light := Vector3(-.5,-.8,1).normalized()
+		for yy in range(d+1):
+			for xx in range(d+1):
+				var gradient: Vector2 = mesh.gradients[yy*(d+1)+xx]
+				var normal := Vector3(-gradient.x*.15,-gradient.y*.15,1).normalized()
+				var shade: float = clampf((.55+.45*normal.dot(light))/(.55+.45*light.z),.65,1.15)
+				var rock: float = smoothstep(.4,1.05,gradient.length()*.15)*.75
+				var base: Color = TERRAIN_COLOR.get(name,Color.WHITE)
+				var color: Color = base.lerp(Color("aba488") if name=="sand" else Color("9c9d7e"),rock)*shade
+				color.a=shade*(128.0/255.0)
+				colors.append(color)
+				# World-space coordinates keep detail continuous across cells and camera motion.
+				uv.append(Vector2(64+x+float(xx)/d,y+float(yy)/d))
 		for diagonal in range(d*2-1):
 			for xx in range(d):
 				var yy: int = diagonal-xx
 				if yy<0 or yy>=d: continue
 				var points: PackedVector2Array = mesh.patches[yy*d+xx]
 				var at: int = yy*(d+1)+xx
-				var dx: float = (mesh.heights[at+1]+mesh.heights[at+d+2]-mesh.heights[at]-mesh.heights[at+d+1])*.5*d
-				var dy: float = (mesh.heights[at+d+1]+mesh.heights[at+d+2]-mesh.heights[at]-mesh.heights[at+1])*.5*d
-				var normal := Vector3(-dx*.15,-dy*.15,1).normalized()
-				var light := Vector3(-.5,-.8,1).normalized()
-				var shade: float = clampf((.55+.45*normal.dot(light))/(.55+.45*light.z),.65,1.15)
-				var color: Color = Color(TERRAIN_COLOR.get(name,Color.WHITE))*shade
-				color.a=shade*(128.0/255.0)
-				var uv := PackedVector2Array()
-				for p in [Vector2(xx,yy),Vector2(xx+1,yy),Vector2(xx+1,yy+1),Vector2(xx,yy+1)]:
-					p/=d
-					uv.append(Vector2(2,0)+Vector2(float(sprite.x)+66+(p.x-p.y)*66,float(sprite.y)+(p.x+p.y)*33)/Vector2(texture.get_size()))
-				layer.polygon(PackedVector2Array([points[0],points[1],points[2]]),color,texture,PackedVector2Array([uv[0],uv[1],uv[2]]))
-				layer.polygon(PackedVector2Array([points[0],points[2],points[3]]),color,texture,PackedVector2Array([uv[0],uv[2],uv[3]]))
+				var vertices: Array = [at,at+1,at+d+2,at+d+1]
+				for triangle in [[0,1,2],[0,2,3]]:
+					var positions := PackedVector2Array()
+					var tints := PackedColorArray()
+					var coords := PackedVector2Array()
+					for corner in triangle:
+						positions.append(points[corner]);tints.append(colors[vertices[corner]]);coords.append(uv[vertices[corner]])
+					layer.polygon_colors(positions,tints,texture,coords)
 		return true
 	var uv: PackedVector2Array = PackedVector2Array()
 	for p in [Vector2(left, top), Vector2(left + width, top), Vector2(left + width, top + height), Vector2(left, top + height)]:

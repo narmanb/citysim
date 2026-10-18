@@ -19,6 +19,10 @@ func _init() -> void:
 func polygon(points: PackedVector2Array, color: Color, texture: Texture2D = null, uv: PackedVector2Array = PackedVector2Array()) -> void:
 	commands.append([0, points, color, texture, uv])
 
+func polygon_colors(points: PackedVector2Array, colors: PackedColorArray, texture: Texture2D, uv: PackedVector2Array) -> void:
+	assert(points.size()==colors.size())
+	commands.append([6,points,colors,texture,uv])
+
 func line(points: PackedVector2Array, color: Color, width: float = 1.0) -> void:
 	commands.append([1, points, color, width])
 
@@ -64,14 +68,14 @@ func compile_batches() -> Array:
 			output.append(command)
 			continue
 		var texture: Texture2D = null
-		if kind == 0: texture = command[3]
+		if kind in [0,6]: texture = command[3]
 		if kind == 2: texture = command[1]
 		if texture != null:
 			if batch.texture != null and batch.texture != texture:
 				_flush_batch(batch, output)
 			batch.texture = texture
 		match kind:
-			0:
+			0,6:
 				_append_polygon(batch, command[1], command[2], command[4] if texture != null else PackedVector2Array())
 			1:
 				_append_line(batch, command[1], command[2], command[3])
@@ -91,14 +95,14 @@ func _empty_batch() -> Dictionary:
 	# helper call. Convert once when uploading the finished mesh.
 	return {"vertices": [], "colors": [], "uv": [], "indices": [], "texture": null}
 
-func _append_polygon(batch: Dictionary, points: PackedVector2Array, color: Color, uv: PackedVector2Array) -> void:
+func _append_polygon(batch: Dictionary, points: PackedVector2Array, color, uv: PackedVector2Array) -> void:
 	if points.size() < 3: return
 	var triangles: PackedInt32Array = Geometry2D.triangulate_polygon(points)
 	if triangles.is_empty(): return
 	var offset: int = batch.vertices.size()
 	for i in range(points.size()):
 		batch.vertices.append(Vector3(points[i].x, points[i].y, 0.0))
-		batch.colors.append(color)
+		batch.colors.append(color[i] if color is PackedColorArray else color)
 		batch.uv.append(uv[i] if uv.size() == points.size() else Vector2(-1, 0))
 	for index in triangles:
 		batch.indices.append(offset + index)

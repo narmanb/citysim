@@ -46,7 +46,7 @@ static func corners(tiles: Array, index: int, overrides: Dictionary = {}) -> Pac
 static func sample(tiles: Array, index: int, u: float = .5, v: float = .5, overrides: Dictionary = {}) -> float:
 	var tile = tile_at(tiles,index,overrides)
 	if tile.get("terrainShape","flat") == "rounded" and tile.terrain != "water" and not tile.channel:
-		return field_height(tiles,float(index%N)+u,float(index / N as int)+v,overrides)
+		return rounded_sample(tiles,index,u,v,overrides).x
 	if tile.get("terrainShape","flat") != "slope": return float(tile.elev)
 	var h = corners(tiles,index,overrides)
 	return lerpf(lerpf(h[0],h[1],u),lerpf(h[3],h[2],u),v)
@@ -56,31 +56,57 @@ static func _basis(t: float) -> PackedFloat64Array:
 	var t3: float = t2*t
 	return PackedFloat64Array([pow(1-t,3)/6.,(3*t3-6*t2+4)/6.,(-3*t3+3*t2+3*t+1)/6.,t3/6.])
 
-static func field_height(tiles: Array, x: float, y: float, overrides: Dictionary = {}) -> float:
+static func _basis_derivative(t: float) -> PackedFloat64Array:
+	return PackedFloat64Array([-.5*(1-t)*(1-t),1.5*t*t-2*t,-1.5*t*t+t+.5,.5*t*t])
+
+static func retain_foundation(before: Dictionary, after: Dictionary, operation: String) -> void:
+	if after.get("terrainShape","flat")!="rounded": after.erase("roundedBase")
+	elif before.has("roundedBase"): after.roundedBase=mini(before.roundedBase,after.elev)
+	elif operation in ["raise","hill","mountain"] and before.get("terrainShape","flat") in ["flat","cliff"]:
+		after.roundedBase=before.elev
+
+static func rounded_sample(tiles: Array,index: int,u: float,v: float,overrides: Dictionary = {}) -> Vector3:
+	var tile = tile_at(tiles,index,overrides)
+	var based: bool = tile.has("roundedBase")
+	var result = field_sample(tiles,float(index%N)+u,float(int(index/N))+v,overrides,tile.get("roundedBase"))
+	if based: result.x+=float(tile.roundedBase)
+	if result.x<=MIN_HEIGHT or result.x>=MAX_HEIGHT:
+		result.x=clampf(result.x,MIN_HEIGHT,MAX_HEIGHT);result.y=0;result.z=0
+	return result
+
+static func field_height(tiles: Array,x: float,y: float,overrides: Dictionary = {}) -> float:
+	return field_sample(tiles,x,y,overrides).x
+
+# Height and exact map-space derivatives. Based caps filter added relief only;
+# their terrace elevation is kept separately, so raising cannot erode its base.
+static func field_sample(tiles: Array,x: float,y: float,overrides: Dictionary = {},base = null) -> Vector3:
 	var qx: float = x-.5
 	var qy: float = y-.5
 	var ix: int = floori(qx)
 	var iy: int = floori(qy)
 	var wx = _basis(qx-ix)
 	var wy = _basis(qy-iy)
-	var total: float = 0
-	var weighted: float = 0
+	var gx = _basis_derivative(qx-ix)
+	var gy = _basis_derivative(qy-iy)
+	var total := Vector3.ZERO
+	var weighted := Vector3.ZERO
 	for dy in range(4):
 		var yy: int = iy+dy-1
-		if yy < 0 or yy >= N: continue
+		if yy<0 or yy>=N: continue
 		for dx in range(4):
 			var xx: int = ix+dx-1
-			if xx < 0 or xx >= N: continue
+			if xx<0 or xx>=N: continue
 			var tile = tile_at(tiles,yy*N+xx,overrides)
-			# No construction/utility/tree/biome flags: placement cannot deform land.
-			if tile.terrain == "water" or tile.channel or tile.get("terrainShape","flat") == "cliff": continue
-			var weight: float = wx[dx]*wy[dy]
-			total += weight
-			weighted += float(tile.elev)*weight
-	return clampf(weighted/total,MIN_HEIGHT,MAX_HEIGHT) if total > 0 else 0.
+			if tile.terrain=="water" or tile.channel or tile.get("terrainShape","flat")=="cliff": continue
+			var weights := Vector3(wx[dx]*wy[dy],gx[dx]*wy[dy],wx[dx]*gy[dy])
+			var value: float = maxf(0.,float(tile.elev)-float(base)) if base!=null else float(tile.elev)
+			total+=weights;weighted+=weights*value
+	if total.x<=0: return Vector3.ZERO
+	var height: float = weighted.x/total.x
+	return Vector3(height,(weighted.y-height*total.y)/total.x,(weighted.z-height*total.z)/total.x)
 
 static func same_surface(tiles: Array, index: int, overrides: Dictionary) -> bool:
-	for v in [0.,.5,1.]:
-		for u in [0.,.5,1.]:
+	for v in [0.,.25,.5,.75,1.]:
+		for u in [0.,.25,.5,.75,1.]:
 			if not is_equal_approx(sample(tiles,index,u,v),sample(tiles,index,u,v,overrides)): return false
 	return true

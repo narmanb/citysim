@@ -68,6 +68,15 @@ func _initialize() -> void:
 		area += absf((b - a).cross(c - a)) * 0.5
 	check(is_equal_approx(area, 10.0), "concave footprint area is preserved")
 	check(absf(mesh_arrays[Mesh.ARRAY_COLOR][0].a - 0.25) <= 1.0 / 255.0, "transparent overlays retain their alpha within GPU color precision")
+	# Vertex-colored terrain must retain gradients in the same ordered batch.
+	layer.commands.clear()
+	var gradient := PackedColorArray([Color.RED,Color.GREEN,Color.BLUE,Color.WHITE])
+	layer.polygon_colors(points,gradient,texture,PackedVector2Array([Vector2.ZERO,Vector2.RIGHT,Vector2.ONE,Vector2.DOWN]))
+	layer.sprite(texture,Rect2(0,0,4,4),Rect2(140,222,32,25))
+	batches=layer.compile_batches()
+	check(batches.size()==1,"Gradient cap and original sprite remain in one texture batch")
+	var gradient_arrays: Array = batches[0][1].surface_get_arrays(0)
+	check(gradient_arrays[Mesh.ARRAY_COLOR][0]==Color.RED and gradient_arrays[Mesh.ARRAY_COLOR][2]==Color.BLUE and gradient_arrays[Mesh.ARRAY_COLOR][4]==Color.WHITE,"GPU mesh retains individual vertex tints and following sprite color")
 	layer.free()
 	print("Mixed draw batch tests: %s failure(s)" % failures)
 	quit(1 if failures else 0)
