@@ -81,8 +81,8 @@ Undo and Redo restore a whole construction stroke and its cost. The city clock a
 8. TRANSPORT AND EVENTS
 Roads and rails can bridge up to eight water tiles with dry land at both ends. Trains need two stations on a connected line. Events contains disasters, fire dispatch and the city message log. Random disasters are optional.
 
-TERRAFORM FLAT TERRACES
-Raise/Lower reaches −5 to +12. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Flatten uses the first touched tile or Set height. Preview shows cost and skipped cells; each changed cell costs $20. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Shape terrain makes Flat, Sloped or Cliff caps. Sloped uses Auto or N/E/S/W (the high edge), with Gentle/Medium/Steep strength independent of height step. Auto needs neighboring height differences; manual directions work on level ground. Flatten before building on a slope. Rounded hills and smoothing are not included yet.
+TERRAFORM TERRAIN
+Raise/Lower reaches −5 to +12. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Select a height/shape tool to keep its settings at the right of the map, even after the tool menu closes. Flatten uses the first touched tile or Set height. Preview shows cost and skipped cells; each changed cell costs $20. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Shape terrain makes Flat, Sloped or Cliff caps. Sloped uses Auto or N/E/S/W (the high edge), with Gentle/Medium/Steep strength independent of height step. Auto needs neighboring height differences; manual directions work on level ground. Flatten before building on a slope. Rounded hills and smoothing are not included yet.
 
 9. KEEP YOUR CITY
 Your last city reopens automatically. The game checkpoints periodically and when backgrounded. Save writes a separate manual city in this app. Export makes a complete compatible JSON copy for backup or transfer. Import accepts JSON exported by the earlier MetroForge game. Use the native file picker or the copy/paste JSON fallback. Saves from the old Android app are transferred by exporting there and importing here.
@@ -105,6 +105,7 @@ var _stroke_parcel: int = 0
 var _stroke_tiles: Dictionary = {}
 var terrain_settings: Dictionary = {"radius": 0, "step": 1, "flatten_target": null, "shape": "flat", "direction": "auto", "strength": 1}
 var _terrain_panel
+var _terrain_dock: PanelContainer
 var _terrain_indices: Dictionary = {}
 var _terrain_stroke_settings: Dictionary = {}
 var _last_terrain_changed: bool = false
@@ -267,6 +268,7 @@ func choose_tool(tool: String) -> bool:
 		_status.text = str(TOOL_HELP.get(tool, TOOL_LABELS[tool] + ": " + _money(World.COST.get(tool, 0)) + " per tile."))
 		refresh_selection()
 	_update_terrain_summary()
+	_layout_shell()
 	return true
 
 func set_placement_mode(mode: String) -> void:
@@ -298,8 +300,7 @@ func select_category(value: String) -> void:
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.tooltip_text = str(TOOL_HELP.get(tool, TOOL_LABELS[tool]))
 		_tool_buttons[tool] = button
-	_terrain_panel.visible = category == "Terraform" and selected_tool in TerrainEditor.OPERATIONS
-	_terrain_panel.configure(terrain_settings, selected_tool)
+	_refresh_terrain_dock()
 	for key in _category_buttons:
 		_category_buttons[key].button_pressed = key == category
 	_tool_menu.visible = not was_open
@@ -955,10 +956,18 @@ func _build_ui() -> void:
 	_tools.add_theme_constant_override("h_separation", 5)
 	_tools.add_theme_constant_override("v_separation", 5)
 	picker_column.add_child(_tools)
+	_terrain_dock = PanelContainer.new()
+	_terrain_dock.name = "TerrainDock"
+	_terrain_dock.z_index = 3955
+	_terrain_dock.mouse_filter = Control.MOUSE_FILTER_STOP
+	var terrain_style := _style(Color("172a39f5"), Color("7ca0a6"), 5)
+	terrain_style.set_content_margin_all(4)
+	_terrain_dock.add_theme_stylebox_override("panel", terrain_style)
+	map_area.add_child(_terrain_dock)
 	_terrain_panel = TerrainSettings.new()
 	_terrain_panel.settings_changed.connect(set_terrain_settings)
 	_terrain_panel.shape_settings_changed.connect(set_terrain_shape)
-	picker_column.add_child(_terrain_panel)
+	_terrain_dock.add_child(_terrain_panel)
 	_tool_menu.hide()
 	_footer = _bar("Footer", Color("152531"), Color("536d79"), column)
 	var footer_row = _row(_footer, 8)
@@ -1077,11 +1086,20 @@ func _layout_shell() -> void:
 	_status.offset_right = minf(680, size.x * 0.7)
 	_growth.offset_right = minf(680, size.x * 0.72)
 	# A bounded scrollable palette overlays the map and never changes its size.
-	var picker_width: float = minf(690, size.x - 16)
-	_tools.columns = 4 if category == "Terraform" else 3 if compact else 4
-	var terrain_height: float = maxf(66, _terrain_panel.get_combined_minimum_size().y) + 5 if _terrain_panel.visible else 0
-	_tool_menu.size = Vector2(picker_width, minf(terrain_height + maxf(52, ceilf(float(_tool_buttons.size()) / _tools.columns) * (41 if compact else 45) + 11), maxf(52, size.y - _header.custom_minimum_size.y - _tool_dock.custom_minimum_size.y - _footer.custom_minimum_size.y - 12)))
+	var dock_visible: bool = _terrain_dock.visible
+	var picker_width: float = minf(690, size.x - (180 if dock_visible else 16))
+	var column_width: float = 123 if compact else 141
+	_tools.columns = maxi(1, mini(4 if category == "Terraform" or not compact else 3, floori((picker_width - 11) / column_width)))
+	_tool_menu.size = Vector2(picker_width, minf(maxf(52, ceilf(float(_tool_buttons.size()) / _tools.columns) * (41 if compact else 45) + 11), maxf(52, size.y - _header.custom_minimum_size.y - _tool_dock.custom_minimum_size.y - _footer.custom_minimum_size.y - 12)))
 	_tool_menu.get_child(0).custom_minimum_size = Vector2(0, 0)
+	# The dock overlays the right map margin; it never reserves map height.
+	_terrain_dock.position = Vector2(size.x - 164, 2)
+	_terrain_dock.size = Vector2(156, _terrain_dock.get_combined_minimum_size().y)
+
+func _refresh_terrain_dock() -> void:
+	if _terrain_dock == null: return
+	_terrain_dock.visible = selected_tool in TerrainEditor.OPERATIONS
+	_terrain_panel.configure(terrain_settings, selected_tool)
 
 func _toggle_fullscreen() -> void:
 	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
@@ -1366,6 +1384,7 @@ func set_terrain_shape(shape: String, direction: String, strength: int) -> bool:
 	return true
 
 func _update_terrain_summary() -> void:
+	_refresh_terrain_dock()
 	if selected_tool not in TerrainEditor.OPERATIONS: return
 	var width: int = int(terrain_settings.radius) * 2 + 1
 	var detail: String = "step %s" % terrain_settings.step

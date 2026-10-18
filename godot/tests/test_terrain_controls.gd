@@ -133,17 +133,55 @@ func run():
     game.view._cancel_pointers()
     check(w.cash==cash and w.tiles[center+4].terrainShape=="flat","Cancel mouse Shape never commits or spends")
     game.choose_tool("raise")
-    for dimensions in [Vector2i(854,394),Vector2i(640,360)]:
+    for dimensions in [Vector2i(1280,591),Vector2i(854,394),Vector2i(640,360)]:
         root.size=dimensions;root.content_scale_size=dimensions;await process_frame;await process_frame
+        game.choose_tool("raise");game.set_terrain_shape("slope","E",2)
         game.select_category("Terraform");await process_frame;await process_frame
         var panel=game.find_child("TerrainSettings",true,false)
-        check(panel!=null and panel.is_visible_in_tree(),"Compact Terraform panel visible at "+str(dimensions))
-        if panel!=null:
-            check(panel.get_global_rect().end.x<=dimensions.x and panel.get_global_rect().end.y<=game.view.get_global_rect().end.y,"Terrain settings fit landscape map")
-            check(panel._slope_row.get_global_rect().end.y<=game._tool_menu.get_global_rect().end.y-4,"Slope direction/strength visible without scrolling at "+str(dimensions))
-        check(game._tool_buttons.has("flatten") and game.CATEGORIES.Zoning==["res","shop","light"],"Flatten available; three zoning buttons retained")
-        game.choose_tool("flatten");await process_frame
-        check(not game._tool_menu.visible,"Choosing operation returns full map")
+        var map_before=game.view.get_global_rect()
+        check(panel!=null and panel.is_visible_in_tree(),"Terrain settings visible with menu at "+str(dimensions))
+        check(not game._tool_menu.is_ancestor_of(panel),"Settings live outside the Terraform submenu")
+        var dock=game.find_child("TerrainDock",true,false)
+        check(dock!=null,"Persistent settings have their own map dock")
+        if dock!=null:
+            var bounds=dock.get_global_rect()
+            check(bounds.position.x>=dimensions.x-180 and bounds.size.x<=168,"Settings stay in a narrow right-hand dock")
+            check(game._tool_menu.get_global_rect().end.x+4<=bounds.position.x,"Tool menu and dock never overlap")
+            var fps=game.view.get_parent().find_child("PerformanceDisplay",true,false)
+            check(fps!=null and bounds.end.y<=fps.get_global_rect().position.y-2,"Dock stays above FPS and zoom controls at "+str(dimensions)+": "+str(bounds)+" FPS "+str(fps.get_global_rect() if fps!=null else Rect2()))
+            check(bounds.encloses(panel._slope_row.get_global_rect()),"Direction and strength fit inside dock")
+        check(game._tool_buttons.has("flatten") and game.CATEGORIES.Zoning==["res","shop","light"],"Terrain and zoning tool choices retained")
+        game.choose_tool("flatten");await process_frame;await process_frame
+        check(not game._tool_menu.visible and panel.is_visible_in_tree(),"Settings remain available after tool menu closes")
+        check(game.view.get_global_rect()==map_before,"Persistent settings overlay preserves map size")
+        game._terrain_panel._target_mode.select(1);game._terrain_panel._target_mode.item_selected.emit(1)
+        game._terrain_panel._target_level.value=7
+        check(game.terrain_settings.flatten_target==7 and panel.is_visible_in_tree() and not game._tool_menu.visible,"Flatten target adjusts from closed-menu dock")
+        game.choose_tool("raise");await process_frame;await process_frame
+        panel._steps[4].pressed.emit()
+        check(game.terrain_settings.step==4 and panel.is_visible_in_tree() and not game._tool_menu.visible,"Height step adjusts without reopening submenu")
+        game.set_terrain_settings(0,1)
+        await process_frame;await process_frame
+        var at=panel._steps[4].get_global_rect().get_center()
+        var move=InputEventMouseMotion.new();move.position=at;root.push_input(move,true)
+        var click=InputEventMouseButton.new();click.position=at;click.button_index=MOUSE_BUTTON_LEFT;click.pressed=true
+        cash=w.cash
+        root.push_input(click,true)
+        click=click.duplicate();click.pressed=false;root.push_input(click,true)
+        await process_frame
+        check(game.terrain_settings.step==4 and w.cash==cash,"Real dock button click updates settings without painting map beneath")
+        game.set_terrain_shape("flat","auto",1)
+        await process_frame;await process_frame
+        if dock!=null: check(dock.size.y<=112,"Flat settings shrink instead of keeping unused slope space")
+        panel._brush.select(2);panel._brush.item_selected.emit(2)
+        check(game.terrain_settings.radius==2 and game.terrain_preview_at(center).targets.size()==25,"Dock brush dropdown updates actual preview footprint")
+        panel._shape.select(1);panel._shape.item_selected.emit(1)
+        await process_frame;await process_frame
+        check(game.terrain_settings.shape=="slope" and panel._slope_row.is_visible_in_tree(),"Dock shape dropdown reveals live direction and strength")
+        game.select_category("Zoning");await process_frame
+        check(panel.is_visible_in_tree(),"Browsing another category keeps active terrain settings")
+        game.choose_tool("res");await process_frame
+        check(not panel.is_visible_in_tree(),"Selecting a non-terrain tool hides settings")
     game.choose_tool("river");game.select_category("Terraform");await process_frame
     check(not game.find_child("TerrainSettings",true,false).is_visible_in_tree(),"Height brush controls stay hidden for unchanged single-cell terrain tools")
     game.queue_free();await process_frame

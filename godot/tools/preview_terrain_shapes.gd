@@ -43,12 +43,21 @@ func run():
 	game.view.tile_scale=21
 	game.view.camera=game.view.size*.5-game.view._point(25,25,3)*21/28.
 	await shot(out+"/ramps.png")
+	# Freeze only the volatile FPS label during deterministic raster comparison.
+	var fps = game.find_child("PerformanceDisplay",true,false)
+	fps._notification(MainLoop.NOTIFICATION_APPLICATION_PAUSED)
 	var cached = await shot(out+"/cached.png")
 	game.view._cached_world=null;game.view.refresh()
 	var rebuilt = await shot(out+"/rebuilt.png")
 	if cached.get_data()!=rebuilt.get_data(): push_error("Cached/full raster mismatch");quit(1);return
+	fps._notification(MainLoop.NOTIFICATION_APPLICATION_RESUMED)
 	game.choose_tool("shape");game.set_terrain_shape("slope","E",2);game.select_category("Terraform")
 	await shot(out+"/phone-controls.png")
+	game._close_tool_menu()
+	await shot(out+"/phone-dock-closed.png")
+	game.choose_tool("raise");game.set_terrain_shape("flat","auto",1)
+	await shot(out+"/phone-raise-controls.png")
+	game.set_terrain_shape("slope","E",2);game.select_category("Terraform")
 	root.size=Vector2i(640,360);root.content_scale_size=Vector2i(640,360)
 	await shot(out+"/narrow-controls.png")
 	print("PASS actual GL captures; cached/full pixels identical; ",game.view.metrics)
