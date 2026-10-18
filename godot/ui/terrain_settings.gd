@@ -1,10 +1,14 @@
 extends VBoxContainer
 const World = preload("res://model/city_world.gd")
 ## Compact session controls shared by every height/shape tool.
+signal appearance_requested
 signal settings_changed(radius: int, step: int, flatten_target)
 signal shape_settings_changed(shape: String, direction: String, strength: int)
 signal sculpt_settings_changed(values: Dictionary)
 var settings: Dictionary = {"radius": 0, "step": 1, "flatten_target": null}
+var _appearance_rows: Array = []
+var _top: OptionButton
+var _rock: OptionButton
 var _steps: Dictionary = {}
 var _step_row: HBoxContainer
 var _flatten_row: HBoxContainer
@@ -48,6 +52,7 @@ func _ready() -> void:
 	_brush = _option(["1×1", "3×3", "5×5"], _brush_row, "TerrainBrush")
 	_brush.item_selected.connect(func(which):
 		if not _syncing: settings_changed.emit(which, settings.step, settings.flatten_target))
+	_appearance_button(_brush_row,"TerrainAppearanceButton")
 	_flatten_row = _row("Flatten target")
 	_label("Target", _flatten_row)
 	_target_mode = _option(["First tile", "Set height"], _flatten_row, "FlattenTargetMode")
@@ -98,6 +103,7 @@ func _ready() -> void:
 	_preset_size = _option(["3×3","5×5","9×9"],size_row,"PresetSize")
 	_preset_size.item_selected.connect(func(which):
 		if not _syncing: sculpt_settings_changed.emit({"preset_radius":[1,2,4][which]}))
+	_appearance_button(size_row,"PresetAppearanceButton")
 	var peak_row := _row("Absolute peak height")
 	_preset_rows.append(peak_row)
 	_label("Peak",peak_row)
@@ -120,6 +126,16 @@ func _ready() -> void:
 	_profile = _option(["Broad","Balanced","Sharp"],profile_row,"PresetProfile")
 	_profile.item_selected.connect(func(which):
 		if not _syncing: sculpt_settings_changed.emit({"profile":which+1}))
+	var top_row := _row("Summit material")
+	_appearance_rows.append(top_row);_label("Top",top_row)
+	_top=_option(["Biome","Grass","Sand","Rock","Snow"],top_row,"SurfaceTop")
+	_top.item_selected.connect(func(which):
+		if not _syncing:sculpt_settings_changed.emit({"surface_top":World.Surfaces.TOPS[which]}))
+	var rock_row := _row("Exposed slope material")
+	_appearance_rows.append(rock_row);_label("Slopes",rock_row)
+	_rock=_option(["Brown rock","Gray rock","Sand","Grass"],rock_row,"SurfaceRock")
+	_rock.item_selected.connect(func(which):
+		if not _syncing:sculpt_settings_changed.emit({"surface_rock":World.Surfaces.ROCKS[which]}))
 	configure(settings, "raise")
 
 func configure(value: Dictionary, operation: String) -> void:
@@ -127,6 +143,9 @@ func configure(value: Dictionary, operation: String) -> void:
 	_operation = operation
 	if not is_node_ready(): return
 	_syncing = true
+	for row in _appearance_rows:row.visible=operation=="surface"
+	_top.select(World.Surfaces.TOPS.find(settings.get("surface_top","auto")))
+	_rock.select(World.Surfaces.ROCKS.find(settings.get("surface_rock","brown")))
 	_step_row.visible = operation in ["raise", "lower"]
 	_shape_row.visible = operation in ["raise","lower","shape"]
 	var preset: bool = operation in ["hill","mountain"]
@@ -174,3 +193,10 @@ func _option(labels: Array, parent: Node, node_name: String) -> OptionButton:
 	for text in labels: option.add_item(text)
 	parent.add_child(option)
 	return option
+
+func _appearance_button(parent: Node, node_name: String) -> void:
+	var button:=Button.new()
+	button.name=node_name;button.text="…";button.tooltip_text="Terrain surface materials"
+	button.custom_minimum_size=Vector2(26,32)
+	button.pressed.connect(func():appearance_requested.emit())
+	parent.add_child(button)

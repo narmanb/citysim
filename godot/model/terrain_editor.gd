@@ -3,7 +3,8 @@ extends RefCounted
 const World = preload("res://model/city_world.gd")
 const Geometry = preload("res://model/terrain_geometry.gd")
 const Sculptor = preload("res://model/terrain_sculptor.gd")
-const OPERATIONS = ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain"]
+const Surfaces = preload("res://model/terrain_surfaces.gd")
+const OPERATIONS = ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain", "surface"]
 
 static func footprint(center: int, radius: int) -> Array:
 	var cells: Array = []
@@ -24,9 +25,11 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 	if operation == "flatten" and (not World._finite(target) or float(target) != floor(float(target)) or target < World.MIN_TERRAIN_ELEV or target > World.MAX_TERRAIN_ELEV):
 		out.error = "Choose a whole-number Flatten height from -5 to +12."
 		return out
-	if not shape_settings.is_empty() and (shape_settings.get("shape") not in Geometry.SHAPES or shape_settings.get("direction") not in Geometry.DIRECTIONS or shape_settings.get("strength") not in [1,2,3]):
+	if shape_settings.has("shape") and (shape_settings.get("shape") not in Geometry.SHAPES or shape_settings.get("direction") not in Geometry.DIRECTIONS or shape_settings.get("strength") not in [1,2,3]):
 		out.error = "Unsupported shape setting."
 		return out
+	if not Surfaces.valid_settings(shape_settings):
+		out.error="Unsupported terrain material.";return out
 	var seen: Dictionary = {}
 	for value in indices:
 		if not value is int or value < 0 or value >= world.tiles.size() or seen.has(value): continue
@@ -37,12 +40,12 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 		if not reason.is_empty():
 			out.blocked[i] = reason
 			continue
-		var desired: int = int(tile.elev) if operation == "shape" else int(target) if operation == "flatten" else clampi(int(tile.elev) + (step if operation == "raise" else -step), World.MIN_TERRAIN_ELEV, World.MAX_TERRAIN_ELEV)
+		var desired: int = int(tile.elev) if operation in ["shape","surface"] else int(target) if operation == "flatten" else clampi(int(tile.elev) + (step if operation == "raise" else -step), World.MIN_TERRAIN_ELEV, World.MAX_TERRAIN_ELEV)
 		var after: Dictionary = tile.duplicate(true)
 		after.elev = desired
 		if operation == "flatten":
 			after.merge({"terrainShape":"flat","slopeDir":"auto","shapeStrength":1},true)
-		elif not shape_settings.is_empty() and (operation == "shape" or desired != int(tile.elev)):
+		elif shape_settings.has("shape") and (operation == "shape" or desired != int(tile.elev)):
 			if tile.channel and shape_settings.shape != "flat":
 				out.blocked[i] = "Water channel"
 				continue
@@ -50,8 +53,9 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 			after.slopeDir = shape_settings.direction if shape_settings.shape == "slope" else "auto"
 			after.shapeStrength = shape_settings.strength if shape_settings.shape == "slope" else 1
 		Geometry.retain_foundation(tile,after,operation)
+		if operation=="surface" or (tile.get("terrainShape","flat")!="rounded" and after.terrainShape=="rounded"): Surfaces.apply(after,shape_settings)
 		if after == tile:
-			out.blocked[i] = "Already at target" if operation in ["flatten","shape"] else "Height limit"
+			out.blocked[i] = "Already at target" if operation in ["flatten","shape","surface"] else "Height limit"
 			continue
 		if desired != int(tile.elev) and not world.can_place(i, "raise" if desired > int(tile.elev) else "lower"):
 			out.blocked[i] = "Protected terrain"
@@ -61,14 +65,14 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 	# Resolve Auto against the complete target heights, never iteration order.
 	for i in out.after.keys():
 		var after: Dictionary = out.after[i]
-		if after.get("terrainShape","flat") == "slope" and after.get("slopeDir","auto") == "auto" and Geometry.gradient(world.tiles,i,out.after) == Vector2.ZERO:
+		if operation!="surface" and after.get("terrainShape","flat") == "slope" and after.get("slopeDir","auto") == "auto" and Geometry.gradient(world.tiles,i,out.after) == Vector2.ZERO:
 			if operation == "shape":
 				out.blocked[i] = "Level neighbors: choose N/E/S/W"
 				out.before.erase(i)
 				out.after.erase(i)
 				continue
 			after.merge({"terrainShape":"flat","slopeDir":"auto","shapeStrength":1},true)
-		if after.get("terrainShape","flat") == "rounded" and after.elev == world.tiles[i].elev and Geometry.same_surface(world.tiles,i,out.after):
+		if operation!="surface" and not Surfaces.changed(after,world.tiles[i]) and after.get("terrainShape","flat") == "rounded" and after.elev == world.tiles[i].elev and Geometry.same_surface(world.tiles,i,out.after):
 			out.before.erase(i)
 			out.after.erase(i)
 			continue
@@ -77,8 +81,8 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 			out.after.erase(i)
 			continue
 		out.targets[i] = after.elev
-		out.cost += World.COST.raise
-	out.affordable = world.cash >= out.cost
+		out.cost += 0 if operation=="surface" else World.COST.raise
+	out.affordable = out.cost <= 0 or world.cash >= out.cost
 	return out
 
 static func _protected_reason(tile: Dictionary) -> String:
@@ -95,7 +99,7 @@ static func commit(world, proposal: Dictionary) -> Dictionary:
 		failed.reason = proposal.error
 		return failed
 	if proposal.get("before", {}).is_empty(): return failed
-	if world.cash < proposal.cost:
+	if proposal.cost > 0 and world.cash < proposal.cost:
 		failed.reason = "Need $%d for this whole terrain edit; nothing changed." % proposal.cost
 		return failed
 	for i in proposal.before:

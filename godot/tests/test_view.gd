@@ -102,10 +102,8 @@ func _run() -> void:
 	var cap_layer = load("res://view/iso_layer.gd").new()
 	view._surface(cap_layer, "grass", 0, 0, 4)
 	var command: Array = cap_layer.commands[0]
-	var atlas_origin: float = float(view._manifest.sprites.grass.y)
 	for uv in command[4]:
-		var pixel_y: float = uv.y * command[3].get_height()
-		check(pixel_y >= atlas_origin - 0.001 and pixel_y <= atlas_origin + 66.001, "terrain UV stays within actual cap and excludes PNG sidewalls")
+		check(uv.x>=64 and uv.x<=65 and uv.y>=0 and uv.y<=1,"Clean terrain uses analytic map UVs, never PNG sidewalls")
 	check(is_equal_approx(command[1][2].y - command[1][0].y, 28.0), "elevation never changes flat cap pitch")
 	cap_layer.free()
 	for endpoint in [center + 5 + 5 * 52, center - 5 + 5 * 52, center + 5 - 5 * 52, center - 5 - 5 * 52, center + 7 + 2 * 52, center + 2 + 7 * 52, center, center + 5, center + 5 * 52]:

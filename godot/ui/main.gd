@@ -15,10 +15,10 @@ const CATEGORIES: Dictionary = {
 	"Utilities": ["line", "pipe", "plant", "pump", "tower"],
 	"Services": ["police", "fire", "school", "hospital"],
 	"Parks": ["park"],
-	"Terraform": ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain", "river", "grass", "desert", "tree", "forest"]
+	"Terraform": ["surface", "raise", "lower", "flatten", "shape", "smooth", "hill", "mountain", "river", "grass", "desert", "tree", "forest"]
 }
 const TOOL_LABELS: Dictionary = {
-	"pan": "Pan / inspect", "bulldoze": "Bulldoze", "road": "Road", "rail": "Rail",
+	"surface":"Terrain surfaces", "pan": "Pan / inspect", "bulldoze": "Bulldoze", "road": "Road", "rail": "Rail",
 	"station": "Rail station", "line": "Power line", "pipe": "Water pipe", "res": "Housing zone",
 	"apt": "Apartment lots", "shop": "Business zone", "office": "Offices", "light": "Industrial zone",
 	"heavy": "Heavy industry", "park": "Park", "plant": "Power plant",
@@ -33,6 +33,7 @@ const OVERLAYS: Dictionary = {
 	"water": "Water network", "roadCondition": "Road condition"
 }
 const TOOL_HELP: Dictionary = {
+	"surface":"Paint summit and exposed-slope materials without changing height. Free; supports Undo.",
 	"pan": "Drag to pan. Tap a tile to inspect its parcel and services. Pinch or use + / − to zoom.",
 	"res": "Zone homes beside roads, then supply utilities. Larger serviced properties may develop apartments as the city grows.",
 	"apt": "Larger apartment parcels support larger buildings. Add road access, power, water and jobs.",
@@ -106,7 +107,7 @@ var _elapsed: float = 0.0
 var _stroke: bool = false
 var _stroke_parcel: int = 0
 var _stroke_tiles: Dictionary = {}
-var terrain_settings: Dictionary = {"radius": 0, "step": 1, "flatten_target": null, "shape": "flat", "direction": "auto", "strength": 1, "smooth_strength": 2, "preset_radius": 2, "hill_peak": 6, "mountain_peak": 12, "profile": 2, "preset_shape": "rounded"}
+var terrain_settings: Dictionary = {"radius": 0, "step": 1, "flatten_target": null, "shape": "flat", "direction": "auto", "strength": 1, "smooth_strength": 2, "preset_radius": 2, "hill_peak": 6, "mountain_peak": 12, "profile": 2, "preset_shape": "rounded", "surface_top":"auto","surface_rock":"brown"}
 var _terrain_panel
 var _terrain_dock: PanelContainer
 var _terrain_centers: Dictionary = {}
@@ -158,6 +159,9 @@ var _new_confirm: ConfirmationDialog
 
 func _ready() -> void:
 	_build_ui()
+	var preferences:=ConfigFile.new()
+	preferences.load("user://view.cfg")
+	view.set_grid_visible(bool(preferences.get_value("view","grid",false)))
 	var resumed = session.restore()
 	var resume_message: String = session.message
 	# Upgrade path: a previous manual save is useful on the first launch.
@@ -975,6 +979,7 @@ func _build_ui() -> void:
 	_terrain_panel.settings_changed.connect(set_terrain_settings)
 	_terrain_panel.shape_settings_changed.connect(set_terrain_shape)
 	_terrain_panel.sculpt_settings_changed.connect(set_sculpt_settings)
+	_terrain_panel.appearance_requested.connect(func():open_dialog("surfaces"))
 	_terrain_dock.add_child(_terrain_panel)
 	_tool_menu.hide()
 	_footer = _bar("Footer", Color("152531"), Color("536d79"), column)
@@ -1224,12 +1229,23 @@ func open_dialog(kind: String) -> void:
 	match kind:
 		"overlays":
 			_dialog_title.text = "City overlays"
+			var grid_toggle:=CheckButton.new()
+			grid_toggle.name="GridToggle";grid_toggle.text="Map grid"
+			grid_toggle.button_pressed=view.grid_visible
+			grid_toggle.toggled.connect(set_grid_visible)
+			_dialog_body.add_child(grid_toggle)
 			var grid = GridContainer.new()
 			grid.columns = 3
 			_dialog_body.add_child(grid)
 			for key in OVERLAYS:
 				var button: Button = _button(OVERLAYS[key], func(): set_overlay(key); close_dialog(), grid)
 				button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		"surfaces":
+			_dialog_title.text="Terrain surfaces"
+			_paragraph("Choose materials for new rounded terrain, or paint an existing mountain. Heights stay unchanged.")
+			_appearance_choice("Top",World.Surfaces.TOPS,["Biome","Grass","Sand","Rock","Snow"],"surface_top")
+			_appearance_choice("Slopes",World.Surfaces.ROCKS,["Brown rock","Gray rock","Sand","Grass"],"surface_rock")
+			_button("Paint existing terrain",func():close_dialog();choose_tool("surface"),_dialog_body)
 		"budget":
 			_dialog_title.text = "Budget and departments"
 			_paragraph("Tax rates (%)").add_theme_font_size_override("font_size", 18)
@@ -1401,6 +1417,10 @@ func set_sculpt_settings(values: Dictionary) -> bool:
 				if value not in [1,2,4]: return false
 			"hill_peak", "mountain_peak":
 				if not World._finite(value) or float(value)!=floor(float(value)) or value<World.MIN_TERRAIN_ELEV or value>World.MAX_TERRAIN_ELEV: return false
+			"surface_top":
+				if value not in World.Surfaces.TOPS:return false
+			"surface_rock":
+				if value not in World.Surfaces.ROCKS:return false
 			"preset_shape":
 				if value not in ["rounded","cliff"]: return false
 			_: return false
@@ -1421,13 +1441,15 @@ func _update_terrain_summary() -> void:
 	if selected_tool not in TerrainEditor.OPERATIONS: return
 	var width: int = int(terrain_settings.preset_radius if selected_tool in ["hill","mountain"] else terrain_settings.radius) * 2 + 1
 	var detail: String = "step %s" % terrain_settings.step
+	if selected_tool=="surface":detail="%s top · %s slopes" % [terrain_settings.surface_top,terrain_settings.surface_rock]
 	if selected_tool == "shape": detail = terrain_settings.shape + (" " + terrain_settings.direction if terrain_settings.shape == "slope" else "")
 	if selected_tool == "smooth": detail = ["Gentle","Medium","Strong"][terrain_settings.smooth_strength-1]
 	if selected_tool in ["hill","mountain"]: detail = "peak %s · %s" % [terrain_settings[selected_tool+"_peak"],terrain_settings.preset_shape]
 	if selected_tool == "flatten": detail = "first tile" if terrain_settings.flatten_target == null else "height %s" % terrain_settings.flatten_target
 	_tool_name.text = "%s · %s×%s · %s" % [TOOL_LABELS[selected_tool], width, width, detail]
 	_tool_name.tooltip_text = _tool_name.text
-	_status.text = _tool_name.text + " · $20 per changed tile. " + ("Flatten before construction." if ((terrain_settings.shape in ["slope","rounded"] and selected_tool in ["raise","lower","shape"]) or selected_tool=="smooth" or (selected_tool in ["hill","mountain"] and terrain_settings.preset_shape=="rounded")) else "Flat construction tops.")
+	_status.text = _tool_name.text + (" · Free; colors only. " if selected_tool=="surface" else " · $20 per changed tile. ") + ("Flatten before construction." if ((terrain_settings.shape in ["slope","rounded"] and selected_tool in ["raise","lower","shape"]) or selected_tool=="smooth" or (selected_tool in ["hill","mountain"] and terrain_settings.preset_shape=="rounded")) else "Flat construction tops.")
+	if selected_tool=="surface":_status.text=_tool_name.text+" · Free; changes colors without changing heights."
 	_terrain_panel.configure(terrain_settings, selected_tool)
 
 func _stage_terrain(index: int) -> bool:
@@ -1470,3 +1492,19 @@ func _preview_terrain(index: int, centers: Array) -> void:
 	var p: Dictionary = view.terrain_preview
 	_status.text = "%s · %s tiles · %s%s" % [_tool_name.text, p.targets.size(), _money(p.cost), " · insufficient funds; nothing will change" if not p.affordable else ""]
 	if not p.blocked.is_empty(): _status.text += " · %s skipped (%s)" % [p.blocked.size(), _terrain_reasons(p)]
+
+func set_grid_visible(value: bool) -> void:
+	view.set_grid_visible(value)
+	var preferences:=ConfigFile.new()
+	preferences.load("user://view.cfg")
+	preferences.set_value("view","grid",value)
+	preferences.save("user://view.cfg")
+
+func _appearance_choice(label_text: String, ids: Array, labels: Array, key: String) -> void:
+	_paragraph(label_text)
+	var option:=OptionButton.new()
+	option.custom_minimum_size.y=38
+	for label in labels:option.add_item(label)
+	option.select(ids.find(terrain_settings[key]))
+	option.item_selected.connect(func(which):set_sculpt_settings({key:ids[which]}))
+	_dialog_body.add_child(option)

@@ -56,7 +56,7 @@ func redo(world) -> bool:
 	if redo_stack.is_empty():
 		return false
 	var action: Dictionary = redo_stack.back()
-	if world.cash < action.spent:
+	if action.spent > 0 and world.cash < action.spent:
 		return false
 	redo_stack.pop_back()
 	for index in action.after:

@@ -1,6 +1,7 @@
 shader_type canvas_item;
 render_mode unshaded;
 
+uniform bool grid_enabled = false;
 varying vec4 cap_color;
 
 void vertex() {
@@ -11,7 +12,17 @@ void fragment() {
 	if (UV.x >= 63.5) {
 		// Rounded land uses the same clean palette as the original flat caps.
 		// Shared vertex colors retain smooth lighting without grain or tile lines.
-		COLOR=vec4(cap_color.rgb,1.0);
+		vec3 color=cap_color.rgb;
+        if (grid_enabled) {
+            vec2 ground=UV-vec2(64.0,0.0);
+            vec2 cell=fract(ground);
+            vec2 width=max(fwidth(ground),vec2(0.0001));
+            vec2 edge=min(cell,1.0-cell)/width;
+            float line=1.0-smoothstep(0.15,0.95,min(edge.x,edge.y));
+            float fade=1.0-smoothstep(0.12,0.35,max(width.x,width.y));
+            color*=1.0-0.14*line*fade;
+        }
+        COLOR=vec4(color,1.0);
 	} else if (UV.x < -4.0) {
 		// Analytic coverage of a wire across the pixel footprint. This also
 		// handles subpixel-width network lines in the full-city overview.

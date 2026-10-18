@@ -1,6 +1,7 @@
 extends RefCounted
 ## Frozen, bounded set operations. No mutation, renderer or UI dependencies.
 const W = preload("res://model/city_world.gd")
+const Surfaces = preload("res://model/terrain_surfaces.gd")
 const G = preload("res://model/terrain_geometry.gd")
 
 static func preset_footprint(center: int, radius: int) -> Array:
@@ -26,7 +27,7 @@ static func plan(world, indices: Array, operation: String, settings: Dictionary,
 	var peak = settings.get("peak",12 if operation == "mountain" else 6)
 	var profile = settings.get("profile",2)
 	var shape = settings.get("preset_shape","rounded")
-	if strength not in [1,2,3] or radius not in [1,2,4] or not W._finite(peak) or float(peak)!=floor(float(peak)) or peak<W.MIN_TERRAIN_ELEV or peak>W.MAX_TERRAIN_ELEV or profile not in [1,2,3] or shape not in ["rounded","cliff"]:
+	if not Surfaces.valid_settings(settings) or strength not in [1,2,3] or radius not in [1,2,4] or not W._finite(peak) or float(peak)!=floor(float(peak)) or peak<W.MIN_TERRAIN_ELEV or peak>W.MAX_TERRAIN_ELEV or profile not in [1,2,3] or shape not in ["rounded","cliff"]:
 		out.error="Unsupported sculpting setting."
 		return out
 	var desired: Dictionary = {}
@@ -71,12 +72,13 @@ static func plan(world, indices: Array, operation: String, settings: Dictionary,
 		after.elev=int(desired[i])
 		after.merge({"terrainShape":"rounded" if operation=="smooth" else shape,"slopeDir":"auto","shapeStrength":1},true)
 		G.retain_foundation(before,after,operation)
+		if before.get("terrainShape","flat")!="rounded" and after.terrainShape=="rounded": Surfaces.apply(after,settings)
 		out.before[i]=before.duplicate(true)
 		out.after[i]=after
 	for i in out.after.keys():
 		var before: Dictionary = out.before[i]
 		var after: Dictionary = out.after[i]
-		if before==after or (after.elev==before.elev and after.terrainShape=="rounded" and G.same_surface(world.tiles,i,out.after)):
+		if before==after or ((operation=="smooth" or not Surfaces.changed(after,before)) and after.elev==before.elev and after.terrainShape=="rounded" and G.same_surface(world.tiles,i,out.after)):
 			out.before.erase(i);out.after.erase(i)
 			continue
 		out.targets[i]=after.elev

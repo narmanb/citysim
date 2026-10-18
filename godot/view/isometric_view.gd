@@ -22,6 +22,12 @@ const ELEVATION: float = 0.15
 const ZCOL: Dictionary = {"res": Color("85dca3"), "com": Color("5aa8ed"), "ind": Color("dcac75")}
 const TERRAIN_COLOR: Dictionary = {"grass": Color("8ab549"), "water": Color("9cd4e2"), "sand": Color("d8d19e"), "dirt": Color("ba8c5d")}
 
+var grid_visible: bool = false
+
+func set_grid_visible(value: bool) -> void:
+	grid_visible=value
+	if _ground_material!=null:_ground_material.set_shader_parameter("grid_enabled",value)
+
 var world = null
 var tool: String = "pan"
 var mode: String = "tapPan"
@@ -102,6 +108,7 @@ func _ready() -> void:
 	add_child(_city)
 	_ground_material = ShaderMaterial.new()
 	_ground_material.shader = GroundShader
+	_ground_material.set_shader_parameter("grid_enabled",grid_visible)
 	# One hidden command recorder replaces thousands of temporary CanvasItems.
 	_recording_layer = Layer.new()
 	_recording_layer.visible = false
@@ -315,7 +322,7 @@ func _terrain_faces(index: int) -> Array:
 			if points.size()==4:
 				if points[0].is_equal_approx(points[3]): points.remove_at(3)
 				elif points[1].is_equal_approx(points[2]): points.remove_at(2)
-			faces.append([points,TerrainMaterial.WALL_EAST if side==0 else TerrainMaterial.WALL_SOUTH])
+			faces.append([points,TerrainMaterial.wall_color(world.tiles[index],side)])
 	return faces
 
 func _neighbors(index: int) -> Array:
@@ -379,6 +386,7 @@ func _rebuild() -> void:
 		return
 	var changed_indices: Array = []
 	var has_rounded: bool = false
+	var has_surface_cover: bool = false
 	var dirty: Dictionary = {}
 	var buckets: Dictionary = {}
 	var reset: bool = _cached_world != world or _tile_records.size() != world.tiles.size()
@@ -395,7 +403,9 @@ func _rebuild() -> void:
 	_fire_tiles.clear()
 	for index in range(world.tiles.size()):
 		var tile: Dictionary = world.tiles[index]
-		if tile.get("terrainShape","flat") == "rounded": has_rounded = true
+		if tile.get("terrainShape","flat") == "rounded":
+			has_rounded = true
+			if tile.get("surfaceTop","auto")!="auto": has_surface_cover = true
 		var signature: int = tile.hash()
 		if tile.get("pipe", false): signature = hash([signature, _field("water", index) > 0])
 		if reset or signature != _tile_hashes[index]:
@@ -425,6 +435,14 @@ func _rebuild() -> void:
 					if world.tiles[rounded].get("terrainShape","flat") != "rounded": continue
 					dirty[rounded]=true
 					for neighbor in _neighbors(rounded): dirty[neighbor]=true
+	if has_surface_cover and not reset:
+		for index in changed_indices:
+			var x: int = index%N
+			var y: int = index/N
+			for yy in range(maxi(0,y-4),mini(N,y+5)):
+				for xx in range(maxi(0,x-4),mini(N,x+5)):
+					var near: int = yy*N+xx
+					if world.tiles[near].get("terrainShape","flat")=="rounded" and world.tiles[near].get("surfaceTop","auto")!="auto":dirty[near]=true
 	for index in dirty:
 		if _tile_records[index] != null:
 			for key in _tile_records[index]:
@@ -569,6 +587,16 @@ func _rounded_local_edge_rock(index: int, mesh: Dictionary) -> PackedFloat32Arra
 				amounts[yy*(d+1)+xx]=maxf(amounts[yy*(d+1)+xx],exposure*weight)
 	return amounts
 
+func _surface_peak(index: int) -> float:
+	var peak: float = world.tiles[index].elev
+	var x: int = index%N
+	var y: int = index/N
+	for yy in range(maxi(0,y-4),mini(N,y+5)):
+		for xx in range(maxi(0,x-4),mini(N,x+5)):
+			var tile: Dictionary = world.tiles[yy*N+xx]
+			if tile.get("terrainShape","flat")=="rounded" and tile.get("roundedBase")==world.tiles[index].get("roundedBase"):peak=maxf(peak,tile.elev)
+	return peak
+
 func _surface(layer, name: String, x: float, y: float, elevation: float, left: float = 0, top: float = 0, width: float = 1, height: float = 1, cap_color: Color = Color.WHITE) -> bool:
 	if not _manifest.get("sprites", {}).has(name):
 		return false
@@ -577,16 +605,29 @@ func _surface(layer, name: String, x: float, y: float, elevation: float, left: f
 	if texture == null:
 		return false
 	var index: int = int(y)*N+int(x)
+	if name in TERRAIN_COLOR and world.tiles[index].get("terrainShape","flat")!="rounded" and left==0 and top==0 and width==1 and height==1:
+		var coords := PackedVector2Array([Vector2(64+x,y),Vector2(65+x,y),Vector2(65+x,y+1),Vector2(64+x,y+1)])
+		var color: Color = TerrainMaterial.top_color(world.tiles[index],TERRAIN_COLOR[name]) if name in ["grass","sand"] else TERRAIN_COLOR[name]
+		layer.polygon(_terrain_points(index),color,texture,coords)
+		return true
 	if world.tiles[index].get("terrainShape","flat")=="rounded" and left==0 and top==0 and width==1 and height==1:
 		var mesh: Dictionary = _rounded_mesh(index)
 		var d: int = mesh.divisions
 		var colors := PackedColorArray()
 		var uv := PackedVector2Array()
 		var edge_rock: PackedFloat32Array = _rounded_edge_rock(index,mesh)
+		var cover: String = world.tiles[index].get("surfaceTop","auto")
+		var peak: float = _surface_peak(index) if cover!="auto" else 0.
+		var floor_height: float = world.tiles[index].get("roundedBase",0)
 		for yy in range(d+1):
 			for xx in range(d+1):
 				var gradient: Vector2 = mesh.gradients[yy*(d+1)+xx]
-				var color: Color = TerrainMaterial.cap_color(TERRAIN_COLOR.get(name,Color.WHITE),gradient,edge_rock[yy*(d+1)+xx])
+				var weight: float = TerrainMaterial.cover_weight(cover,mesh.heights[yy*(d+1)+xx],floor_height,peak)
+				var surface_color: Color = Color(TERRAIN_COLOR[name]).lerp(TerrainMaterial.top_color(world.tiles[index],TERRAIN_COLOR[name]),weight)
+				var color: Color = TerrainMaterial.cap_color(surface_color,gradient,edge_rock[yy*(d+1)+xx],world.tiles[index].get("surfaceRock","brown"))
+				var relief: float = absf(mesh.heights[yy*(d+1)+xx]-float(world.tiles[index].get("roundedBase",0)))
+				var blend: float = maxf(edge_rock[yy*(d+1)+xx],smoothstep(.08,.6,relief))
+				color=Color(TERRAIN_COLOR.get(name,Color.WHITE)).lerp(color,blend)
 				colors.append(color)
 				# World-space coordinates keep detail continuous across cells and camera motion.
 				uv.append(Vector2(64+x+float(xx)/d,y+float(yy)/d))
@@ -934,7 +975,7 @@ func _update_overlay() -> void:
 func _update_indicators() -> void:
 	if not is_instance_valid(_indicator_layer): return
 	_indicator_layer.commands.clear()
-	if tool in ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain"]:
+	if tool in ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain", "surface"]:
 		terrain_preview_requested.emit(-1 if _gesture else hover, [] if _gesture else _pending_tiles)
 	else: terrain_preview = {}
 	if world != null:
@@ -948,7 +989,7 @@ func _update_indicators() -> void:
 				_diamond(_indicator_layer, index % N, floori(float(index) / N), float(world.tiles[index].get("elev", 0)), Color("eaf2a04d"))
 		if selected >= 0 and selected < world.tiles.size():
 			_diamond(_indicator_layer, selected % N, floori(float(selected) / N), float(world.tiles[selected].get("elev", 0)), Color.TRANSPARENT, Color("fff3ad"), 2.0)
-		if hover >= 0 and hover < world.tiles.size() and tool != "pan" and tool not in ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain"]:
+		if hover >= 0 and hover < world.tiles.size() and tool != "pan" and tool not in ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain", "surface"]:
 			var valid: bool = world.can_place(hover, tool)
 			_diamond(_indicator_layer, hover % N, floori(float(hover) / N), float(world.tiles[hover].get("elev", 0)), Color("eaf2a077") if valid else Color("ee555577"), Color.WHITE, 1.5)
 		if not terrain_preview.is_empty():
@@ -1041,11 +1082,11 @@ func _gui_input(event: InputEvent) -> void:
 		_pointer_move(event.index, event.position)
 		accept_event()
 	elif event is InputEventMagnifyGesture:
-		if tool in ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain"]: _cancel_pointers()
+		if tool in ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain", "surface"]: _cancel_pointers()
 		zoom_at(event.factor, event.position)
 		accept_event()
 	elif event is InputEventPanGesture:
-		if tool in ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain"]: _cancel_pointers()
+		if tool in ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain", "surface"]: _cancel_pointers()
 		camera -= event.delta * 18.0
 		accept_event()
 
@@ -1082,7 +1123,7 @@ func _pointer_down(id: int, point: Vector2, touch: bool, right: bool = false) ->
 	_pending_tiles.clear()
 	hover = _anchor
 	if mode == "paint" and tool != "pan" and not right and _anchor >= 0:
-		if touch or tool in ["road", "rail", "raise", "lower", "flatten", "shape", "smooth", "hill", "mountain"]:
+		if touch or tool in ["road", "rail", "raise", "lower", "flatten", "shape", "smooth", "hill", "mountain", "surface"]:
 			_pending_tiles.append(_anchor)
 		else:
 			_emit_paint(_anchor)
@@ -1122,7 +1163,7 @@ func _pointer_move(id: int, point: Vector2) -> void:
 				_pending_tiles = _tile_line(_anchor, index)
 			else:
 				for tile_index in _tile_line(_last_tile, index):
-					if _touches[id].touch or tool in ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain"]:
+					if _touches[id].touch or tool in ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain", "surface"]:
 						if not _pending_tiles.has(tile_index): _pending_tiles.append(tile_index)
 					else: _emit_paint(tile_index)
 			_last_tile = index
@@ -1145,7 +1186,7 @@ func _pointer_up(id: int, point: Vector2, canceled: bool = false) -> void:
 				if _anchor >= 0 and last >= 0:
 					_emit_paint(_anchor)
 					_emit_paint(last)
-			elif touch or tool in ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain"]:
+			elif touch or tool in ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain", "surface"]:
 				for index in _pending_tiles: _emit_paint(index)
 	_touches.erase(id)
 	if _touches.is_empty():

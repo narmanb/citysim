@@ -47,7 +47,7 @@ func run():
 	p = E.plan(w,[c],"flatten",1,0)
 	check(p.cost == 20 and E.commit(w,p).changed and w.tiles[c].terrainShape == "flat", "Flatten removes slope at same height")
 	var data = w.serialize()
-	check(data.version == 9, "New shape save version")
+	check(data.version == 10, "New shape save version")
 	var restored = S.import_json(JSON.stringify(data))
 	check(restored != null and G.corners(restored.tiles,c+1) == G.corners(w.tiles,c+1), "Shape JSON round trip deterministic")
 	for pair in [["terrainShape","invalid"],["slopeDir","bad"],["shapeStrength",0],["shapeStrength",1.5],["shapeStrength",null]]:
