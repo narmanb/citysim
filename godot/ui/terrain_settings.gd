@@ -3,6 +3,7 @@ const World = preload("res://model/city_world.gd")
 ## Compact session controls shared by every height/shape tool.
 signal settings_changed(radius: int, step: int, flatten_target)
 signal shape_settings_changed(shape: String, direction: String, strength: int)
+signal sculpt_settings_changed(values: Dictionary)
 var settings: Dictionary = {"radius": 0, "step": 1, "flatten_target": null}
 var _steps: Dictionary = {}
 var _step_row: HBoxContainer
@@ -10,6 +11,15 @@ var _flatten_row: HBoxContainer
 var _height_row: HBoxContainer
 var _target_mode: OptionButton
 var _target_level: SpinBox
+var _brush_row: HBoxContainer
+var _smooth_row: HBoxContainer
+var _smooth_strength: OptionButton
+var _preset_rows: Array = []
+var _preset_size: OptionButton
+var _peak: SpinBox
+var _preset_shape: OptionButton
+var _profile: OptionButton
+var _operation: String = "raise"
 var _brush: OptionButton
 var _syncing: bool = false
 var _shape_row: HBoxContainer
@@ -33,9 +43,9 @@ func _ready() -> void:
 		button.pressed.connect(func(): settings_changed.emit(settings.radius, value, settings.flatten_target))
 		_step_row.add_child(button)
 		_steps[value] = button
-	var brush_row := _row("Brush size")
-	_label("Brush", brush_row)
-	_brush = _option(["1×1", "3×3", "5×5"], brush_row, "TerrainBrush")
+	_brush_row = _row("Brush size")
+	_label("Brush", _brush_row)
+	_brush = _option(["1×1", "3×3", "5×5"], _brush_row, "TerrainBrush")
 	_brush.item_selected.connect(func(which):
 		if not _syncing: settings_changed.emit(which, settings.step, settings.flatten_target))
 	_flatten_row = _row("Flatten target")
@@ -57,9 +67,9 @@ func _ready() -> void:
 		if not _syncing: settings_changed.emit(settings.radius, settings.step, int(value)))
 	_shape_row = _row("Terrain shape")
 	_label("Shape", _shape_row)
-	_shape = _option(["Flat", "Sloped", "Cliff"], _shape_row, "TerrainShape")
+	_shape = _option(["Flat", "Sloped", "Cliff", "Rounded"], _shape_row, "TerrainShape")
 	_shape.item_selected.connect(func(which):
-		if not _syncing: shape_settings_changed.emit(["flat", "slope", "cliff"][which], settings.get("direction", "auto"), settings.get("strength", 1)))
+		if not _syncing: shape_settings_changed.emit(["flat", "slope", "cliff", "rounded"][which], settings.get("direction", "auto"), settings.get("strength", 1)))
 	_slope_row = _row("Slope direction and strength")
 	var edge := VBoxContainer.new()
 	edge.add_theme_constant_override("separation", 0)
@@ -77,16 +87,59 @@ func _ready() -> void:
 	_strength = _option(["Gentle", "Medium", "Steep"], strength, "ShapeStrength")
 	_strength.item_selected.connect(func(which):
 		if not _syncing: shape_settings_changed.emit(settings.get("shape", "flat"), settings.get("direction", "auto"), which + 1))
+	_smooth_row = _row("Smoothing strength")
+	_label("Strength",_smooth_row)
+	_smooth_strength = _option(["Gentle","Medium","Strong"],_smooth_row,"SmoothStrength")
+	_smooth_strength.item_selected.connect(func(which):
+		if not _syncing: sculpt_settings_changed.emit({"smooth_strength":which+1}))
+	var size_row := _row("Preset footprint")
+	_preset_rows.append(size_row)
+	_label("Size",size_row)
+	_preset_size = _option(["3×3","5×5","9×9"],size_row,"PresetSize")
+	_preset_size.item_selected.connect(func(which):
+		if not _syncing: sculpt_settings_changed.emit({"preset_radius":[1,2,4][which]}))
+	var peak_row := _row("Absolute peak height")
+	_preset_rows.append(peak_row)
+	_label("Peak",peak_row)
+	_peak = SpinBox.new()
+	_peak.name="PresetPeak"
+	_peak.min_value=World.MIN_TERRAIN_ELEV;_peak.max_value=World.MAX_TERRAIN_ELEV;_peak.step=1
+	_peak.custom_minimum_size=Vector2(76,32);_peak.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	peak_row.add_child(_peak)
+	_peak.value_changed.connect(func(value):
+		if not _syncing: sculpt_settings_changed.emit({_operation+"_peak":int(value)}))
+	var preset_shape_row := _row("Preset terrain shape")
+	_preset_rows.append(preset_shape_row)
+	_label("Shape",preset_shape_row)
+	_preset_shape = _option(["Rounded","Cliff"],preset_shape_row,"PresetShape")
+	_preset_shape.item_selected.connect(func(which):
+		if not _syncing: sculpt_settings_changed.emit({"preset_shape":["rounded","cliff"][which]}))
+	var profile_row := _row("Radial falloff profile")
+	_preset_rows.append(profile_row)
+	_label("Profile",profile_row)
+	_profile = _option(["Broad","Balanced","Sharp"],profile_row,"PresetProfile")
+	_profile.item_selected.connect(func(which):
+		if not _syncing: sculpt_settings_changed.emit({"profile":which+1}))
 	configure(settings, "raise")
 
 func configure(value: Dictionary, operation: String) -> void:
 	settings = value.duplicate()
+	_operation = operation
 	if not is_node_ready(): return
 	_syncing = true
 	_step_row.visible = operation in ["raise", "lower"]
-	_shape_row.visible = operation != "flatten"
-	_slope_row.visible = operation != "flatten" and settings.get("shape", "flat") == "slope"
-	_shape.select(["flat", "slope", "cliff"].find(settings.get("shape", "flat")))
+	_shape_row.visible = operation in ["raise","lower","shape"]
+	var preset: bool = operation in ["hill","mountain"]
+	_brush_row.visible = not preset
+	_smooth_row.visible = operation=="smooth"
+	_smooth_strength.select(settings.get("smooth_strength",2)-1)
+	for row in _preset_rows: row.visible=preset
+	_preset_size.select([1,2,4].find(settings.get("preset_radius",2)))
+	_profile.select(settings.get("profile",2)-1)
+	_preset_shape.select(1 if settings.get("preset_shape","rounded")=="cliff" else 0)
+	if preset: _peak.value=settings.get(operation+"_peak",12 if operation=="mountain" else 6)
+	_slope_row.visible = operation in ["raise","lower","shape"] and settings.get("shape", "flat") == "slope"
+	_shape.select(["flat", "slope", "cliff", "rounded"].find(settings.get("shape", "flat")))
 	_direction.select(["auto", "N", "E", "S", "W"].find(settings.get("direction", "auto")))
 	_strength.select(settings.get("strength", 1) - 1)
 	_flatten_row.visible = operation == "flatten"

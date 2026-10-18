@@ -15,7 +15,7 @@ const CATEGORIES: Dictionary = {
 	"Utilities": ["line", "pipe", "plant", "pump", "tower"],
 	"Services": ["police", "fire", "school", "hospital"],
 	"Parks": ["park"],
-	"Terraform": ["raise", "lower", "flatten", "shape", "river", "grass", "desert", "tree", "forest"]
+	"Terraform": ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain", "river", "grass", "desert", "tree", "forest"]
 }
 const TOOL_LABELS: Dictionary = {
 	"pan": "Pan / inspect", "bulldoze": "Bulldoze", "road": "Road", "rail": "Rail",
@@ -23,7 +23,7 @@ const TOOL_LABELS: Dictionary = {
 	"apt": "Apartment lots", "shop": "Business zone", "office": "Offices", "light": "Industrial zone",
 	"heavy": "Heavy industry", "park": "Park", "plant": "Power plant",
 	"pump": "Water pump", "tower": "Water tower", "police": "Police", "fire": "Fire station",
-	"school": "School", "hospital": "Hospital", "raise": "Raise terrain", "lower": "Lower terrain", "flatten": "Flatten terrain", "shape": "Shape terrain",
+	"school": "School", "hospital": "Hospital", "raise": "Raise terrain", "lower": "Lower terrain", "flatten": "Flatten terrain", "shape": "Shape terrain", "smooth": "Smooth terrain", "hill": "Create hill", "mountain": "Create mountain",
 	"river": "Dig water channel", "grass": "Grass biome", "desert": "Desert biome", "tree": "Tree", "forest": "Forest brush"
 }
 const OVERLAYS: Dictionary = {
@@ -51,7 +51,10 @@ const TOOL_HELP: Dictionary = {
 	"bulldoze": "Remove one layer at a time: fire, building, zoning, road, rail, line, pipe or tree.",
 	"raise": "Raise natural terrain one step. Hills can reach elevation +12.",
 	"lower": "Lower natural terrain one step. Basins can reach elevation −5.",
-	"shape": "Shape natural ground as Flat, Sloped or Cliff. Direction selects the high edge. Auto follows neighboring reference heights. Flatten before construction.",
+	"smooth": "Soften natural land with a bounded Rounded brush. Cliffs, water, buildings and infrastructure are protected.",
+	"hill": "Create a rounded hill with Size, absolute Peak and Profile in the right panel. Each stroke previews its full cost.",
+	"mountain": "Create a larger peak up to +12. Choose Rounded or Cliff and adjust its profile. Protected land stays unchanged.",
+	"shape": "Shape natural ground as Flat, Sloped, Rounded or Cliff. Direction selects the high edge. Auto follows neighboring reference heights. Flatten before construction.",
 	"flatten": "Flatten natural ground to the first touched tile or a chosen height. Protected cells stay unchanged.",
 	"river": "Dig a channel. It fills only when connected to existing water.",
 	"grass": "Paint grass biome on dry, undeveloped ground.", "desert": "Paint desert biome and clear trees.",
@@ -82,7 +85,7 @@ Undo and Redo restore a whole construction stroke and its cost. The city clock a
 Roads and rails can bridge up to eight water tiles with dry land at both ends. Trains need two stations on a connected line. Events contains disasters, fire dispatch and the city message log. Random disasters are optional.
 
 TERRAFORM TERRAIN
-Raise/Lower reaches −5 to +12. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Select a height/shape tool to keep its settings at the right of the map, even after the tool menu closes. Flatten uses the first touched tile or Set height. Preview shows cost and skipped cells; each changed cell costs $20. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Shape terrain makes Flat, Sloped or Cliff caps. Sloped uses Auto or N/E/S/W (the high edge), with Gentle/Medium/Steep strength independent of height step. Auto needs neighboring height differences; manual directions work on level ground. Flatten before building on a slope. Rounded hills and smoothing are not included yet.
+Raise/Lower reaches −5 to +12. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Select a height/shape tool to keep its settings at the right of the map, even after the tool menu closes. Flatten uses the first touched tile or Set height. Preview shows cost and skipped cells; each changed cell costs $20. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Shape terrain makes Flat, Sloped, Rounded or Cliff caps. Sloped uses Auto or N/E/S/W (the high edge), with Gentle/Medium/Steep strength independent of height step. Auto needs neighboring height differences; manual directions work on level ground. Flatten before building on a slope. Smooth softens eligible land with Gentle/Medium/Strong strength while preserving marked Cliffs, water and construction. Hill/Mountain offers Size3/5/9, an absolute Peak and Broad/Balanced/Sharp profile. Each brush is one previewed transaction and Undo. Rounded or Sloped ground needs Flatten before construction.
 
 9. KEEP YOUR CITY
 Your last city reopens automatically. The game checkpoints periodically and when backgrounded. Save writes a separate manual city in this app. Export makes a complete compatible JSON copy for backup or transfer. Import accepts JSON exported by the earlier MetroForge game. Use the native file picker or the copy/paste JSON fallback. Saves from the old Android app are transferred by exporting there and importing here.
@@ -103,9 +106,10 @@ var _elapsed: float = 0.0
 var _stroke: bool = false
 var _stroke_parcel: int = 0
 var _stroke_tiles: Dictionary = {}
-var terrain_settings: Dictionary = {"radius": 0, "step": 1, "flatten_target": null, "shape": "flat", "direction": "auto", "strength": 1}
+var terrain_settings: Dictionary = {"radius": 0, "step": 1, "flatten_target": null, "shape": "flat", "direction": "auto", "strength": 1, "smooth_strength": 2, "preset_radius": 2, "hill_peak": 6, "mountain_peak": 12, "profile": 2, "preset_shape": "rounded"}
 var _terrain_panel
 var _terrain_dock: PanelContainer
+var _terrain_centers: Dictionary = {}
 var _terrain_indices: Dictionary = {}
 var _terrain_stroke_settings: Dictionary = {}
 var _last_terrain_changed: bool = false
@@ -298,7 +302,9 @@ func select_category(value: String) -> void:
 		var button: Button = _button(label, func(): choose_tool(tool), _tools)
 		button.toggle_mode = true
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.tooltip_text = str(TOOL_HELP.get(tool, TOOL_LABELS[tool]))
+		button.tooltip_text = label + "\n" + str(TOOL_HELP.get(tool, TOOL_LABELS[tool]))
+		button.clip_text = true
+		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		_tool_buttons[tool] = button
 	_refresh_terrain_dock()
 	for key in _category_buttons:
@@ -325,6 +331,7 @@ func begin_stroke() -> void:
 	_stroke = true
 	_stroke_tiles.clear()
 	_terrain_indices.clear()
+	_terrain_centers.clear()
 	_terrain_stroke_settings = terrain_settings.duplicate()
 	_last_terrain_changed = false
 	_stroke_parcel = 0
@@ -375,8 +382,8 @@ func _place_one(index: int, bridge: bool = false) -> bool:
 	var before: Dictionary = _candidate_snapshot(index)
 	var cash_before: float = world.cash
 	if not world.place(index, selected_tool, bridge, _stroke_parcel):
-		if world.tiles[index].get("terrainShape","flat") == "slope" and selected_tool not in ["line","pipe","bulldoze"]:
-			show_notice("Flatten this slope before construction.")
+		if world.tiles[index].get("terrainShape","flat") in ["slope","rounded"] and selected_tool not in ["line","pipe","bulldoze"]:
+			show_notice("Flatten this shaped ground before construction.")
 		return false
 	if selected_tool in CATEGORIES.Zoning:
 		world.tiles[index].autoGrow = true
@@ -967,6 +974,7 @@ func _build_ui() -> void:
 	_terrain_panel = TerrainSettings.new()
 	_terrain_panel.settings_changed.connect(set_terrain_settings)
 	_terrain_panel.shape_settings_changed.connect(set_terrain_shape)
+	_terrain_panel.sculpt_settings_changed.connect(set_sculpt_settings)
 	_terrain_dock.add_child(_terrain_panel)
 	_tool_menu.hide()
 	_footer = _bar("Footer", Color("152531"), Color("536d79"), column)
@@ -1383,27 +1391,56 @@ func set_terrain_shape(shape: String, direction: String, strength: int) -> bool:
 	_layout_shell()
 	return true
 
+func set_sculpt_settings(values: Dictionary) -> bool:
+	for key in values:
+		var value = values[key]
+		match key:
+			"smooth_strength", "profile":
+				if value not in [1,2,3]: return false
+			"preset_radius":
+				if value not in [1,2,4]: return false
+			"hill_peak", "mountain_peak":
+				if not World._finite(value) or float(value)!=floor(float(value)) or value<World.MIN_TERRAIN_ELEV or value>World.MAX_TERRAIN_ELEV: return false
+			"preset_shape":
+				if value not in ["rounded","cliff"]: return false
+			_: return false
+	if _stroke: end_stroke()
+	view._cancel_pointers()
+	terrain_settings.merge(values,true)
+	_update_terrain_summary()
+	_layout_shell()
+	return true
+
+func _sculpt_parameters(settings: Dictionary) -> Dictionary:
+	var parameters: Dictionary = settings.duplicate()
+	if selected_tool in ["hill","mountain"]: parameters.peak=settings[selected_tool+"_peak"]
+	return parameters
+
 func _update_terrain_summary() -> void:
 	_refresh_terrain_dock()
 	if selected_tool not in TerrainEditor.OPERATIONS: return
-	var width: int = int(terrain_settings.radius) * 2 + 1
+	var width: int = int(terrain_settings.preset_radius if selected_tool in ["hill","mountain"] else terrain_settings.radius) * 2 + 1
 	var detail: String = "step %s" % terrain_settings.step
 	if selected_tool == "shape": detail = terrain_settings.shape + (" " + terrain_settings.direction if terrain_settings.shape == "slope" else "")
+	if selected_tool == "smooth": detail = ["Gentle","Medium","Strong"][terrain_settings.smooth_strength-1]
+	if selected_tool in ["hill","mountain"]: detail = "peak %s · %s" % [terrain_settings[selected_tool+"_peak"],terrain_settings.preset_shape]
 	if selected_tool == "flatten": detail = "first tile" if terrain_settings.flatten_target == null else "height %s" % terrain_settings.flatten_target
 	_tool_name.text = "%s · %s×%s · %s" % [TOOL_LABELS[selected_tool], width, width, detail]
 	_tool_name.tooltip_text = _tool_name.text
-	_status.text = _tool_name.text + " · $20 per changed tile. " + ("Flatten before construction." if terrain_settings.shape == "slope" and selected_tool != "flatten" else "Flat construction tops.")
+	_status.text = _tool_name.text + " · $20 per changed tile. " + ("Flatten before construction." if ((terrain_settings.shape in ["slope","rounded"] and selected_tool in ["raise","lower","shape"]) or selected_tool=="smooth" or (selected_tool in ["hill","mountain"] and terrain_settings.preset_shape=="rounded")) else "Flat construction tops.")
 	_terrain_panel.configure(terrain_settings, selected_tool)
 
 func _stage_terrain(index: int) -> bool:
 	if index < 0 or index >= World.COUNT: return false
 	if _terrain_indices.is_empty() and _terrain_stroke_settings.flatten_target == null:
 		_terrain_stroke_settings.flatten_target = world.tiles[index].elev
-	for cell in TerrainEditor.footprint(index, _terrain_stroke_settings.radius): _terrain_indices[cell] = true
+	_terrain_centers[index] = true
+	var footprint: Array = TerrainEditor.Sculptor.preset_footprint(index,_terrain_stroke_settings.preset_radius) if selected_tool in ["hill","mountain"] else TerrainEditor.footprint(index,_terrain_stroke_settings.radius)
+	for cell in footprint: _terrain_indices[cell] = true
 	return true
 
 func _commit_terrain_stroke() -> void:
-	var proposal: Dictionary = TerrainEditor.plan(world, _terrain_indices.keys(), selected_tool, _terrain_stroke_settings.step, _terrain_stroke_settings.flatten_target, _terrain_stroke_settings)
+	var proposal: Dictionary = TerrainEditor.plan(world, _terrain_indices.keys(), selected_tool, _terrain_stroke_settings.step, _terrain_stroke_settings.flatten_target, _sculpt_parameters(_terrain_stroke_settings), _terrain_centers.keys())
 	var result: Dictionary = TerrainEditor.commit(world, proposal)
 	_last_terrain_changed = result.changed
 	if result.changed:
@@ -1417,10 +1454,10 @@ func terrain_preview_at(index: int, centers: Array = []) -> Dictionary:
 	var stamps: Array = centers if not centers.is_empty() else [index]
 	var cells: Dictionary = {}
 	for center in stamps:
-		for cell in TerrainEditor.footprint(center, terrain_settings.radius): cells[cell] = true
+		for cell in (TerrainEditor.Sculptor.preset_footprint(center,terrain_settings.preset_radius) if selected_tool in ["hill","mountain"] else TerrainEditor.footprint(center, terrain_settings.radius)): cells[cell] = true
 	var target = terrain_settings.flatten_target
 	if target == null: target = world.tiles[stamps[0]].elev
-	return TerrainEditor.plan(world, cells.keys(), selected_tool, terrain_settings.step, target, terrain_settings)
+	return TerrainEditor.plan(world, cells.keys(), selected_tool, terrain_settings.step, target, _sculpt_parameters(terrain_settings), stamps)
 
 func _terrain_reasons(proposal: Dictionary) -> String:
 	var reasons: Dictionary = {}

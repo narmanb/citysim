@@ -2,7 +2,8 @@ extends RefCounted
 ## Pure target planning followed by one validated, atomic terrain transaction.
 const World = preload("res://model/city_world.gd")
 const Geometry = preload("res://model/terrain_geometry.gd")
-const OPERATIONS = ["raise", "lower", "flatten", "shape"]
+const Sculptor = preload("res://model/terrain_sculptor.gd")
+const OPERATIONS = ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain"]
 
 static func footprint(center: int, radius: int) -> Array:
 	var cells: Array = []
@@ -14,7 +15,8 @@ static func footprint(center: int, radius: int) -> Array:
 			cells.append(yy * World.N + xx)
 	return cells
 
-static func plan(world, indices: Array, operation: String, step: int = 1, target = null, shape_settings: Dictionary = {}) -> Dictionary:
+static func plan(world, indices: Array, operation: String, step: int = 1, target = null, shape_settings: Dictionary = {}, centers: Array = []) -> Dictionary:
+	if operation in ["smooth","hill","mountain"]: return Sculptor.plan(world,indices,operation,shape_settings,centers,_protected_reason)
 	var out: Dictionary = {"before": {}, "after": {}, "targets": {}, "blocked": {}, "cost": 0.0, "affordable": false, "error": ""}
 	if operation not in OPERATIONS or step not in [1, 2, 4]:
 		out.error = "Unsupported terrain setting."
@@ -65,6 +67,10 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 				out.after.erase(i)
 				continue
 			after.merge({"terrainShape":"flat","slopeDir":"auto","shapeStrength":1},true)
+		if after.get("terrainShape","flat") == "rounded" and after.elev == world.tiles[i].elev and Geometry.same_surface(world.tiles,i,out.after):
+			out.before.erase(i)
+			out.after.erase(i)
+			continue
 		if after == world.tiles[i]:
 			out.before.erase(i)
 			out.after.erase(i)

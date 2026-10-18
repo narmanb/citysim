@@ -20,8 +20,14 @@ void fragment() {
 	} else if (UV.x < 0.0) {
 		COLOR = cap_color;
 	} else {
-		vec4 sample_color = texture(TEXTURE, UV);
-		if (cap_color.a == 0.0) {
+		// Rounded caps encode tinting with a separate UV band. Ordinary sprites
+		// and the original opaque flat-cap path retain their exact semantics.
+		bool rounded = UV.x > 1.5;
+		vec2 source_uv = UV - vec2(rounded ? 2.0 : 0.0, 0.0);
+		vec4 sample_color = texture(TEXTURE, source_uv);
+		if (rounded) {
+			COLOR = vec4(mix(cap_color.rgb, sample_color.rgb * (cap_color.a * (255.0 / 128.0)), sample_color.a), 1.0);
+		} else if (cap_color.a == 0.0) {
 			// Fill transparent cap-edge texels in the same draw as the terrain.
 			COLOR = vec4(mix(cap_color.rgb, sample_color.rgb, sample_color.a), 1.0);
 		} else {

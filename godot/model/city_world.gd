@@ -7,11 +7,11 @@ const N = Geometry.N
 const COUNT = N * N
 const MIN_TERRAIN_ELEV = Geometry.MIN_HEIGHT
 const MAX_TERRAIN_ELEV = Geometry.MAX_HEIGHT
-const COST = {"bulldoze":18,"road":18,"rail":36,"line":13,"pipe":12,"res":9,"apt":14,"shop":12,"office":16,"light":12,"heavy":22,"park":95,"plant":3000,"pump":950,"tower":800,"police":1200,"fire":1200,"school":1600,"hospital":1900,"station":550,"raise":20,"lower":20,"shape":20,"flatten":20,"river":24,"grass":5,"desert":5,"tree":4,"forest":6}
+const COST = {"bulldoze":18,"road":18,"rail":36,"line":13,"pipe":12,"res":9,"apt":14,"shop":12,"office":16,"light":12,"heavy":22,"park":95,"plant":3000,"pump":950,"tower":800,"police":1200,"fire":1200,"school":1600,"hospital":1900,"station":550,"raise":20,"lower":20,"shape":20,"smooth":20,"hill":20,"mountain":20,"flatten":20,"river":24,"grass":5,"desert":5,"tree":4,"forest":6}
 const CONFIG = {"monthSeconds":4,"startingCash":36000,"powerPlantCapacity":550,"waterPumpCapacity":520,"waterTowerCapacity":180,"waterTowerLoss":1,"bondAmount":10000,"bondPayment":150,"bondTerm":80,"maxCars":70,"maxTrains":9,"bridgeSpan":8,"milestones":[500,1000,2500,5000,10000],"buildingCapacity":{"res":[0,12,28,68,150],"com":[0,10,24,58,125],"ind":[0,12,30,68,130]},"maintenance":{"road":1.5,"rail":2.4,"line":0.4,"pipe":0.45,"park":8,"plant":120,"pump":32,"tower":18,"police":80,"fire":80,"school":110,"hospital":130,"station":28},"serviceRadius":{"police":8,"fire":8,"school":9,"hospital":9}}
-const TOOLS = [["pan","✋ Pan"],["bulldoze","▧ Bulldoze"],["road","═ Road"],["rail","≡ Rail"],["line","⚡ Power line"],["pipe","◌ Water pipe"],["res","⌂ House lots"],["apt","▥ Apartment lots"],["shop","▣ Shops & services"],["office","▥ Offices"],["light","▤ Light industry"],["heavy","♨ Heavy industry"],["park","♣ Park"],["plant","⚙ Power plant"],["pump","◉ Water pump"],["tower","◍ Water tower"],["police","✦ Police"],["fire","▲ Fire station"],["school","◆ School"],["hospital","✚ Hospital"],["station","▥ Rail station"],["raise","▲ Raise terrain"],["lower","▼ Lower terrain"],["flatten","═ Flatten terrain"],["shape","◩ Shape terrain"],["river","≈ Dig water channel"],["grass","· Grass biome"],["desert","░ Desert biome"],["tree","♠ Tree"],["forest","♣ Forest brush"]]
+const TOOLS = [["pan","✋ Pan"],["bulldoze","▧ Bulldoze"],["road","═ Road"],["rail","≡ Rail"],["line","⚡ Power line"],["pipe","◌ Water pipe"],["res","⌂ House lots"],["apt","▥ Apartment lots"],["shop","▣ Shops & services"],["office","▥ Offices"],["light","▤ Light industry"],["heavy","♨ Heavy industry"],["park","♣ Park"],["plant","⚙ Power plant"],["pump","◉ Water pump"],["tower","◍ Water tower"],["police","✦ Police"],["fire","▲ Fire station"],["school","◆ School"],["hospital","✚ Hospital"],["station","▥ Rail station"],["raise","▲ Raise terrain"],["lower","▼ Lower terrain"],["flatten","═ Flatten terrain"],["shape","◩ Shape terrain"],["smooth","≈ Smooth terrain"],["hill","▲ Create hill"],["mountain","▲ Create mountain"],["river","≈ Dig water channel"],["grass","· Grass biome"],["desert","░ Desert biome"],["tree","♠ Tree"],["forest","♣ Forest brush"]]
 const ZONE_TOOL = {"res":{"zone":"res","type":"house"},"apt":{"zone":"res","type":"apt"},"shop":{"zone":"com","type":"shop"},"office":{"zone":"com","type":"office"},"light":{"zone":"ind","type":"light"},"heavy":{"zone":"ind","type":"heavy"}}
-const CATEGORIES = {"Transport":["road","rail","station"],"Zoning":["res","apt","shop","office","light","heavy"],"Utilities":["line","pipe","plant","pump","tower"],"Services":["police","fire","school","hospital"],"Parks":["park"],"Terraform":["raise","lower","flatten","shape","river","grass","desert","tree","forest"]}
+const CATEGORIES = {"Transport":["road","rail","station"],"Zoning":["res","apt","shop","office","light","heavy"],"Utilities":["line","pipe","plant","pump","tower"],"Services":["police","fire","school","hospital"],"Parks":["park"],"Terraform":["raise","lower","flatten","shape","smooth","hill","mountain","river","grass","desert","tree","forest"]}
 const TERRAIN_TOOLS = ["raise","lower","river","grass","desert","tree","forest"]
 const SERVICES = ["police","fire","school","hospital"]
 
@@ -129,7 +129,7 @@ func take_bond() -> bool:
 
 func can_place(i: int, tool: String, bridge: bool = false) -> bool:
 	# Flatten needs an explicit/sampled target and executes through TerrainEditor.
-	if i < 0 or i >= tiles.size() or not COST.has(tool) or tool in ["flatten","shape"]: return false
+	if i < 0 or i >= tiles.size() or not COST.has(tool) or tool in ["flatten","shape","smooth","hill","mountain"]: return false
 	var t = tiles[i]
 	if tool == "raise" and t.elev >= MAX_TERRAIN_ELEV: return false
 	if tool == "lower" and t.elev <= MIN_TERRAIN_ELEV: return false
@@ -138,7 +138,7 @@ func can_place(i: int, tool: String, bridge: bool = false) -> bool:
 		if tool in ["tree","forest"]: return t.terrain != "water" and not t.civic and not t.road and not t.rail and not t.line and not t.level
 		return not t.civic and not t.road and not t.rail and not t.level and not t.zone
 	if tool == "bulldoze": return bool(t.road or t.rail or t.line or t.pipe or t.zone or t.civic or t.fire or t.tree or t.channel)
-	if t.get("terrainShape","flat") == "slope" and tool not in ["line","pipe"]: return false
+	if t.get("terrainShape","flat") in ["slope","rounded"] and tool not in ["line","pipe"]: return false
 	if tool == "pipe": return true
 	if tool in ["road","rail"]: return not t.civic and (t.terrain != "water" or bridge)
 	if t.terrain == "water": return false
@@ -348,7 +348,7 @@ static func _js_round(value: float) -> int:
 	return int(floor(value+0.5))
 
 func serialize() -> Dictionary:
-	return {"version":7,"seed":seed,"tiles":tiles.duplicate(true),"cash":cash,"year":year,"month":month,"tick":tick,"taxes":taxes.duplicate(true),"funding":funding.duplicate(true),"randomDisasters":randomDisasters,"bondMonths":bondMonths,"milestones":milestones.duplicate(true),"messages":messages.duplicate(true),"events":events.duplicate(true),"stats":stats.duplicate(true),"cars":cars.duplicate(true),"trains":trains.duplicate(true),"nextParcelId":nextParcelId}
+	return {"version":8,"seed":seed,"tiles":tiles.duplicate(true),"cash":cash,"year":year,"month":month,"tick":tick,"taxes":taxes.duplicate(true),"funding":funding.duplicate(true),"randomDisasters":randomDisasters,"bondMonths":bondMonths,"milestones":milestones.duplicate(true),"messages":messages.duplicate(true),"events":events.duplicate(true),"stats":stats.duplicate(true),"cars":cars.duplicate(true),"trains":trains.duplicate(true),"nextParcelId":nextParcelId}
 
 static func _finite(value) -> bool:
 	return (value is int or value is float) and is_finite(float(value))
@@ -379,7 +379,7 @@ static func from_dict(data: Dictionary) -> CityWorld:
 		if not q.terrainShape in Geometry.SHAPES or not q.slopeDir in Geometry.DIRECTIONS: return null
 		if not _finite(q.shapeStrength) or float(q.shapeStrength) != floor(float(q.shapeStrength)) or int(q.shapeStrength) not in [1,2,3]: return null
 		q.shapeStrength = int(q.shapeStrength)
-		if q.terrainShape == "slope" and (q.terrain == "water" or q.channel or q.zone != null or q.civic != null or q.road or q.rail): return null
+		if q.terrainShape in ["slope","rounded"] and (q.terrain == "water" or q.channel or q.zone != null or q.civic != null or q.road or q.rail): return null
 		if q.level > 0 and q.zone == null: return null
 		if q.civic != null and q.zone != null: return null
 		if q.autoGrow == null: q.autoGrow = false
@@ -892,7 +892,7 @@ func _parcel_flat_square(p: Dictionary) -> int:
 	var largest = 0
 	for i in p.members:
 		var t = tiles[i]
-		if t.terrain == "water" or t.road or t.rail or t.civic or t.get("terrainShape","flat") == "slope": continue
+		if t.terrain == "water" or t.road or t.rail or t.civic or t.get("terrainShape","flat") in ["slope","rounded"]: continue
 		var size = 1
 		if i%N > 0 and i >= N and squares.has(i-1) and squares.has(i-N) and squares.has(i-N-1):
 			if tiles[i-1].elev == t.elev and tiles[i-N].elev == t.elev and tiles[i-N-1].elev == t.elev:
