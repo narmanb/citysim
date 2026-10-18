@@ -19,18 +19,24 @@ func run():
 	var difference:float=0;var count:int=0
 	var flat_mean:=Vector3.ZERO
 	var rounded_mean:=Vector3.ZERO
+	var minimum:=Vector3.ONE
+	var maximum:=Vector3.ZERO
 	for y in range(177,217):
 		for x in range(387,467):
 			var a=flat.get_pixel(x,y);var b=rounded.get_pixel(x,y)
 			difference+=absf(a.r-b.r)+absf(a.g-b.g)+absf(a.b-b.b);count+=3
 			flat_mean+=Vector3(a.r,a.g,a.b);rounded_mean+=Vector3(b.r,b.g,b.b)
+			minimum=minimum.min(Vector3(b.r,b.g,b.b));maximum=maximum.max(Vector3(b.r,b.g,b.b))
 	difference/=count
 	flat_mean/=float(count)/3.;rounded_mean/=float(count)/3.
 	print("Mean flat ",flat_mean," Rounded ",rounded_mean)
 	print("Flat/Rounded zero-grade mean color difference: ",difference)
-	# Detail intentionally varies individual pixels; retain the mean palette and
-	# reject the old whole-surface darkening without rejecting the new texture.
+	# Keep the flat palette and require clean, uniform level land.
+	# A range avoids variance cancellation from single-precision vector sums.
 	var mean_delta: Vector3 = (flat_mean-rounded_mean).abs()
-	var failed: bool = maxf(mean_delta.x,maxf(mean_delta.y,mean_delta.z))>.005 or difference>.02
-	if failed: push_error("Level Rounded detail must preserve average base material brightness")
+	var color_range: Vector3 = maximum-minimum
+	var grain: float = maxf(color_range.x,maxf(color_range.y,color_range.z))
+	print("Level Rounded color range: ",grain)
+	var failed: bool = grain>.001 or maxf(mean_delta.x,maxf(mean_delta.y,mean_delta.z))>.005 or difference>.02
+	if failed: push_error("Level Rounded land must be clean and match the base palette")
 	v.queue_free();await process_frame;quit(1 if failed else 0)

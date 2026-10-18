@@ -103,9 +103,9 @@ jobs:
 
       - name: Export and verify native Android APK
         run: |
-          python godot/tools/build_android.py --godot "$GODOT_BIN" --output dist/MetroForge-Godot-0.3.7-Terrain-Fixes.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/MetroForge-Godot-0.3.7-Terrain-Fixes.apk
-          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 dist/MetroForge-Godot-0.3.7-Terrain-Fixes.apk
+          python godot/tools/build_android.py --godot "$GODOT_BIN" --output dist/MetroForge-Godot-0.3.8-Terrain-Style.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/MetroForge-Godot-0.3.8-Terrain-Style.apk
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 dist/MetroForge-Godot-0.3.8-Terrain-Style.apk
           python - <<'PY'
           from pathlib import Path
           import hashlib
@@ -140,12 +140,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ! gh release view v0.3.7-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"; then
-            gh release create v0.3.7-terraform-preview --repo "$GITHUB_REPOSITORY" --draft --prerelease --target "$GITHUB_SHA" \
-              --title "MetroForge Godot 0.3.7 — Terrain Fixes" \
-              --notes "Terrain follow-up: Rounded Raise/Hill/Mountain preserves the existing plateau as its foundation; smooth vertex lighting and subtle continuous grass/rock detail replace the checker grid. Fit includes curved cap vertices. Versions 6/7/8 import; new foundation metadata uses save version 9 and should be opened with this build. Old terrain, gameplay and original source art are retained. Export before installation: the unchanged CI test-signing fallback may require uninstall/reinstall. See source and SHA256 receipts."
-            gh release view v0.3.7-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"
+          if ! gh release view v0.3.8-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"; then
+            gh release create v0.3.8-terraform-preview --repo "$GITHUB_REPOSITORY" --draft --prerelease --target "$GITHUB_SHA" \
+              --title "MetroForge Godot 0.3.8 — Terrain Style" \
+              --notes "Terrain art alignment: clean grass and sand surfaces, broad brown rock using the existing cliff palette, and sampled rock transitions at exposed mountain/cliff joins. Rounded geometry, foundations, save version9, growth and compact controls are retained. Selectable snow peaks remain for a later update. Export before installation: the unchanged CI test-signing fallback may require uninstall/reinstall. See source and SHA256 receipts."
+            gh release view v0.3.8-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"
           fi
           python -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"] + "/godot-draft.json"))["isDraft"], "Only an unpublished draft may receive test artifacts"'
-          gh release upload v0.3.7-terraform-preview dist/*.apk dist/*.zip dist/MetroForge-Godot-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY"
+          gh release upload v0.3.8-terraform-preview dist/*.apk dist/*.zip dist/MetroForge-Godot-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY"
 # Terrain-test packaging; previous preview downloads remain untouched.

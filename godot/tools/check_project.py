@@ -23,7 +23,7 @@ def main():
     if prepare.returncode or 'SCRIPT ERROR:' in preparation_log or '\nERROR:' in preparation_log:
         print(preparation_log, file=sys.stderr)
         raise SystemExit('Godot source import failed')
-    for name in ('test_world', 'test_terrain_bounds', 'test_terrain_geometry', 'test_terrain_rounding', 'test_terrain_foundations', 'test_terrain_rounded_view', 'test_terrain_sculpt_controls', 'test_terrain_shape_view', 'test_terrain_editor', 'test_terrain_controls', 'test_automatic_growth', 'test_environment', 'test_store', 'test_city_session', 'test_layer_batch',
+    for name in ('test_world', 'test_terrain_bounds', 'test_terrain_geometry', 'test_terrain_rounding', 'test_terrain_foundations', 'test_terrain_style', 'test_terrain_rounded_view', 'test_terrain_sculpt_controls', 'test_terrain_shape_view', 'test_terrain_editor', 'test_terrain_controls', 'test_automatic_growth', 'test_environment', 'test_store', 'test_city_session', 'test_layer_batch',
                  'test_render_atlas', 'test_building_assets', 'test_building_variety', 'test_view', 'test_render_cache', 'test_game',
                  'test_ui', 'test_performance_display'):
         command = [args.godot, '--headless', '--audio-driver', 'Dummy', '--path', str(PROJECT), '--script', f'tests/{name}.gd']

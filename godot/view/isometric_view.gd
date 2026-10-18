@@ -14,6 +14,7 @@ const Layer = preload("res://view/iso_layer.gd")
 const GroundShader = preload("res://view/opaque_ground.gdshader")
 const BuildingCatalog = preload("res://view/building_catalog.gd")
 const Geometry = preload("res://model/terrain_geometry.gd")
+const TerrainMaterial = preload("res://view/terrain_material.gd")
 const World = preload("res://model/city_world.gd")
 const N: int = World.N
 const BASE: float = 28.0
@@ -314,7 +315,7 @@ func _terrain_faces(index: int) -> Array:
 			if points.size()==4:
 				if points[0].is_equal_approx(points[3]): points.remove_at(3)
 				elif points[1].is_equal_approx(points[2]): points.remove_at(2)
-			faces.append([points,Color("8b7954") if side==0 else Color("a18b62")])
+			faces.append([points,TerrainMaterial.WALL_EAST if side==0 else TerrainMaterial.WALL_SOUTH])
 	return faces
 
 func _neighbors(index: int) -> Array:
@@ -514,6 +515,60 @@ func _draw_cap(layer, points: PackedVector2Array, fill: Color, outline: Color = 
 		points.append(points[0])
 		layer.line(points, outline, width)
 
+func _rounded_edge_rock(index: int, mesh: Dictionary) -> PackedFloat32Array:
+	var amounts: PackedFloat32Array = _rounded_local_edge_rock(index,mesh)
+	var d: int = mesh.divisions
+	var x: int = index%N
+	var y: int = index/N
+	# Reconcile boundary samples with every cap containing that map vertex.
+	# Using only local (unreconciled) rims makes this deterministic and acyclic.
+	for oy in range(-1,2):
+		for ox in range(-1,2):
+			if (ox==0 and oy==0) or x+ox<0 or x+ox>=N or y+oy<0 or y+oy>=N: continue
+			var neighbor: int = (y+oy)*N+x+ox
+			if world.tiles[neighbor].get("terrainShape","flat")!="rounded": continue
+			var other: Dictionary = _rounded_mesh(neighbor)
+			var rim: PackedFloat32Array = _rounded_local_edge_rock(neighbor,other)
+			for yy in range(d+1):
+				for xx in range(d+1):
+					var nx: int = xx-ox*d
+					var ny: int = yy-oy*d
+					if nx<0 or nx>d or ny<0 or ny>d: continue
+					var at: int = yy*(d+1)+xx
+					var source: int = ny*(d+1)+nx
+					if is_equal_approx(mesh.heights[at],other.heights[source]): amounts[at]=maxf(amounts[at],rim[source])
+	return amounts
+
+func _rounded_local_edge_rock(index: int, mesh: Dictionary) -> PackedFloat32Array:
+	var d: int = mesh.divisions
+	var amounts := PackedFloat32Array()
+	amounts.resize((d+1)*(d+1))
+	var x: int = index%N
+	var y: int = index/N
+	# Blend only exposed land contacts; shared curved edges and shores keep their
+	# existing materials. Each neighbor's mesh is consulted at most once.
+	for side in range(4):
+		if (side==0 and x==N-1) or (side==1 and y==N-1) or (side==2 and x==0) or (side==3 and y==0): continue
+		var neighbor: int = index+[1,N,-1,-N][side]
+		var tile: Dictionary = world.tiles[neighbor]
+		if tile.terrain=="water" or tile.channel: continue
+		var curved: bool = tile.get("terrainShape","flat")=="rounded"
+		if curved and tile.get("roundedBase")==world.tiles[index].get("roundedBase"): continue
+		var other: Dictionary = _rounded_mesh(neighbor) if curved else {}
+		for along in range(d+1):
+			var uv := Vector2(1,float(along)/d) if side==0 else Vector2(float(along)/d,1) if side==1 else Vector2(0,float(along)/d) if side==2 else Vector2(float(along)/d,0)
+			var opposite := Vector2(0,uv.y) if side==0 else Vector2(uv.x,0) if side==1 else Vector2(1,uv.y) if side==2 else Vector2(uv.x,1)
+			var at: int = roundi(uv.y*d)*(d+1)+roundi(uv.x*d)
+			var lower: float = other.heights[roundi(opposite.y*d)*(d+1)+roundi(opposite.x*d)] if curved else Geometry.sample(world.tiles,neighbor,opposite.x,opposite.y)
+			var exposure: float = smoothstep(.25,1.25,mesh.heights[at]-lower)
+			if exposure<=0: continue
+			for depth in range(d/2+1):
+				var xx: int = d-depth if side==0 else depth if side==2 else along
+				var yy: int = d-depth if side==1 else depth if side==3 else along
+				var weight: float = pow(maxf(0,1.-float(depth)/d/.5),2)
+				amounts[yy*(d+1)+xx]=maxf(amounts[yy*(d+1)+xx],exposure*weight)
+	return amounts
+
 func _surface(layer, name: String, x: float, y: float, elevation: float, left: float = 0, top: float = 0, width: float = 1, height: float = 1, cap_color: Color = Color.WHITE) -> bool:
 	if not _manifest.get("sprites", {}).has(name):
 		return false
@@ -527,16 +582,11 @@ func _surface(layer, name: String, x: float, y: float, elevation: float, left: f
 		var d: int = mesh.divisions
 		var colors := PackedColorArray()
 		var uv := PackedVector2Array()
-		var light := Vector3(-.5,-.8,1).normalized()
+		var edge_rock: PackedFloat32Array = _rounded_edge_rock(index,mesh)
 		for yy in range(d+1):
 			for xx in range(d+1):
 				var gradient: Vector2 = mesh.gradients[yy*(d+1)+xx]
-				var normal := Vector3(-gradient.x*.15,-gradient.y*.15,1).normalized()
-				var shade: float = clampf((.55+.45*normal.dot(light))/(.55+.45*light.z),.65,1.15)
-				var rock: float = smoothstep(.4,1.05,gradient.length()*.15)*.75
-				var base: Color = TERRAIN_COLOR.get(name,Color.WHITE)
-				var color: Color = base.lerp(Color("aba488") if name=="sand" else Color("9c9d7e"),rock)*shade
-				color.a=shade*(128.0/255.0)
+				var color: Color = TerrainMaterial.cap_color(TERRAIN_COLOR.get(name,Color.WHITE),gradient,edge_rock[yy*(d+1)+xx])
 				colors.append(color)
 				# World-space coordinates keep detail continuous across cells and camera motion.
 				uv.append(Vector2(64+x+float(xx)/d,y+float(yy)/d))
