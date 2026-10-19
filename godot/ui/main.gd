@@ -1115,7 +1115,7 @@ func _refresh_terrain_dock() -> void:
 	_terrain_panel.configure(terrain_settings, selected_tool)
 
 func _toggle_fullscreen() -> void:
-	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_SENSOR_LANDSCAPE)
 	var fullscreen: bool = DisplayServer.window_get_mode() in [DisplayServer.WINDOW_MODE_FULLSCREEN, DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if fullscreen else DisplayServer.WINDOW_MODE_FULLSCREEN)
 

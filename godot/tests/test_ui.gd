@@ -11,6 +11,7 @@ func _initialize() -> void:
 	call_deferred("run")
 
 func run() -> void:
+	check(ProjectSettings.get_setting("display/window/handheld/orientation", DisplayServer.SCREEN_LANDSCAPE) == DisplayServer.SCREEN_SENSOR_LANDSCAPE, "Phone startup allows both landscape directions while excluding portrait")
 	var game = load("res://ui/main.gd").new()
 	root.add_child(game)
 	game.paused = true

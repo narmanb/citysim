@@ -2,6 +2,10 @@
 
 Open `project.godot` with **Godot 4.6.3 standard edition** and press Play. This project runs the city simulation and renders its scene natively with GDScript and Godot 2D. The earlier browser/WebView game is retained separately in the repository.
 
+## Changes in 0.3.12 Landscape Rotation
+
+Android uses sensor landscape at startup and after toggling fullscreen. Turning the phone 180 degrees allows the camera cutout on either side; portrait remains excluded. Verify both directions on a phone, including after fullscreen and app resume. Terrain tools and save format 11 are unchanged in this update.
+
 ## Changes in 0.3.3 Terrain Test
 
 Terraform now supports heights −5…+12, centered 1×1/3×3/5×5 brushes, height steps 1/2/4 and Flatten to the first touched tile or an explicit level. Previews show targets, protected cells and total cost. Paint strokes deduplicate overlapping footprints, commit atomically and undo as one action. Terrain remains flat-topped and stepped; slopes/smoothing are deferred. See [the phased terrain report](../docs/terraforming-2.0.md) for compatibility, controls, validation and limits. Earlier APK downloads/releases remain unchanged.
