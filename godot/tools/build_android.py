@@ -15,7 +15,7 @@ PROJECT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--godot', default=shutil.which('godot') or shutil.which('godot4') or 'godot')
-    parser.add_argument('--output', type=Path, default=PROJECT / 'build/MetroForge-Godot-0.3.12-Landscape-Rotation.apk')
+    parser.add_argument('--output', type=Path, default=PROJECT / 'build/MetroForge-Godot-0.3.13-Terrain-Civil-Water.apk')
     args = parser.parse_args()
     version = subprocess.check_output([args.godot, '--version'], text=True).strip()
     if not version.startswith('4.6.3.stable'):
@@ -32,7 +32,7 @@ def main():
     sources.extend(sorted((PROJECT / 'view').glob('*.gdshader')))
     receipts = {p.relative_to(PROJECT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}
     commit = subprocess.check_output(['git', '-C', str(PROJECT), 'rev-parse', 'HEAD'], text=True).strip()
-    info = {'source_commit': commit, 'version': '0.3.12-terraform-preview', 'engine': version, 'export_mode': 'release',
+    info = {'source_commit': commit, 'version': '0.3.13-terraform-preview', 'engine': version, 'export_mode': 'release',
             'android_template_sha256': hashlib.sha256(template.read_bytes()).hexdigest(),
             'built_utc': datetime.now(timezone.utc).isoformat(), 'source_sha256': receipts}
     (PROJECT / 'assets/build_info.json').write_text(json.dumps(info, indent=2) + '\n')

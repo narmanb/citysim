@@ -56,6 +56,10 @@ func run():
 	v.overlay="landValue"
 	check(v._overlay_layer.commands.size()>W.COUNT,"Rounded overlays use the same subdivided caps")
 	# The shore ribbon must meet the actual cap edge, including its curved midpoint.
+	# Use a low bank: high cliff tops intentionally no longer get a beach ribbon.
+	for y in range(22,29):
+		for x in range(22,29): w.tiles[y*52+x].elev=0
+	w.tiles[c].elev=1
 	w.tiles[c-1].terrain="water";v.refresh()
 	var shore=L.new();v._draw_ground(shore,c)
 	var midpoint=v._rounded_mesh(c).points[2*5]

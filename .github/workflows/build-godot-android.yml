@@ -103,9 +103,9 @@ jobs:
 
       - name: Export and verify native Android APK
         run: |
-          python godot/tools/build_android.py --godot "$GODOT_BIN" --output dist/MetroForge-Godot-0.3.12-Landscape-Rotation.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/MetroForge-Godot-0.3.12-Landscape-Rotation.apk
-          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 dist/MetroForge-Godot-0.3.12-Landscape-Rotation.apk
+          python godot/tools/build_android.py --godot "$GODOT_BIN" --output dist/MetroForge-Godot-0.3.13-Terrain-Civil-Water.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/MetroForge-Godot-0.3.13-Terrain-Civil-Water.apk
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 dist/MetroForge-Godot-0.3.13-Terrain-Civil-Water.apk
           python - <<'PY'
           from pathlib import Path
           import hashlib
@@ -140,12 +140,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ! gh release view v0.3.12-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"; then
-            gh release create v0.3.12-terraform-preview --repo "$GITHUB_REPOSITORY" --draft --prerelease --target "$GITHUB_SHA" \
-              --title "MetroForge Godot 0.3.12 — Landscape Rotation" \
-              --notes "Allows automatic rotation between both landscape directions, including after toggling fullscreen. Portrait remains excluded. No terrain geometry, simulation or save changes; save format11 and Alpine Lake remain supported. Create mountain and small Rounded brush behavior are unchanged. Export your city before testing: persistent signing setup remains deferred and the temporary test key can require reinstall. Previous APKs remain available."
-            gh release view v0.3.12-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"
+          if ! gh release view v0.3.13-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"; then
+            gh release create v0.3.13-terraform-preview --repo "$GITHUB_REPOSITORY" --draft --prerelease --target "$GITHUB_SHA" \
+              --title "MetroForge Godot 0.3.13 — Sloped Roads, Foundations and Shores" \
+              --notes "Gentle directional slopes now support roads that follow the grade and upright buildings on level foundations with retaining walls. Steeper and Rounded land still requires Flatten. Shallow road joins, cars, picking, overlays and Undo/Redo use shared construction geometry. Water draws above negative channel beds; shore bands respect bank height, and natural grass/desert edges blend. Channel connectivity and flooding rules are unchanged. Save format12 imports valid versions6-11; older APKs cannot read the new slope construction. Both landscape directions remain supported. Export your city before installing: signing setup remains deferred and the temporary test key can require reinstall. Previous APKs remain available."
+            gh release view v0.3.13-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"
           fi
           python -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"] + "/godot-draft.json"))["isDraft"], "Only an unpublished draft may receive test artifacts"'
-          gh release upload v0.3.12-terraform-preview dist/*.apk dist/*.zip dist/MetroForge-Godot-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY"
+          gh release upload v0.3.13-terraform-preview dist/*.apk dist/*.zip dist/MetroForge-Godot-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY"
 # Terrain-test packaging; previous preview downloads remain untouched.

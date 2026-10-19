@@ -37,7 +37,7 @@ func run():
 	check(p.before.is_empty() and p.cost == 0, "Auto on flat neighborhood is a free no-op")
 	p = E.plan(w,[c],"shape",1,null,{"shape":"slope","direction":"E","strength":1})
 	check(p.cost == 20 and E.commit(w,p).changed, "Manual shape commits without height change")
-	check(not w.can_place(c,"road") and not w.can_place(c,"res") and not w.can_place(c,"plant"), "Slope rejects unsupported construction")
+	check(w.can_place(c,"road") and w.can_place(c,"res") and w.can_place(c,"plant"), "Gentle slope supports safe construction")
 	check(w.can_place(c,"line") and w.can_place(c,"tree"), "Slopes support anchored utilities and trees")
 	check(E.plan(w,[c],"shape",1,null,{"shape":"slope","direction":"E","strength":1}).cost == 0, "Repeated shape free")
 	w.tiles[c+1].merge({"terrainShape":"slope","slopeDir":"E","shapeStrength":1,"elev":1},true)
@@ -47,7 +47,7 @@ func run():
 	p = E.plan(w,[c],"flatten",1,0)
 	check(p.cost == 20 and E.commit(w,p).changed and w.tiles[c].terrainShape == "flat", "Flatten removes slope at same height")
 	var data = w.serialize()
-	check(data.version == 11, "New shape save version")
+	check(data.version == 12, "New shape save version")
 	var restored = S.import_json(JSON.stringify(data))
 	check(restored != null and G.corners(restored.tiles,c+1) == G.corners(w.tiles,c+1), "Shape JSON round trip deterministic")
 	for pair in [["terrainShape","invalid"],["slopeDir","bad"],["shapeStrength",0],["shapeStrength",1.5],["shapeStrength",null]]:

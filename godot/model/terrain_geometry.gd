@@ -6,6 +6,11 @@ const MAX_HEIGHT = 30
 const SHAPES = ["flat", "slope", "cliff", "rounded"]
 const DIRECTIONS = ["auto", "N", "E", "S", "W"]
 
+static func water_height(tile: Dictionary) -> float:
+	# Reference elevation is the channel bed; the visible water stays level.
+	# Preserve authored positive natural-water levels from existing imports.
+	return maxf(0,float(tile.get("elev",0)))
+
 static func tile_at(tiles: Array, index: int, overrides: Dictionary = {}) -> Dictionary:
 	return overrides.get(index, tiles[index])
 
@@ -30,6 +35,9 @@ static func direction(tiles: Array, index: int, overrides: Dictionary = {}) -> S
 static func corners(tiles: Array, index: int, overrides: Dictionary = {}) -> PackedFloat64Array:
 	var tile = tile_at(tiles,index,overrides)
 	var elevation: float = tile.elev
+	if tile.get("terrain","grass")=="water":
+		var surface: float = water_height(tile)
+		return PackedFloat64Array([surface,surface,surface,surface])
 	if tile.get("terrainShape","flat") == "rounded" and tile.terrain != "water" and not tile.channel:
 		return PackedFloat64Array([sample(tiles,index,0,0,overrides),sample(tiles,index,1,0,overrides),sample(tiles,index,1,1,overrides),sample(tiles,index,0,1,overrides)])
 	if tile.get("terrainShape","flat") != "slope" or tile.terrain == "water" or tile.channel:
@@ -45,6 +53,7 @@ static func corners(tiles: Array, index: int, overrides: Dictionary = {}) -> Pac
 
 static func sample(tiles: Array, index: int, u: float = .5, v: float = .5, overrides: Dictionary = {}) -> float:
 	var tile = tile_at(tiles,index,overrides)
+	if tile.get("terrain","grass")=="water": return water_height(tile)
 	if tile.get("terrainShape","flat") == "rounded" and tile.terrain != "water" and not tile.channel:
 		return rounded_sample(tiles,index,u,v,overrides).x
 	if tile.get("terrainShape","flat") != "slope": return float(tile.elev)

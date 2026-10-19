@@ -4,6 +4,7 @@ extends RefCounted
 
 const Geometry = preload("res://model/terrain_geometry.gd")
 const Surfaces = preload("res://model/terrain_surfaces.gd")
+const Civil = preload("res://model/civil_engineering.gd")
 const N = Geometry.N
 const COUNT = N * N
 const MIN_TERRAIN_ELEV = Geometry.MIN_HEIGHT
@@ -139,7 +140,9 @@ func can_place(i: int, tool: String, bridge: bool = false) -> bool:
 		if tool in ["tree","forest"]: return t.terrain != "water" and not t.civic and not t.road and not t.rail and not t.line and not t.level
 		return not t.civic and not t.road and not t.rail and not t.level and not t.zone
 	if tool == "bulldoze": return bool(t.road or t.rail or t.line or t.pipe or t.zone or t.civic or t.fire or t.tree or t.channel)
-	if t.get("terrainShape","flat") in ["slope","rounded"] and tool not in ["line","pipe"]: return false
+	if t.get("terrainShape","flat") in ["slope","rounded"] and tool not in ["line","pipe"]:
+		if not Civil.gentle(t) or tool in ["rail","station"]: return false
+	if tool=="road" and not Civil.can_road(tiles,i): return false
 	if tool == "pipe": return true
 	if tool in ["road","rail"]: return not t.civic and (t.terrain != "water" or bridge)
 	if t.terrain == "water": return false
@@ -163,10 +166,14 @@ func place(i: int, tool: String, bridge: bool = false, parcel_id: int = 0) -> bo
 	if tool in ["tree","forest"] and t.tree and t.biome == "grass": return false
 	if tool == "river" and t.channel and not t.waterSource and t.elev <= -1 and not t.tree: return false
 	if not spend(cost): return false
+	if tool=="road" or (tool!="bulldoze" and (ZONE_TOOL.has(tool) or tool in SERVICES or tool in ["park","plant","pump","tower"])):
+		Civil.freeze_direction(tiles,i)
+		if tool!="road" and Civil.gentle(t): t.foundationHeight=Civil.foundation_height(tiles,i)
 	if tool == "bulldoze":
 		if t.fire: t.fire = 0
 		elif t.civic:
 			t.civic = null
+			t.erase("foundationHeight")
 			t.storage = 0
 		elif t.zone and t.level:
 			var p = parcel_info(i)
@@ -176,6 +183,7 @@ func place(i: int, tool: String, bridge: bool = false, parcel_id: int = 0) -> bo
 				tiles[j].abandoned = 0
 				tiles[j].damage = 0
 		elif t.zone:
+			t.erase("foundationHeight")
 			t.zone = null
 			t.resType = null
 			t.zoneType = null
@@ -214,6 +222,7 @@ func place(i: int, tool: String, bridge: bool = false, parcel_id: int = 0) -> bo
 			t.biome = "grass"
 		_terrain_reflow()
 	elif tool in ["road","rail"]:
+		t.erase("foundationHeight")
 		t[tool] = true
 		t.tree = false
 		t.zone = null
@@ -352,7 +361,7 @@ static func _js_round(value: float) -> int:
 	return int(floor(value+0.5))
 
 func serialize() -> Dictionary:
-	return {"version":11,"seed":seed,"tiles":tiles.duplicate(true),"cash":cash,"year":year,"month":month,"tick":tick,"taxes":taxes.duplicate(true),"funding":funding.duplicate(true),"randomDisasters":randomDisasters,"bondMonths":bondMonths,"milestones":milestones.duplicate(true),"messages":messages.duplicate(true),"events":events.duplicate(true),"stats":stats.duplicate(true),"cars":cars.duplicate(true),"trains":trains.duplicate(true),"nextParcelId":nextParcelId}
+	return {"version":12,"seed":seed,"tiles":tiles.duplicate(true),"cash":cash,"year":year,"month":month,"tick":tick,"taxes":taxes.duplicate(true),"funding":funding.duplicate(true),"randomDisasters":randomDisasters,"bondMonths":bondMonths,"milestones":milestones.duplicate(true),"messages":messages.duplicate(true),"events":events.duplicate(true),"stats":stats.duplicate(true),"cars":cars.duplicate(true),"trains":trains.duplicate(true),"nextParcelId":nextParcelId}
 
 static func _finite(value) -> bool:
 	return (value is int or value is float) and is_finite(float(value))
@@ -387,7 +396,12 @@ static func from_dict(data: Dictionary) -> CityWorld:
 		if q.has("roundedBase"):
 			if q.terrainShape!="rounded" or not _finite(q.roundedBase) or float(q.roundedBase)!=floor(float(q.roundedBase)) or q.roundedBase<MIN_TERRAIN_ELEV or q.roundedBase>q.elev: return null
 			q.roundedBase=int(q.roundedBase)
-		if q.terrainShape in ["slope","rounded"] and (q.terrain == "water" or q.channel or q.zone != null or q.civic != null or q.road or q.rail): return null
+		if q.terrainShape in ["slope","rounded"] and (q.terrain == "water" or q.channel or q.zone != null or q.civic != null or q.road or q.rail):
+			if not Civil.gentle(q) or q.rail or q.slopeDir=="auto" or q.civic=="station": return null
+			if (q.zone!=null or q.civic!=null) and not q.has("foundationHeight"): return null
+		if q.has("foundationHeight"):
+			if not Civil.gentle(q) or q.slopeDir=="auto" or (q.zone==null and q.civic==null) or q.road or q.rail: return null
+			if not _finite(q.foundationHeight) or absf(float(q.foundationHeight)-minf(MAX_TERRAIN_ELEV,q.elev+.5))>Civil.EPS: return null
 		if q.level > 0 and q.zone == null: return null
 		if q.civic != null and q.zone != null: return null
 		if q.autoGrow == null: q.autoGrow = false
@@ -422,6 +436,8 @@ static func from_dict(data: Dictionary) -> CityWorld:
 		if q.terrain == "water" and not q.channel: q.waterSource = true
 		normalized.append(q.duplicate(true))
 		saved_occupancy.append(q.occupancy)
+	for i in range(COUNT):
+		if normalized[i].road and Civil.gentle(normalized[i]) and not Civil.can_road(normalized,i): return null
 	var world = CityWorld.new(int(data.seed) if _finite(data.get("seed")) else 24)
 	world.seed = int(data.seed) if _finite(data.get("seed")) else 24
 	world._rng.seed = world.seed
@@ -900,10 +916,10 @@ func _parcel_flat_square(p: Dictionary) -> int:
 	var largest = 0
 	for i in p.members:
 		var t = tiles[i]
-		if t.terrain == "water" or t.road or t.rail or t.civic or t.get("terrainShape","flat") in ["slope","rounded"]: continue
+		if t.terrain == "water" or t.road or t.rail or t.civic or (t.get("terrainShape","flat") in ["slope","rounded"] and not t.has("foundationHeight")): continue
 		var size = 1
 		if i%N > 0 and i >= N and squares.has(i-1) and squares.has(i-N) and squares.has(i-N-1):
-			if tiles[i-1].elev == t.elev and tiles[i-N].elev == t.elev and tiles[i-N-1].elev == t.elev:
+			if Civil.build_height(tiles[i-1])==Civil.build_height(t) and Civil.build_height(tiles[i-N])==Civil.build_height(t) and Civil.build_height(tiles[i-N-1])==Civil.build_height(t):
 				size += mini(squares[i-1],mini(squares[i-N],squares[i-N-1]))
 		squares[i] = size
 		largest = maxi(largest,size)
@@ -1201,6 +1217,7 @@ func route(a: int, b: int, allowed: String = "road") -> Array:
 		if k == b: break
 		for j in neighbors(k):
 			if previous[j] != -1 or not tiles[j][allowed]: continue
+			if allowed=="road" and not Civil.road_link(tiles,k,j): continue
 			previous[j] = k
 			queue.append(j)
 		head += 1

@@ -41,7 +41,7 @@ const TOOL_HELP: Dictionary = {
 	"office": "Offices provide denser employment and need a stronger population base.",
 	"light": "Zone industrial jobs. Suitable larger properties may develop factories when demand and road access support them. Keep homes away from pollution.",
 	"heavy": "Heavy industry provides more jobs per tile and prefers properties of at least four tiles. Keep homes away from pollution.",
-	"road": "Paint a road between dry banks to bridge up to eight water tiles. Roads must touch zones.",
+	"road": "Roads follow Gentle directional slopes with matching edges. Paint between dry banks to bridge up to eight water tiles.",
 	"rail": "Connect two rail stations on one rail line. Paint between dry banks to build a bridge.",
 	"station": "Place a station on an existing rail tile. Two connected stations enable trains.",
 	"line": "Connect the plant to the first zone tile. Lines cross roads; empty zones cannot relay power.",
@@ -55,7 +55,7 @@ const TOOL_HELP: Dictionary = {
 	"smooth": "Soften natural land with a bounded Rounded brush. Cliffs, water, buildings and infrastructure are protected.",
 	"hill": "Create a rounded hill with Size, absolute Peak and Profile in the right panel. Each stroke previews its full cost.",
 	"mountain": "Create a larger peak up to +30. Choose Rounded or Cliff and adjust its profile. Protected land stays unchanged.",
-	"shape": "Shape natural ground as Flat, Sloped, Rounded or Cliff. Direction selects the high edge. Auto follows neighboring reference heights. Flatten before construction.",
+	"shape": "Shape natural ground as Flat, Sloped, Rounded or Cliff. Gentle slopes support roads and level foundations; Flatten steeper or Rounded ground before construction.",
 	"flatten": "Flatten natural ground to the first touched tile or a chosen height. Protected cells stay unchanged.",
 	"river": "Dig a channel. It fills only when connected to existing water.",
 	"grass": "Paint grass biome on dry, undeveloped ground.", "desert": "Paint desert biome and clear trees.",
@@ -86,7 +86,7 @@ Undo and Redo restore a whole construction stroke and its cost. The city clock a
 Roads and rails can bridge up to eight water tiles with dry land at both ends. Trains need two stations on a connected line. Events contains disasters, fire dispatch and the city message log. Random disasters are optional.
 
 TERRAFORM TERRAIN
-Raise/Lower reaches −5 to +30. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Select a height/shape tool to keep its settings at the right of the map, even after the tool menu closes. Flatten uses the first touched tile or Set height. Preview shows cost and skipped cells; each changed cell costs $20. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Shape terrain makes Flat, Sloped, Rounded or Cliff caps. Sloped uses Auto or N/E/S/W (the high edge), with Gentle/Medium/Steep strength independent of height step. Auto needs neighboring height differences; manual directions work on level ground. Flatten before building on a slope. Smooth softens eligible land with Gentle/Medium/Strong strength while preserving marked Cliffs, water and construction. Hill/Mountain offers Size3/5/9, an absolute Peak and Broad/Balanced/Sharp profile. Each brush is one previewed transaction and Undo. Rounded or Sloped ground needs Flatten before construction.
+Raise/Lower reaches −5 to +30. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Select a height/shape tool to keep its settings at the right of the map, even after the tool menu closes. Flatten uses the first touched tile or Set height. Preview shows cost and skipped cells; each changed cell costs $20. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Shape terrain makes Flat, Sloped, Rounded or Cliff caps. Sloped uses Auto or N/E/S/W (the high edge), with Gentle/Medium/Steep strength independent of height step. Auto needs neighboring height differences; manual directions work on level ground. Gentle directional slopes support roads and level building foundations. Smooth softens eligible land with Gentle/Medium/Strong strength while preserving marked Cliffs, water and construction. Hill/Mountain offers Size3/5/9, an absolute Peak and Broad/Balanced/Sharp profile. Each brush is one previewed transaction and Undo. Rounded and steeper slopes need Flatten before construction.
 
 9. KEEP YOUR CITY
 Your last city reopens automatically. The game checkpoints periodically and when backgrounded. Save writes a separate manual city in this app. Export makes a complete compatible JSON copy for backup or transfer. Import accepts JSON exported by the earlier MetroForge game. Use the native file picker or the copy/paste JSON fallback. Saves from the old Android app are transferred by exporting there and importing here.
@@ -387,7 +387,7 @@ func _place_one(index: int, bridge: bool = false) -> bool:
 	var cash_before: float = world.cash
 	if not world.place(index, selected_tool, bridge, _stroke_parcel):
 		if world.tiles[index].get("terrainShape","flat") in ["slope","rounded"] and selected_tool not in ["line","pipe","bulldoze"]:
-			show_notice("Flatten this shaped ground before construction.")
+			show_notice("Use Gentle slopes with matching road edges or Flatten this ground.")
 		return false
 	if selected_tool in CATEGORIES.Zoning:
 		world.tiles[index].autoGrow = true
@@ -1448,7 +1448,7 @@ func _update_terrain_summary() -> void:
 	if selected_tool == "flatten": detail = "first tile" if terrain_settings.flatten_target == null else "height %s" % terrain_settings.flatten_target
 	_tool_name.text = "%s · %s×%s · %s" % [TOOL_LABELS[selected_tool], width, width, detail]
 	_tool_name.tooltip_text = _tool_name.text
-	_status.text = _tool_name.text + (" · Free; colors only. " if selected_tool=="surface" else " · $20 per changed tile. ") + ("Flatten before construction." if ((terrain_settings.shape in ["slope","rounded"] and selected_tool in ["raise","lower","shape"]) or selected_tool=="smooth" or (selected_tool in ["hill","mountain"] and terrain_settings.preset_shape=="rounded")) else "Flat construction tops.")
+	_status.text = _tool_name.text + (" · Free; colors only. " if selected_tool=="surface" else " · $20 per changed tile. ") + ("Flatten before construction." if (((terrain_settings.shape=="rounded" or (terrain_settings.shape=="slope" and terrain_settings.strength>1)) and selected_tool in ["raise","lower","shape"]) or selected_tool=="smooth" or (selected_tool in ["hill","mountain"] and terrain_settings.preset_shape=="rounded")) else "Gentle slopes support roads and level foundations." if terrain_settings.shape=="slope" else "Flat construction tops.")
 	if selected_tool=="surface":_status.text=_tool_name.text+" · Free; changes colors without changing heights."
 	_terrain_panel.configure(terrain_settings, selected_tool)
 

@@ -1,0 +1,71 @@
+{
+  "baseline_commit": "cc1b048af2b2d0a9c1977be8d3227161930b4127",
+  "renderer": "llvmpipe (LLVM 19.1.7, 256 bits); desktop measurements do not establish Android FPS",
+  "viewport": [
+    1280,
+    591
+  ],
+  "logical": [
+    854,
+    394
+  ],
+  "results": [
+    {
+      "case": "fit_static",
+      "draw_calls": 588,
+      "baseline_frame_ms": 80.823,
+      "candidate_frame_ms": 42.152,
+      "baseline_input_agents_cpu_ms": 0.0,
+      "candidate_input_agents_cpu_ms": 0.0
+    },
+    {
+      "case": "fit_agents",
+      "draw_calls": 589,
+      "baseline_frame_ms": 78.156,
+      "candidate_frame_ms": 51.248,
+      "baseline_input_agents_cpu_ms": 1.099,
+      "candidate_input_agents_cpu_ms": 1.177
+    },
+    {
+      "case": "district_agents",
+      "draw_calls": 446,
+      "baseline_frame_ms": 105.567,
+      "candidate_frame_ms": 77.078,
+      "baseline_input_agents_cpu_ms": 1.408,
+      "candidate_input_agents_cpu_ms": 1.298
+    },
+    {
+      "case": "close_agents",
+      "draw_calls": 257,
+      "baseline_frame_ms": 101.064,
+      "candidate_frame_ms": 71.225,
+      "baseline_input_agents_cpu_ms": 1.002,
+      "candidate_input_agents_cpu_ms": 1.28
+    },
+    {
+      "case": "fit_ground_only",
+      "draw_calls": 241,
+      "baseline_frame_ms": 70.147,
+      "candidate_frame_ms": 33.611,
+      "baseline_input_agents_cpu_ms": 0.0,
+      "candidate_input_agents_cpu_ms": 0.0
+    },
+    {
+      "case": "fit_objects_only",
+      "draw_calls": 480,
+      "baseline_frame_ms": 68.184,
+      "candidate_frame_ms": 37.442,
+      "baseline_input_agents_cpu_ms": 0.0,
+      "candidate_input_agents_cpu_ms": 0.0
+    },
+    {
+      "case": "fit_without_poles",
+      "draw_calls": 446,
+      "baseline_frame_ms": 42.762,
+      "candidate_frame_ms": 41.256,
+      "baseline_input_agents_cpu_ms": 0.0,
+      "candidate_input_agents_cpu_ms": 0.0
+    }
+  ],
+  "limits": "Single sequential desktop software GL probes; frame timing is not a measured Android speedup."
+}

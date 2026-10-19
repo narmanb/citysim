@@ -6,6 +6,18 @@ Open `project.godot` with **Godot 4.6.3 standard edition** and press Play. This 
 
 Android uses sensor landscape at startup and after toggling fullscreen. Turning the phone 180 degrees allows the camera cutout on either side; portrait remains excluded. Verify both directions on a phone, including after fullscreen and app resume. Terrain tools and save format 11 are unchanged in this update.
 
+## Changes in 0.3.13 Sloped Roads, Foundations and Shores
+
+Gentle directional slopes now support roads and level building pads. Roads join
+compatible edges, cars follow the retained deck, and foundations keep buildings
+upright with downhill retaining walls. Larger buildings still need a same-height
+usable footprint. Rounded/steeper land requires Flatten; bridges need flat
+landings and rail remains flat-only. No surrounding terrain is automatically
+regraded. Water surfaces stay above negative channel beds, low banks receive
+shore strips, and natural grass/desert borders blend. Channel filling rules are
+unchanged. Save12 reads valid older cities; new slope construction needs this
+build or later. See [controls, validation and limits](docs/terrain-civil-water-0.3.13.md).
+
 ## Changes in 0.3.3 Terrain Test
 
 Terraform now supports heights −5…+12, centered 1×1/3×3/5×5 brushes, height steps 1/2/4 and Flatten to the first touched tile or an explicit level. Previews show targets, protected cells and total cost. Paint strokes deduplicate overlapping footprints, commit atomically and undo as one action. Terrain remains flat-topped and stepped; slopes/smoothing are deferred. See [the phased terrain report](../docs/terraforming-2.0.md) for compatibility, controls, validation and limits. Earlier APK downloads/releases remain unchanged.

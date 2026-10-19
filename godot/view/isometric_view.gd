@@ -14,7 +14,9 @@ const Layer = preload("res://view/iso_layer.gd")
 const GroundShader = preload("res://view/opaque_ground.gdshader")
 const BuildingCatalog = preload("res://view/building_catalog.gd")
 const Geometry = preload("res://model/terrain_geometry.gd")
+const Civil = preload("res://model/civil_engineering.gd")
 const TerrainMaterial = preload("res://view/terrain_material.gd")
+const Transitions = preload("res://view/terrain_transitions.gd")
 const World = preload("res://model/city_world.gd")
 const N: int = World.N
 const BASE: float = 28.0
@@ -89,6 +91,7 @@ var _record_index: int = -1
 var _rounded_meshes: Dictionary = {}
 var _preview_meshes: Dictionary = {}
 var _geometry_world = null
+var _graded_roads: Dictionary = {}
 var rounded_subdivisions: int = 4:
 	set(value):
 		var next: int = 2 if value<=2 else 4
@@ -203,7 +206,8 @@ func tile_to_screen(index: int) -> Vector2:
 	if world == null or index < 0 or index >= world.tiles.size():
 		return Vector2.INF
 	var tile: Dictionary = world.tiles[index]
-	return camera + _point(index % N + 0.5, floori(float(index) / N) + 0.5, Geometry.sample(world.tiles,index)) * tile_scale / BASE
+	var height: float = Civil.build_height(tile) if tile.has("foundationHeight") else Civil.road_sample(world.tiles,index) if tile.get("road",false) and Civil.graded_nearby(world.tiles,index) else Geometry.sample(world.tiles,index)
+	return camera + _point(index % N + 0.5, floori(float(index) / N) + 0.5, height) * tile_scale / BASE
 
 func screen_to_tile(point: Vector2) -> int:
 	if world == null: return -1
@@ -224,7 +228,7 @@ func screen_to_tile(point: Vector2) -> int:
 		var elevation: float = float(world.tiles[index].get("elev", 0))
 		var hit: bool = _cap_hit(index,local)
 		if not hit:
-			for face in _terrain_faces(index):
+			for face in _terrain_faces(index)+_construction_faces(index):
 				if Geometry2D.is_point_in_polygon(local, face[0]): hit = true; break
 		if hit and (x + y > depth or (x + y == depth and index > best)):
 			best = index
@@ -235,7 +239,7 @@ func _terrain_points(index: int, left: float = 0, top: float = 0, width: float =
 	var x: int = index % N
 	var y: int = index / N
 	var tile: Dictionary = Geometry.tile_at(world.tiles,index,overrides)
-	if tile.get("terrainShape","flat") not in ["slope","rounded"]: return _rect_points(x,y,tile.elev,left,top,width,height)
+	if tile.get("terrainShape","flat") not in ["slope","rounded"]: return _rect_points(x,y,Geometry.sample(world.tiles,index,.5,.5,overrides),left,top,width,height)
 	var out := PackedVector2Array()
 	for uv in [Vector2(left,top),Vector2(left+width,top),Vector2(left+width,top+height),Vector2(left,top+height)]:
 		out.append(_point(x+uv.x,y+uv.y,Geometry.sample(world.tiles,index,uv.x,uv.y,overrides)))
@@ -278,6 +282,9 @@ func _terrain_patches(index: int, overrides: Dictionary = {}) -> Array:
 	return [_terrain_points(index,0,0,1,1,overrides)]
 
 func _cap_hit(index: int, point: Vector2) -> bool:
+	var tile: Dictionary = world.tiles[index]
+	if tile.has("foundationHeight"): return Geometry2D.is_point_in_polygon(point,_building_points(index))
+	if tile.get("road",false) and Civil.graded_nearby(world.tiles,index): return Geometry2D.is_point_in_polygon(point,_road_points(index))
 	for patch in _terrain_patches(index):
 		# Exact same diagonal in picking and retained cap tessellation.
 		if Geometry2D.is_point_in_polygon(point,PackedVector2Array([patch[0],patch[1],patch[2]])) or Geometry2D.is_point_in_polygon(point,PackedVector2Array([patch[0],patch[2],patch[3]])): return true
@@ -322,7 +329,8 @@ func _terrain_faces(index: int) -> Array:
 			if points.size()==4:
 				if points[0].is_equal_approx(points[3]): points.remove_at(3)
 				elif points[1].is_equal_approx(points[2]): points.remove_at(2)
-			faces.append([points,TerrainMaterial.wall_color(world.tiles[index],side)])
+			var wall_tile: Dictionary = world.tiles[neighbor] if inside and world.tiles[index].get("terrain","grass")=="water" else world.tiles[index]
+			faces.append([points,TerrainMaterial.wall_color(wall_tile,side)])
 	return faces
 
 func _neighbors(index: int) -> Array:
@@ -339,10 +347,10 @@ func _road_mask(index: int, kind: String = "road") -> int:
 	var x: int = index % N
 	var y: int = floori(float(index) / N)
 	var result: int = 0
-	if y > 0 and world.tiles[index - N].get(kind, false): result |= 1
-	if x < N - 1 and world.tiles[index + 1].get(kind, false): result |= 2
-	if y < N - 1 and world.tiles[index + N].get(kind, false): result |= 4
-	if x > 0 and world.tiles[index - 1].get(kind, false): result |= 8
+	if y > 0 and world.tiles[index - N].get(kind, false) and (kind!="road" or Civil.road_link(world.tiles,index,index-N)): result |= 1
+	if x < N - 1 and world.tiles[index + 1].get(kind, false) and (kind!="road" or Civil.road_link(world.tiles,index,index+1)): result |= 2
+	if y < N - 1 and world.tiles[index + N].get(kind, false) and (kind!="road" or Civil.road_link(world.tiles,index,index+N)): result |= 4
+	if x > 0 and world.tiles[index - 1].get(kind, false) and (kind!="road" or Civil.road_link(world.tiles,index,index-1)): result |= 8
 	return result
 
 func _new_layer(depth: float, object: bool = false):
@@ -391,6 +399,7 @@ func _rebuild() -> void:
 	var buckets: Dictionary = {}
 	var reset: bool = _cached_world != world or _tile_records.size() != world.tiles.size()
 	if reset:
+		_graded_roads.clear()
 		for key in _static_layers: buckets[key] = true
 		_bucket_members.clear()
 		_tile_records.clear()
@@ -411,6 +420,9 @@ func _rebuild() -> void:
 		if reset or signature != _tile_hashes[index]:
 			changed_indices.append(index)
 			dirty[index] = true
+			# Shared deck vertices and biome corners depend on diagonal cells too.
+			for yy in range(maxi(0,index/N-1),mini(N,index/N+2)):
+				for xx in range(maxi(0,index%N-1),mini(N,index%N+2)): dirty[yy*N+xx]=true
 			for neighbor in _neighbors(index):
 				dirty[neighbor] = true
 				if world.tiles[neighbor].get("terrainShape","flat") == "slope" and world.tiles[neighbor].get("slopeDir","auto") == "auto":
@@ -443,6 +455,12 @@ func _rebuild() -> void:
 				for xx in range(maxi(0,x-4),mini(N,x+5)):
 					var near: int = yy*N+xx
 					if world.tiles[near].get("terrainShape","flat")=="rounded" and world.tiles[near].get("surfaceTop","auto")!="auto":dirty[near]=true
+	for index in dirty:
+		_graded_roads.erase(index)
+	# Fill deck cache before recording: a road arm may sample a neighboring deck.
+	for index in dirty:
+		if world.tiles[index].get("road",false) and Civil.graded_nearby(world.tiles,index):
+			_graded_roads[index]=Civil.road_corners(world.tiles,index)
 	for index in dirty:
 		if _tile_records[index] != null:
 			for key in _tile_records[index]:
@@ -507,6 +525,9 @@ func _diamond(layer, x: float, y: float, elevation: float, fill: Color, outline:
 
 func _draw_terrain_cap(layer,index: int,fill: Color,outline: Color = Color.TRANSPARENT,width: float = 1,overrides: Dictionary = {}) -> void:
 	var patches: Array = _terrain_patches(index,overrides)
+	if overrides.is_empty():
+		if world.tiles[index].has("foundationHeight"): patches=[_building_points(index)]
+		elif _graded_roads.has(index): patches=[_road_points(index)]
 	if fill.a>0 and patches.size()==1: layer.polygon(patches[0],fill)
 	elif fill.a>0:
 		for patch in patches:
@@ -605,10 +626,24 @@ func _surface(layer, name: String, x: float, y: float, elevation: float, left: f
 	if texture == null:
 		return false
 	var index: int = int(y)*N+int(x)
+	var biome_colors: PackedColorArray = Transitions.biome_corners(world.tiles,index) if name in ["grass","sand"] else PackedColorArray()
+	if name in ["pavement","asphalt"] and world.tiles[index].get("road",false) and Civil.graded_nearby(world.tiles,index):
+		var rect := PackedVector2Array([Vector2(left,top),Vector2(left+width,top),Vector2(left+width,top+height),Vector2(left,top+height)])
+		for triangle in [PackedVector2Array([Vector2.ZERO,Vector2.RIGHT,Vector2.ONE]),PackedVector2Array([Vector2.ZERO,Vector2.ONE,Vector2.DOWN])]:
+			for clipped in Geometry2D.intersect_polygons(triangle,rect):
+				var points := PackedVector2Array()
+				var coords := PackedVector2Array()
+				for uv in clipped:
+					points.append(_point(x+uv.x,y+uv.y,_road_height(index,uv.x,uv.y)))
+					coords.append((Vector2(float(sprite.x)+66+(uv.x-uv.y)*66,float(sprite.y)+(uv.x+uv.y)*33))/Vector2(texture.get_size()))
+				layer.polygon(points,cap_color,texture,coords)
+		return true
 	if name in TERRAIN_COLOR and world.tiles[index].get("terrainShape","flat")!="rounded" and left==0 and top==0 and width==1 and height==1:
 		var coords := PackedVector2Array([Vector2(64+x,y),Vector2(65+x,y),Vector2(65+x,y+1),Vector2(64+x,y+1)])
 		var color: Color = TerrainMaterial.top_color(world.tiles[index],TERRAIN_COLOR[name]) if name in ["grass","sand"] else TERRAIN_COLOR[name]
-		layer.polygon(_terrain_points(index),color,texture,coords)
+		if name=="water": layer.polygon_colors(_terrain_points(index),Transitions.water_corners(world.tiles,index),texture,coords)
+		elif not biome_colors.is_empty(): layer.polygon_colors(_terrain_points(index),biome_colors,texture,coords)
+		else: layer.polygon(_terrain_points(index),color,texture,coords)
 		return true
 	if world.tiles[index].get("terrainShape","flat")=="rounded" and left==0 and top==0 and width==1 and height==1:
 		var mesh: Dictionary = _rounded_mesh(index)
@@ -623,11 +658,12 @@ func _surface(layer, name: String, x: float, y: float, elevation: float, left: f
 			for xx in range(d+1):
 				var gradient: Vector2 = mesh.gradients[yy*(d+1)+xx]
 				var weight: float = TerrainMaterial.cover_weight(cover,mesh.heights[yy*(d+1)+xx],floor_height,peak)
-				var surface_color: Color = Color(TERRAIN_COLOR[name]).lerp(TerrainMaterial.top_color(world.tiles[index],TERRAIN_COLOR[name]),weight)
+				var base_color: Color = Transitions.interpolate(biome_colors,float(xx)/d,float(yy)/d,TERRAIN_COLOR[name])
+				var surface_color: Color = base_color.lerp(TerrainMaterial.top_color(world.tiles[index],base_color),weight)
 				var color: Color = TerrainMaterial.cap_color(surface_color,gradient,edge_rock[yy*(d+1)+xx],world.tiles[index].get("surfaceRock","brown"))
 				var relief: float = absf(mesh.heights[yy*(d+1)+xx]-float(world.tiles[index].get("roundedBase",0)))
 				var blend: float = maxf(edge_rock[yy*(d+1)+xx],smoothstep(.08,.6,relief))
-				color=Color(TERRAIN_COLOR.get(name,Color.WHITE)).lerp(color,blend)
+				color=base_color.lerp(color,blend)
 				colors.append(color)
 				# World-space coordinates keep detail continuous across cells and camera motion.
 				uv.append(Vector2(64+x+float(xx)/d,y+float(yy)/d))
@@ -650,7 +686,8 @@ func _surface(layer, name: String, x: float, y: float, elevation: float, left: f
 	for p in [Vector2(left, top), Vector2(left + width, top), Vector2(left + width, top + height), Vector2(left, top + height)]:
 		# Sample only the 132 by 66 cap, never the PNG's foundation walls.
 		uv.append((Vector2(float(sprite.x) + 66.0 + (p.x - p.y) * 66.0, float(sprite.y) + (p.x + p.y) * 33.0)) / Vector2(texture.get_size()))
-	layer.polygon(_terrain_points(int(y)*N+int(x),left,top,width,height), cap_color, texture, uv)
+	var points: PackedVector2Array = _rect_points(x,y,Civil.build_height(world.tiles[index]),left,top,width,height) if world.tiles[index].has("foundationHeight") else _terrain_points(index,left,top,width,height)
+	layer.polygon(points, cap_color, texture, uv)
 	return true
 
 func _sprite(layer, name: String, point: Vector2, span: float = 1.0, lift: float = 0.0, color: Color = Color.WHITE) -> void:
@@ -694,7 +731,7 @@ func _draw_ground(layer, index: int) -> void:
 	var tile: Dictionary = world.tiles[index]
 	var x: int = index % N
 	var y: int = floori(float(index) / N)
-	var elevation: float = float(tile.get("elev", 0))
+	var elevation: float = Geometry.sample(world.tiles,index)
 	for face in _terrain_faces(index): layer.polygon(face[0], face[1])
 	var name: String = "water" if tile.get("terrain", "grass") == "water" else "dirt" if tile.get("channel", false) else "sand" if tile.get("biome", "") == "desert" else "grass"
 	# The atlas cap is opaque inside the diamond and already contains the grid.
@@ -704,10 +741,13 @@ func _draw_ground(layer, index: int) -> void:
 	if name != "water":
 		for j in _neighbors(index):
 			if world.tiles[j].get("terrain", "grass") != "water": continue
+			if not _shore_band(index,j): continue
 			var rect: Rect2 = Rect2(0, 0, 1, 0.1) if j == index - N else Rect2(0, 0.9, 1, 0.1) if j == index + N else Rect2(0, 0, 0.1, 1) if j == index - 1 else Rect2(0.9, 0, 0.1, 1)
 			for strip in _terrain_strip_patches(index,rect): layer.polygon(strip,Color("dcc78d"))
 	if tile.get("zone", ""):
+		if tile.has("foundationHeight"): _draw_foundation(layer,index)
 		_draw_zone(layer, index)
+	elif tile.has("foundationHeight"): _draw_foundation(layer,index)
 	if tile.get("road", false):
 		_draw_road(layer, x, y, elevation, _road_mask(index), float(tile.get("condition", 1.0)), name == "water")
 	if tile.get("rail", false):
@@ -717,13 +757,22 @@ func _draw_ground(layer, index: int) -> void:
 	if tile.get("channel", false) and name != "water":
 		layer.line(PackedVector2Array([_point(x + 0.2, y + 0.5, elevation), _point(x + 0.8, y + 0.5, elevation)]), Color("796345"), BASE * 0.12)
 
+func _shore_band(index: int, water: int) -> bool:
+	var edge = Civil._edge(index,water)
+	if edge.is_empty(): return false
+	var heights = Geometry.corners(world.tiles,index)
+	var level: float = Geometry.water_height(world.tiles[water])
+	for k in edge[0]:
+		if heights[k]<level-.001 or heights[k]>level+.75: return false
+	return true
+
 func _draw_zone(layer, index: int) -> void:
 	var tile: Dictionary = world.tiles[index]
 	var color: Color = ZCOL.get(tile.get("zone", ""), Color.WHITE)
 	var x: int = index % N
 	var y: int = floori(float(index) / N)
-	var elevation: float = float(tile.get("elev", 0))
-	_diamond(layer, x, y, elevation, Color(color, 0.133 if tile.get("level", 0) else 0.4))
+	var elevation: float = Civil.build_height(tile)
+	layer.polygon(_building_points(index),Color(color, 0.133 if tile.get("level", 0) else 0.4))
 	var parcel: int = int(tile.get("parcel", 0))
 	if not parcel:
 		_diamond(layer, x, y, elevation, Color.TRANSPARENT, color)
@@ -735,8 +784,37 @@ func _draw_zone(layer, index: int) -> void:
 			continue
 		layer.line(PackedVector2Array([_point(x + side[2], y + side[3], elevation), _point(x + side[4], y + side[5], elevation)]), color, BASE * 0.045)
 
+func _building_points(index: int) -> PackedVector2Array:
+	return _rect_points(index%N,index/N,Civil.build_height(world.tiles[index]))
+
+func _road_points(index: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var heights: PackedFloat64Array = _graded_roads[index] if _graded_roads.has(index) else Civil.road_corners(world.tiles,index)
+	var offsets = [Vector2.ZERO,Vector2.RIGHT,Vector2.ONE,Vector2.DOWN]
+	for k in range(4): out.append(_point(index%N+offsets[k].x,int(index/N)+offsets[k].y,heights[k]))
+	return out
+
+func _construction_faces(index: int) -> Array:
+	var tile: Dictionary = world.tiles[index]
+	if not tile.has("foundationHeight") and not (tile.get("road",false) and Civil.graded_nearby(world.tiles,index)): return []
+	var points: PackedVector2Array = _building_points(index) if tile.has("foundationHeight") else _road_points(index)
+	var ground = _terrain_points(index)
+	var faces: Array = []
+	for edge in [[1,2],[2,3]]:
+		if points[edge[0]].is_equal_approx(ground[edge[0]]) and points[edge[1]].is_equal_approx(ground[edge[1]]): continue
+		faces.append([PackedVector2Array([points[edge[0]],points[edge[1]],ground[edge[1]],ground[edge[0]]]),Color("9c9481") if edge[0]==1 else Color("b5aa91")])
+	return faces
+
+func _draw_foundation(layer, index: int) -> void:
+	for face in _construction_faces(index): layer.polygon(face[0],face[1])
+	layer.polygon(_building_points(index),Color("c5bca6"))
+
 func _draw_road(layer, x: int, y: int, elevation: float, mask: int, condition: float, bridge: bool) -> void:
-	_diamond(layer, x, y, elevation, Color("d8d2b8"))
+	var index: int = y*N+x
+	if Civil.graded_nearby(world.tiles,index):
+		for face in _construction_faces(index): layer.polygon(face[0],face[1])
+		layer.polygon(_road_points(index),Color("d8d2b8"))
+	else: _diamond(layer, x, y, elevation, Color("d8d2b8"))
 	_surface(layer, "pavement", x, y, elevation)
 	# Non-overlapping center and arms avoid doubling translucent atlas edges.
 	_surface(layer, "asphalt", x, y, elevation, 0.23, 0.23, 0.54, 0.54)
@@ -772,7 +850,7 @@ func _draw_rail(layer, index: int) -> void:
 	_connections(layer, index, "rail", Color("dbc699"), BASE * 0.09)
 	var x: int = index % N
 	var y: int = floori(float(index) / N)
-	var elevation: float = float(world.tiles[index].get("elev", 0))
+	var elevation: float = Geometry.sample(world.tiles,index)
 	var mask: int = _road_mask(index, "rail")
 	for axis in [[1, 0, -1], [2, 1, 0], [4, 0, 1], [8, -1, 0]]:
 		if not mask & axis[0]: continue
@@ -806,7 +884,7 @@ func _draw_pole(layer, index: int) -> void:
 
 func _draw_civic(layer, tile: Dictionary, x: int, y: int) -> void:
 	var kind: String = str(tile.get("civic", ""))
-	var elevation: float = float(tile.get("elev", 0))
+	var elevation: float = Civil.build_height(tile)
 	if kind == "park":
 		_tree(layer, x + 0.35, y + 0.35, elevation)
 		_tree(layer, x + 0.7, y + 0.65, elevation)
@@ -838,7 +916,7 @@ func _parcel_footprint(members: Array) -> Rect2i:
 					for dx in range(width):
 						var member: int = (y + dy) * N + x + dx
 						if not contained.has(member): fits = false
-						elif world != null and float(world.tiles[member].get("elev", 0)) != float(world.tiles[int(i)].get("elev", 0)): fits = false
+						elif world != null and Civil.build_height(world.tiles[member]) != Civil.build_height(world.tiles[int(i)]): fits = false
 				if fits: best = Rect2i(x, y, width, depth)
 	return best
 
@@ -853,12 +931,12 @@ func _draw_property(tile: Dictionary, members: Array, index: int) -> void:
 			var x: int = int(member) % N
 			var y: int = floori(float(member) / N)
 			var unit: Dictionary = tile.duplicate()
-			unit.elev = world.tiles[member].get("elev", 0)
+			unit.elev = Civil.build_height(world.tiles[member])
 			_draw_development(_new_layer(x + y + 1.9, true), unit, x + 0.5, y + 0.5, 0.94, index, int(member))
 		return
 	var fp: Rect2i = _parcel_footprint(members)
 	var elevated: Dictionary = tile.duplicate()
-	elevated.elev = world.tiles[fp.position.y * N + fp.position.x].get("elev", 0)
+	elevated.elev = Civil.build_height(world.tiles[fp.position.y * N + fp.position.x])
 	if kind == "apt" and fp.size == Vector2i(3, 3):
 		# Four wings around a shared courtyard make a complex, not an enlarged
 		# single-family house. All wings share the property's architecture/color.
@@ -991,7 +1069,10 @@ func _update_indicators() -> void:
 			_diamond(_indicator_layer, selected % N, floori(float(selected) / N), float(world.tiles[selected].get("elev", 0)), Color.TRANSPARENT, Color("fff3ad"), 2.0)
 		if hover >= 0 and hover < world.tiles.size() and tool != "pan" and tool not in ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain", "surface"]:
 			var valid: bool = world.can_place(hover, tool)
-			_diamond(_indicator_layer, hover % N, floori(float(hover) / N), float(world.tiles[hover].get("elev", 0)), Color("eaf2a077") if valid else Color("ee555577"), Color.WHITE, 1.5)
+			if valid and Civil.gentle(world.tiles[hover]) and tool not in ["line","pipe","bulldoze","tree","forest","grass","desert","river"]:
+				var points: PackedVector2Array = _road_points(hover) if tool=="road" else _rect_points(hover%N,hover/N,Civil.foundation_height(world.tiles,hover))
+				_draw_cap(_indicator_layer,points,Color("eaf2a077"),Color.WHITE,1.5)
+			else: _diamond(_indicator_layer, hover % N, floori(float(hover) / N), float(world.tiles[hover].get("elev", 0)), Color("eaf2a077") if valid else Color("ee555577"), Color.WHITE, 1.5)
 		if not terrain_preview.is_empty():
 			var color := Color("65e2b06b") if terrain_preview.affordable else Color("ef655b77")
 			for index in terrain_preview.targets:
@@ -1019,6 +1100,16 @@ func _process(delta: float) -> void:
 		_last_indicator_tick = int(_elapsed * 12)
 		if not world.events.is_empty(): _update_indicators()
 
+func _road_height(index: int,u: float,v: float) -> float:
+	if _graded_roads.has(index): return Civil.sample_corners(_graded_roads[index],u,v)
+	return Civil.road_sample(world.tiles,index,u,v)
+
+func _agent_height(a: int,b: int,fraction: float,x: float,y: float,car: bool) -> float:
+	if car and (_graded_roads.has(a) or _graded_roads.has(b)):
+		var i: int = a if fraction<.5 else b
+		return _road_height(i,x-i%N,y-int(i/N))
+	return lerpf(Geometry.sample(world.tiles,a),Geometry.sample(world.tiles,b),fraction)
+
 func _update_agents() -> void:
 	if world == null: return
 	var slot: int = 0
@@ -1039,7 +1130,7 @@ func _update_agents() -> void:
 			var dy: int = floori(float(b) / N) - ay
 			var x: float = ax + 0.5 + dx * fraction + (-dy * 0.1 if kind == "car" else 0.0)
 			var y: float = ay + 0.5 + dy * fraction + (dx * 0.1 if kind == "car" else 0.0)
-			var elevation: float = lerpf(float(world.tiles[a].get("elev", 0)), float(world.tiles[b].get("elev", 0)), fraction)
+			var elevation: float = _agent_height(a,b,fraction,x,y,kind=="car")
 			if slot >= _agent_layers.size(): _agent_layers.append(_new_layer(x + y + 0.1))
 			var layer = _agent_layers[slot]
 			layer.visible = true

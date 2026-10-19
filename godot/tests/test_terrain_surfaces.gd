@@ -26,7 +26,7 @@ func run():
  check(history.redo(w),"Redo restores appearance")
  for j in range(4):check(G.sample(w.tiles,c,[0.,.25,.5,1.][j],[0.,.25,.5,1.][j])==points[j],"Cosmetics preserve geometry")
  var imported=S.import_json(S.export_json(w))
- check(imported!=null and imported.tiles[c].surfaceTop=="snow" and imported.serialize().version==11,"Surface metadata imports")
+ check(imported!=null and imported.tiles[c].surfaceTop=="snow" and imported.serialize().version==12,"Surface metadata imports")
  for pair in [["surfaceTop","invalid"],["surfaceRock","snow"],["surfaceTop",null]]:
   var bad=w.serialize();bad.tiles[c][pair[0]]=pair[1]
   check(W.from_dict(bad)==null,"Reject unsupported surface metadata")
