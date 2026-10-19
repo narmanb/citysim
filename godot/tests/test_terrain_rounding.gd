@@ -75,7 +75,7 @@ func run():
 		check(result.changed and w.tiles[c].terrainShape=="rounded","Preset uses Rounded")
 		check(not w.can_place(c,"res") and not w.can_place(c,"road") and w.can_place(c,"line"),"Rounded requires flat foundation but permits anchored utility")
 		var restored=S.import_json(S.export_json(w))
-		check(restored!=null and restored.tiles[c].terrainShape=="rounded" and restored.serialize().version==12,"Rounded save roundtrip")
+		check(restored!=null and restored.tiles[c].terrainShape=="rounded" and restored.serialize().version==13,"Rounded save roundtrip")
 		settings.peak=0
 		check(E.plan.call(w,[],op,1,null,settings,[c]).cost==0,"Lower-than-center preset free")
 	w=blank()

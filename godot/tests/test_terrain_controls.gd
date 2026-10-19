@@ -172,7 +172,7 @@ func run():
         check(game.terrain_settings.step==4 and w.cash==cash,"Real dock button click updates settings without painting map beneath")
         game.set_terrain_shape("flat","auto",1)
         await process_frame;await process_frame
-        if dock!=null: check(dock.size.y<=112,"Flat settings shrink instead of keeping unused slope space")
+        if dock!=null: check(dock.size.y<=146 and not panel._slope_row.visible and panel._edges_row.visible,"Flat settings fit the new Edges row without unused slope space")
         panel._brush.select(2);panel._brush.item_selected.emit(2)
         check(game.terrain_settings.radius==2 and game.terrain_preview_at(center).targets.size()==25,"Dock brush dropdown updates actual preview footprint")
         panel._shape.select(1);panel._shape.item_selected.emit(1)

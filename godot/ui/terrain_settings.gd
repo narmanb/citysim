@@ -31,6 +31,8 @@ var _slope_row: HBoxContainer
 var _shape: OptionButton
 var _direction: OptionButton
 var _strength: OptionButton
+var _edges_row: HBoxContainer
+var _edges: OptionButton
 
 func _ready() -> void:
 	name = "TerrainSettings"
@@ -76,6 +78,11 @@ func _ready() -> void:
 	_shape = _option(["Flat", "Sloped", "Cliff", "Rounded"], _shape_row, "TerrainShape")
 	_shape.item_selected.connect(func(which):
 		if not _syncing: shape_settings_changed.emit(["flat", "slope", "cliff", "rounded"][which], settings.get("direction", "auto"), settings.get("strength", 1)))
+	_edges_row=_row("Keep the top level and grade its perimeter into clear ground; preview includes transition cost")
+	_label("Edges",_edges_row)
+	_edges=_option(["Sharp","Smooth"],_edges_row,"TerrainEdges")
+	_edges.item_selected.connect(func(which):
+		if not _syncing:sculpt_settings_changed.emit({"smooth_edges":which==1}))
 	_slope_row = _row("Slope direction and strength")
 	var edge := VBoxContainer.new()
 	edge.add_theme_constant_override("separation", 0)
@@ -149,7 +156,10 @@ func configure(value: Dictionary, operation: String) -> void:
 	_top.select(World.Surfaces.TOPS.find(settings.get("surface_top","auto")))
 	_rock.select(World.Surfaces.ROCKS.find(settings.get("surface_rock","brown")))
 	_step_row.visible = operation in ["raise", "lower"]
-	_shape_row.visible = operation in ["raise","lower","shape"]
+	var graded: bool=operation in ["raise","lower"] and settings.get("smooth_edges",false)
+	_shape_row.visible = operation in ["raise","lower","shape"] and not graded
+	_edges_row.visible=operation in ["raise","lower"] and (settings.get("shape","flat")=="flat" or graded)
+	_edges.select(1 if settings.get("smooth_edges",false) else 0)
 	var preset: bool = operation in ["hill","mountain"]
 	_brush_row.visible = not preset
 	_smooth_row.visible = operation=="smooth"

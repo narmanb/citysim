@@ -69,6 +69,7 @@ static func plan(world, indices: Array, operation: String, settings: Dictionary,
 		# Radial Cliff stamps preserve untouched shoulders and zero-weight corners.
 		if operation!="smooth" and shape=="cliff" and int(desired[i])==before.elev: continue
 		var after: Dictionary = before.duplicate(true)
+		after.erase("gradeCorners")
 		after.elev=int(desired[i])
 		after.merge({"terrainShape":"rounded" if operation=="smooth" else shape,"slopeDir":"auto","shapeStrength":1},true)
 		G.retain_foundation(before,after,operation)

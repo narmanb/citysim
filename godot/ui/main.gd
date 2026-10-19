@@ -107,7 +107,7 @@ var _elapsed: float = 0.0
 var _stroke: bool = false
 var _stroke_parcel: int = 0
 var _stroke_tiles: Dictionary = {}
-var terrain_settings: Dictionary = {"radius": 0, "step": 1, "flatten_target": null, "shape": "flat", "direction": "auto", "strength": 1, "smooth_strength": 2, "preset_radius": 2, "hill_peak": 6, "mountain_peak": 12, "profile": 2, "preset_shape": "rounded", "surface_top":"auto","surface_rock":"brown"}
+var terrain_settings: Dictionary = {"radius": 0, "step": 1, "flatten_target": null, "shape": "flat", "direction": "auto", "strength": 1, "smooth_edges": false, "smooth_strength": 2, "preset_radius": 2, "hill_peak": 6, "mountain_peak": 12, "profile": 2, "preset_shape": "rounded", "surface_top":"auto","surface_rock":"brown"}
 var _terrain_panel
 var _terrain_dock: PanelContainer
 var _terrain_centers: Dictionary = {}
@@ -1403,6 +1403,7 @@ func set_terrain_shape(shape: String, direction: String, strength: int) -> bool:
 	if _stroke: end_stroke()
 	view._cancel_pointers()
 	terrain_settings.merge({"shape":shape,"direction":direction,"strength":strength},true)
+	if shape!="flat":terrain_settings.smooth_edges=false
 	_update_terrain_summary()
 	_layout_shell()
 	return true
@@ -1411,6 +1412,8 @@ func set_sculpt_settings(values: Dictionary) -> bool:
 	for key in values:
 		var value = values[key]
 		match key:
+			"smooth_edges":
+				if not value is bool:return false
 			"smooth_strength", "profile":
 				if value not in [1,2,3]: return false
 			"preset_radius":
@@ -1427,6 +1430,7 @@ func set_sculpt_settings(values: Dictionary) -> bool:
 	if _stroke: end_stroke()
 	view._cancel_pointers()
 	terrain_settings.merge(values,true)
+	if terrain_settings.get("smooth_edges",false):terrain_settings.shape="flat"
 	_update_terrain_summary()
 	_layout_shell()
 	return true
@@ -1441,6 +1445,7 @@ func _update_terrain_summary() -> void:
 	if selected_tool not in TerrainEditor.OPERATIONS: return
 	var width: int = int(terrain_settings.preset_radius if selected_tool in ["hill","mountain"] else terrain_settings.radius) * 2 + 1
 	var detail: String = "step %s" % terrain_settings.step
+	if selected_tool in ["raise","lower"] and terrain_settings.get("smooth_edges",false):detail+=" · smooth edges"
 	if selected_tool=="surface":detail="%s top · %s slopes" % [terrain_settings.surface_top,terrain_settings.surface_rock]
 	if selected_tool == "shape": detail = terrain_settings.shape + (" " + terrain_settings.direction if terrain_settings.shape == "slope" else "")
 	if selected_tool == "smooth": detail = ["Gentle","Medium","Strong"][terrain_settings.smooth_strength-1]
@@ -1450,6 +1455,7 @@ func _update_terrain_summary() -> void:
 	_tool_name.tooltip_text = _tool_name.text
 	_status.text = _tool_name.text + (" · Free; colors only. " if selected_tool=="surface" else " · $20 per changed tile. ") + ("Flatten before construction." if (((terrain_settings.shape=="rounded" or (terrain_settings.shape=="slope" and terrain_settings.strength>1)) and selected_tool in ["raise","lower","shape"]) or selected_tool=="smooth" or (selected_tool in ["hill","mountain"] and terrain_settings.preset_shape=="rounded")) else "Gentle slopes support roads and level foundations." if terrain_settings.shape=="slope" else "Flat construction tops.")
 	if selected_tool=="surface":_status.text=_tool_name.text+" · Free; changes colors without changing heights."
+	if selected_tool in ["raise","lower"] and terrain_settings.get("smooth_edges",false):_status.text=_tool_name.text+" · Level top and Gentle perimeter · $20 per changed tile, including edges."
 	_terrain_panel.configure(terrain_settings, selected_tool)
 
 func _stage_terrain(index: int) -> bool:
@@ -1490,7 +1496,11 @@ func _preview_terrain(index: int, centers: Array) -> void:
 	view.terrain_preview = terrain_preview_at(index, centers)
 	if view.terrain_preview.is_empty(): return
 	var p: Dictionary = view.terrain_preview
+	if not p.get("error","").is_empty():
+		_status.text=p.error
+		return
 	_status.text = "%s · %s tiles · %s%s" % [_tool_name.text, p.targets.size(), _money(p.cost), " · insufficient funds; nothing will change" if not p.affordable else ""]
+	if p.has("level_top"):_status.text+=" · level %s · includes transition"%p.level_top
 	if not p.blocked.is_empty(): _status.text += " · %s skipped (%s)" % [p.blocked.size(), _terrain_reasons(p)]
 
 func set_grid_visible(value: bool) -> void:

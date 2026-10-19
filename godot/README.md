@@ -2,6 +2,13 @@
 
 Open `project.godot` with **Godot 4.6.3 standard edition** and press Play. This project runs the city simulation and renders its scene natively with GDScript and Godot 2D. The earlier browser/WebView game is retained separately in the repository.
 
+## Changes in 0.3.14 Smooth Platform Edges
+
+Raise/Lower → Shape Flat → Edges Smooth keeps the edited platform level and
+adds Gentle grading around its perimeter. The preview includes the expanded
+footprint and total cost. Sharp remains the default. Save13 reads valid v6–12.
+See [controls, validation and limits](docs/smooth-edges-0.3.14.md).
+
 ## Changes in 0.3.12 Landscape Rotation
 
 Android uses sensor landscape at startup and after toggling fullscreen. Turning the phone 180 degrees allows the camera cutout on either side; portrait remains excluded. Verify both directions on a phone, including after fullscreen and app resume. Terrain tools and save format 11 are unchanged in this update.

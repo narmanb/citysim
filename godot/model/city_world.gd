@@ -199,6 +199,8 @@ func place(i: int, tool: String, bridge: bool = false, parcel_id: int = 0) -> bo
 		else: t.tree = false
 		_terrain_reflow()
 	elif tool in TERRAIN_TOOLS:
+		if tool in ["raise","lower","river"] and t.has("gradeCorners"):
+			t.erase("gradeCorners");t.terrainShape="flat";t.slopeDir="auto";t.shapeStrength=1
 		if tool == "raise": t.elev = clampi(int(t.elev)+1,MIN_TERRAIN_ELEV,MAX_TERRAIN_ELEV)
 		elif tool == "lower":
 			t.elev = clampi(int(t.elev)-1,MIN_TERRAIN_ELEV,MAX_TERRAIN_ELEV)
@@ -361,7 +363,7 @@ static func _js_round(value: float) -> int:
 	return int(floor(value+0.5))
 
 func serialize() -> Dictionary:
-	return {"version":12,"seed":seed,"tiles":tiles.duplicate(true),"cash":cash,"year":year,"month":month,"tick":tick,"taxes":taxes.duplicate(true),"funding":funding.duplicate(true),"randomDisasters":randomDisasters,"bondMonths":bondMonths,"milestones":milestones.duplicate(true),"messages":messages.duplicate(true),"events":events.duplicate(true),"stats":stats.duplicate(true),"cars":cars.duplicate(true),"trains":trains.duplicate(true),"nextParcelId":nextParcelId}
+	return {"version":13,"seed":seed,"tiles":tiles.duplicate(true),"cash":cash,"year":year,"month":month,"tick":tick,"taxes":taxes.duplicate(true),"funding":funding.duplicate(true),"randomDisasters":randomDisasters,"bondMonths":bondMonths,"milestones":milestones.duplicate(true),"messages":messages.duplicate(true),"events":events.duplicate(true),"stats":stats.duplicate(true),"cars":cars.duplicate(true),"trains":trains.duplicate(true),"nextParcelId":nextParcelId}
 
 static func _finite(value) -> bool:
 	return (value is int or value is float) and is_finite(float(value))
@@ -393,6 +395,7 @@ static func from_dict(data: Dictionary) -> CityWorld:
 		if not q.terrainShape in Geometry.SHAPES or not q.slopeDir in Geometry.DIRECTIONS: return null
 		if not _finite(q.shapeStrength) or float(q.shapeStrength) != floor(float(q.shapeStrength)) or int(q.shapeStrength) not in [1,2,3]: return null
 		q.shapeStrength = int(q.shapeStrength)
+		if not Geometry.valid_grade(q): return null
 		if q.has("roundedBase"):
 			if q.terrainShape!="rounded" or not _finite(q.roundedBase) or float(q.roundedBase)!=floor(float(q.roundedBase)) or q.roundedBase<MIN_TERRAIN_ELEV or q.roundedBase>q.elev: return null
 			q.roundedBase=int(q.roundedBase)
@@ -401,7 +404,7 @@ static func from_dict(data: Dictionary) -> CityWorld:
 			if (q.zone!=null or q.civic!=null) and not q.has("foundationHeight"): return null
 		if q.has("foundationHeight"):
 			if not Civil.gentle(q) or q.slopeDir=="auto" or (q.zone==null and q.civic==null) or q.road or q.rail: return null
-			if not _finite(q.foundationHeight) or absf(float(q.foundationHeight)-minf(MAX_TERRAIN_ELEV,q.elev+.5))>Civil.EPS: return null
+			if not _finite(q.foundationHeight) or absf(float(q.foundationHeight)-Civil.foundation_height([q],0))>Civil.EPS: return null
 		if q.level > 0 and q.zone == null: return null
 		if q.civic != null and q.zone != null: return null
 		if q.autoGrow == null: q.autoGrow = false

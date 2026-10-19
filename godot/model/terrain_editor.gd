@@ -4,6 +4,7 @@ const World = preload("res://model/city_world.gd")
 const Geometry = preload("res://model/terrain_geometry.gd")
 const Sculptor = preload("res://model/terrain_sculptor.gd")
 const Surfaces = preload("res://model/terrain_surfaces.gd")
+const Grader = preload("res://model/terrain_grader.gd")
 const OPERATIONS = ["raise", "lower", "flatten", "shape", "smooth", "hill", "mountain", "surface"]
 
 static func footprint(center: int, radius: int) -> Array:
@@ -30,6 +31,10 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 		return out
 	if not Surfaces.valid_settings(shape_settings):
 		out.error="Unsupported terrain material.";return out
+	if shape_settings.has("smooth_edges") and not shape_settings.smooth_edges is bool:
+		out.error="Unsupported smooth edge setting.";return out
+	if operation in ["raise","lower"] and shape_settings.get("smooth_edges",false):
+		return Grader.plan(world,indices,operation,step,_protected_reason)
 	var seen: Dictionary = {}
 	for value in indices:
 		if not value is int or value < 0 or value >= world.tiles.size() or seen.has(value): continue
@@ -44,8 +49,10 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 		var after: Dictionary = tile.duplicate(true)
 		after.elev = desired
 		if operation == "flatten":
+			after.erase("gradeCorners")
 			after.merge({"terrainShape":"flat","slopeDir":"auto","shapeStrength":1},true)
 		elif shape_settings.has("shape") and (operation == "shape" or desired != int(tile.elev)):
+			after.erase("gradeCorners")
 			if tile.channel and shape_settings.shape != "flat":
 				out.blocked[i] = "Water channel"
 				continue
@@ -53,6 +60,7 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 			after.slopeDir = shape_settings.direction if shape_settings.shape == "slope" else "auto"
 			after.shapeStrength = shape_settings.strength if shape_settings.shape == "slope" else 1
 		Geometry.retain_foundation(tile,after,operation)
+		if operation in ["raise","lower"] and after.has("gradeCorners") and desired!=int(tile.elev):after.erase("gradeCorners")
 		if operation=="surface" or (tile.get("terrainShape","flat")!="rounded" and after.terrainShape=="rounded"): Surfaces.apply(after,shape_settings)
 		if after == tile:
 			out.blocked[i] = "Already at target" if operation in ["flatten","shape","surface"] else "Height limit"
@@ -105,6 +113,10 @@ static func commit(world, proposal: Dictionary) -> Dictionary:
 	for i in proposal.before:
 		if world.tiles[i] != proposal.before[i]:
 			failed.reason = "Terrain changed since the preview; try again."
+			return failed
+	for i in proposal.get("guards",{}):
+		if world.tiles[i]!=proposal.guards[i]:
+			failed.reason="Terrain changed since the preview; try again."
 			return failed
 	var before: Dictionary = proposal.before.duplicate(true)
 	# A dam can dry distant connected channels. Snapshot them once for history;

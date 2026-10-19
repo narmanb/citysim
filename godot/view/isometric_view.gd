@@ -528,7 +528,10 @@ func _draw_terrain_cap(layer,index: int,fill: Color,outline: Color = Color.TRANS
 	if overrides.is_empty():
 		if world.tiles[index].has("foundationHeight"): patches=[_building_points(index)]
 		elif _graded_roads.has(index): patches=[_road_points(index)]
-	if fill.a>0 and patches.size()==1: layer.polygon(patches[0],fill)
+	var explicit_split: bool=Geometry.tile_at(world.tiles,index,overrides).has("gradeCorners") or (overrides.is_empty() and _graded_roads.has(index))
+	if fill.a>0 and patches.size()==1 and explicit_split:
+		for triangle in [[0,1,2],[0,2,3]]:layer.polygon(PackedVector2Array([patches[0][triangle[0]],patches[0][triangle[1]],patches[0][triangle[2]]]),fill)
+	elif fill.a>0 and patches.size()==1: layer.polygon(patches[0],fill)
 	elif fill.a>0:
 		for patch in patches:
 			layer.polygon(PackedVector2Array([patch[0],patch[1],patch[2]]),fill)
@@ -641,7 +644,12 @@ func _surface(layer, name: String, x: float, y: float, elevation: float, left: f
 	if name in TERRAIN_COLOR and world.tiles[index].get("terrainShape","flat")!="rounded" and left==0 and top==0 and width==1 and height==1:
 		var coords := PackedVector2Array([Vector2(64+x,y),Vector2(65+x,y),Vector2(65+x,y+1),Vector2(64+x,y+1)])
 		var color: Color = TerrainMaterial.top_color(world.tiles[index],TERRAIN_COLOR[name]) if name in ["grass","sand"] else TERRAIN_COLOR[name]
-		if name=="water": layer.polygon_colors(_terrain_points(index),Transitions.water_corners(world.tiles,index),texture,coords)
+		if world.tiles[index].has("gradeCorners"):
+			var points: PackedVector2Array=_terrain_points(index)
+			var tints: PackedColorArray=biome_colors if not biome_colors.is_empty() else PackedColorArray([color,color,color,color])
+			for triangle in [[0,1,2],[0,2,3]]:
+				layer.polygon_colors(PackedVector2Array([points[triangle[0]],points[triangle[1]],points[triangle[2]]]),PackedColorArray([tints[triangle[0]],tints[triangle[1]],tints[triangle[2]]]),texture,PackedVector2Array([coords[triangle[0]],coords[triangle[1]],coords[triangle[2]]]))
+		elif name=="water": layer.polygon_colors(_terrain_points(index),Transitions.water_corners(world.tiles,index),texture,coords)
 		elif not biome_colors.is_empty(): layer.polygon_colors(_terrain_points(index),biome_colors,texture,coords)
 		else: layer.polygon(_terrain_points(index),color,texture,coords)
 		return true
@@ -702,6 +710,15 @@ func _sprite(layer, name: String, point: Vector2, span: float = 1.0, lift: float
 	layer.sprite(texture, rect, Rect2(float(sprite.x), float(sprite.y), float(sprite.width), float(sprite.height)), color)
 
 func _terrain_strip_patches(index: int, rect: Rect2) -> Array:
+	if world.tiles[index].has("gradeCorners"):
+		var boundary:=PackedVector2Array([rect.position,Vector2(rect.end.x,rect.position.y),rect.end,Vector2(rect.position.x,rect.end.y)])
+		var strips: Array=[]
+		for triangle in [PackedVector2Array([Vector2.ZERO,Vector2.RIGHT,Vector2.ONE]),PackedVector2Array([Vector2.ZERO,Vector2.ONE,Vector2.DOWN])]:
+			for clipped in Geometry2D.intersect_polygons(triangle,boundary):
+				var points:=PackedVector2Array()
+				for uv in clipped:points.append(_point(index%N+uv.x,int(index/N)+uv.y,Geometry.sample(world.tiles,index,uv.x,uv.y)))
+				strips.append(points)
+		return strips
 	if world.tiles[index].get("terrainShape","flat")!="rounded":
 		return [_terrain_points(index,rect.position.x,rect.position.y,rect.size.x,rect.size.y)]
 	# Clip in tile UV space, then interpolate on the exact rendered triangles.
