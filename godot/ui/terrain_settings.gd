@@ -63,6 +63,7 @@ func _ready() -> void:
 	_target_level.min_value = World.MIN_TERRAIN_ELEV
 	_target_level.max_value = World.MAX_TERRAIN_ELEV
 	_target_level.step = 1
+	_live_integer(_target_level)
 	_target_level.custom_minimum_size = Vector2(76, 32)
 	_target_level.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_height_row.add_child(_target_level)
@@ -110,6 +111,7 @@ func _ready() -> void:
 	_peak = SpinBox.new()
 	_peak.name="PresetPeak"
 	_peak.min_value=World.MIN_TERRAIN_ELEV;_peak.max_value=World.MAX_TERRAIN_ELEV;_peak.step=1
+	_live_integer(_peak)
 	_peak.custom_minimum_size=Vector2(76,32);_peak.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	peak_row.add_child(_peak)
 	_peak.value_changed.connect(func(value):
@@ -168,6 +170,18 @@ func configure(value: Dictionary, operation: String) -> void:
 	_target_mode.select(0 if settings.flatten_target == null else 1)
 	if settings.flatten_target != null: _target_level.value = settings.flatten_target
 	_syncing = false
+
+# Keep complete typed heights authoritative before a map tap, while allowing
+# incomplete negative input ("-") to remain editable until its digit arrives.
+func _live_integer(spin: SpinBox) -> void:
+	var edit: LineEdit = spin.get_line_edit()
+	edit.text_changed.connect(func(text: String):
+		if _syncing or not text.is_valid_int(): return
+		var value: int = clampi(text.to_int(),int(spin.min_value),int(spin.max_value))
+		if text.to_int()!=value:
+			edit.text=str(value)
+			edit.caret_column=edit.text.length()
+		spin.value=value)
 
 func _row(description: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
