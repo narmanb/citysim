@@ -4,6 +4,14 @@ For MetroForge Godot **0.3.14 or newer**. This is a 52×52 playable city save,
 format 13, using the new Smooth edges geometry. Earlier APKs do not interpret
 its graded corners correctly.
 
+## Open landscape revision
+
+Vegetation is deliberately sparse: **159 trees instead of 776**. Pond Woods,
+around the western upland pond, holds 105 of those trees including its fringe;
+only 54 trees are scattered across the rest of the map. Terrain, buildings, roads,
+utilities, cash and every other saved city field are unchanged. This distribution
+keeps one forest area while leaving the land around both settlements open.
+
 ## Import
 
 1. Export your current city if you want to keep it.
@@ -28,9 +36,9 @@ the README and PNG files are guides/previews. Do not import the ZIP itself.
 - **Transport:** a connected road network, a two-cell river bridge with dry
   landings, a lower-city rail loop and four stations. The save has 70 cars and
   two trains; it uses the existing road/rail simulation and assets.
-- **High country:** snowy/rocky peaks and forested foothills, with the highest
+- **High country:** snowy/rocky peaks and mostly open foothills, with the highest
   terrain reference at +30. There are 61 tiles at +20 or higher.
-- **Water:** a large irregular lake with a wooded island, a northern river with
+- **Water:** a large irregular lake with a small island, a northern river with
   negative channel beds, an elevated forest pond, beaches and low grassy banks.
   The eastern lake also has higher rocky cliff banks.
 - **Dry country:** sandstone mesas, dunes, stepped cliffs, exposed Medium/Steep
@@ -39,7 +47,7 @@ the README and PNG files are guides/previews. Do not import the ZIP itself.
 - **Materials:** grass/biome, sand, rock and snow caps; brown, gray, sandy and
   grassy slopes. Original game artwork is used throughout.
 
-Across 2,704 cells: 329 water, 776 trees, 691 Rounded terrain, 120 marked Cliffs,
+Across 2,704 cells: 329 water, 159 trees, 691 Rounded terrain, 120 marked Cliffs,
 544 Gentle graded cells and 22 Medium/Steep slope cells. There are 18 level
 foundation records. Flat land is concentrated around settlements, clearings,
 shores and the deliberately flat desert terraces.

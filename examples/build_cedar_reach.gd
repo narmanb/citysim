@@ -236,6 +236,18 @@ func connect_civics():
   check(found>=0,"Civic connects to the network "+str(start))
   while found>=0 and found!=start:
    var q=city.tiles[found];q.line=true;q.pipe=true;q.tree=false;found=seen[found]
+func thin_trees():
+ # One defined forest around the western upland pond; open ground elsewhere.
+ for i in range(W.COUNT):
+  var q=city.tiles[i]
+  var x=i%52;var y=int(i/52)
+  var garden=q.tree and ((x in range(12,29) and y in range(12,33)) or (x in range(35,48) and y in range(42,51)))
+  q.tree=false
+  if q.terrain=="water" or q.biome=="desert" or q.elev>=15 or q.zone or q.civic or q.road or q.rail or q.line:continue
+  var distance=pow((x-4.)/5.8,2)+pow((y-23.)/8.5,2)
+  var density=.64 if distance<1. else .18 if distance<1.45 else .045
+  if garden:density=.35
+  q.tree=W._hash(x,y,city.seed+43)<density
 func verify(c,label:String):
  check(c!=null,label+" imports")
  if c==null:return
@@ -273,6 +285,7 @@ func run():
  for r in range(3):city.recalculate()
  for m in range(24):city.step()
  for r in range(90):city.advance_agents(.6)
+ thin_trees()
  city.recalculate();city.events.clear();city.messages.clear();city.milestones=[500,1000,2500]
  city.notify("Cedar Reach: terraced city, Lakeside village, snowy range, river bridge, forest lake, sandstone mesas and a dry quarry.","good")
  city.notify("Explore the lower city rail loop and gentle valley road; try Smooth edges on the wooded clearings.")
