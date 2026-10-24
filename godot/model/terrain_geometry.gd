@@ -2,7 +2,7 @@ extends RefCounted
 ## Shared deterministic map-space surface contract. No world/UI dependencies.
 const N = 52
 const MIN_HEIGHT = -5
-const MAX_HEIGHT = 30
+const MAX_HEIGHT = 40
 const SHAPES = ["flat", "slope", "cliff", "rounded"]
 const DIRECTIONS = ["auto", "N", "E", "S", "W"]
 

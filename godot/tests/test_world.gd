@@ -244,7 +244,7 @@ func run():
 	invalid_import.tiles[0].line = true
 	invalid_import.tiles[1].civic = "plant"
 	check(WorldModel.from_dict(invalid_import) == null, "developed tile without zoning is rejected before utility calculation")
-	for elevation in [-6, 31, 99, 0.5, "3"]:
+	for elevation in [-6, 41, 99, 0.5, "3"]:
 		invalid_import = valid_import.duplicate(true)
 		invalid_import.tiles[0].elev = elevation
 		check(WorldModel.from_dict(invalid_import) == null, "unsupported/noninteger elevation rejected: " + str(elevation))

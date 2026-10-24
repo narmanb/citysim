@@ -2,6 +2,11 @@
 
 Open `project.godot` with **Godot 4.6.3 standard edition** and press Play. This project runs the city simulation and renders its scene natively with GDScript and Godot 2D. The earlier browser/WebView game is retained separately in the repository.
 
+## Changes in 0.3.16 Peak Picker and Height 40
+
+Peak opens a popup of ten numbered presets plus custom entry with Apply/Cancel.
+All terrain tools share the maximum40. See [controls, saves and tests](docs/peak-picker-0.3.16.md).
+
 ## Changes in 0.3.15 Mountain Peak Fix
 
 New rounded Hill/Mountain presets reach the selected visible summit on clear

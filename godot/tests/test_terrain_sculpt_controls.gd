@@ -40,7 +40,7 @@ func run():
 			game.select_category("Terraform");await process_frame;await process_frame
 			check(game._tool_menu.get_global_rect().end.x+4<=dock.get_global_rect().position.x,"Expanded tools fit beside sculpt controls "+tool+str(dimensions)+str(game._tool_menu.get_global_rect())+str(dock.get_global_rect()))
 	game.choose_tool("hill")
-	game._terrain_panel._peak.value=7
+	game._terrain_panel._peak_button.pressed.emit();game._terrain_panel._peak.value=7;game._terrain_panel._peak_popup.confirmed.emit()
 	game._terrain_panel._preset_size.select(2);game._terrain_panel._preset_size.item_selected.emit(2)
 	check(game.terrain_settings.hill_peak==7 and game.terrain_settings.preset_radius==4,"Preset Peak/Size controls update session")
 	game.choose_tool("mountain");game.set_placement_mode("paint")
@@ -52,11 +52,11 @@ func run():
 	check(not game.view.terrain_preview.is_empty() and w.cash==cash,"Preset native down previews only")
 	touch(game.view,1,at+Vector2(40,0),true);touch(game.view,1,at+Vector2(40,0),false);touch(game.view,0,at,false)
 	check(w.cash==cash,"Preset pinch cancels all pending spending")
-	game.choose_tool("mountain");game._terrain_panel._peak.value=30
-	check(game.terrain_settings.mountain_peak==30,"Native peak control reaches30")
-	check(not game.set_sculpt_settings({"mountain_peak":31}),"Peak above30 rejected")
+	game.choose_tool("mountain");game._terrain_panel._peak_button.pressed.emit();game._terrain_panel._peak.value=40;game._terrain_panel._peak_popup.confirmed.emit()
+	check(game.terrain_settings.mountain_peak==40,"Native peak control reaches40")
+	check(not game.set_sculpt_settings({"mountain_peak":41}),"Peak above40 rejected")
 	var tall=game.terrain_preview_at(40*52+40,[40*52+40])
-	check(tall.after.has(40*52+40) and tall.after[40*52+40].elev==30,"New large mountain preview reaches reference30")
+	check(tall.after.has(40*52+40) and tall.after[40*52+40].elev==40,"New large mountain preview reaches reference40")
 	game.queue_free();await process_frame
 	for message in failures: push_error(message)
 	print("Sculpt controls: %d checks, %d failures"%[checks,failures.size()])

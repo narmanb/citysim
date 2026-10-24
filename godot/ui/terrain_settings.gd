@@ -20,6 +20,9 @@ var _smooth_row: HBoxContainer
 var _smooth_strength: OptionButton
 var _preset_rows: Array = []
 var _preset_size: OptionButton
+var _peak_button: Button
+var _peak_popup: ConfirmationDialog
+var _peak_operation: String
 var _peak: SpinBox
 var _preset_shape: OptionButton
 var _profile: OptionButton
@@ -115,14 +118,40 @@ func _ready() -> void:
 	var peak_row := _row("Absolute summit elevation, not height added. Higher existing ground is preserved.")
 	_preset_rows.append(peak_row)
 	_label("Peak",peak_row)
-	_peak = SpinBox.new()
-	_peak.name="PresetPeak"
+	_peak_button=Button.new()
+	_peak_button.name="PeakPickerButton"
+	_peak_button.custom_minimum_size=Vector2(76,32)
+	_peak_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	_peak_button.pressed.connect(_show_peak_picker)
+	peak_row.add_child(_peak_button)
+	_peak_popup=ConfirmationDialog.new()
+	_peak_popup.name="PeakPicker"
+	_peak_popup.title="Choose peak elevation"
+	_peak_popup.ok_button_text="Apply custom"
+	add_child(_peak_popup)
+	var choices:=VBoxContainer.new()
+	choices.add_theme_constant_override("separation",8)
+	_peak_popup.add_child(choices)
+	var hint:=Label.new();hint.text="Absolute elevation · maximum 40"
+	choices.add_child(hint)
+	var grid:=GridContainer.new();grid.columns=5
+	choices.add_child(grid)
+	for height in [1,4,8,12,16,20,25,30,35,40]:
+		var choice:=Button.new();choice.text=str(height);choice.name="PeakPreset"+str(height)
+		choice.custom_minimum_size=Vector2(48,44)
+		choice.pressed.connect(func():
+			_peak_popup.hide()
+			sculpt_settings_changed.emit({_peak_operation+"_peak":height}))
+		grid.add_child(choice)
+	var custom:=HBoxContainer.new();choices.add_child(custom)
+	_label("Custom",custom)
+	_peak=SpinBox.new();_peak.name="PresetPeak"
 	_peak.min_value=World.MIN_TERRAIN_ELEV;_peak.max_value=World.MAX_TERRAIN_ELEV;_peak.step=1
-	_live_integer(_peak)
-	_peak.custom_minimum_size=Vector2(76,32);_peak.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	peak_row.add_child(_peak)
-	_peak.value_changed.connect(func(value):
-		if not _syncing: sculpt_settings_changed.emit({_operation+"_peak":int(value)}))
+	_peak.custom_minimum_size=Vector2(120,44);_peak.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	_live_integer(_peak);custom.add_child(_peak)
+	_peak_popup.confirmed.connect(func():
+		_peak_popup.hide()
+		sculpt_settings_changed.emit({_peak_operation+"_peak":int(_peak.value)}))
 	var preset_shape_row := _row("Preset terrain shape")
 	_preset_rows.append(preset_shape_row)
 	_label("Shape",preset_shape_row)
@@ -147,6 +176,11 @@ func _ready() -> void:
 		if not _syncing:sculpt_settings_changed.emit({"surface_rock":World.Surfaces.ROCKS[which]}))
 	configure(settings, "raise")
 
+func _show_peak_picker() -> void:
+	_peak_operation=_operation
+	_peak.value=settings.get(_operation+"_peak",12 if _operation=="mountain" else 6)
+	_peak_popup.popup_centered(Vector2i(300,220))
+
 func configure(value: Dictionary, operation: String) -> void:
 	settings = value.duplicate()
 	_operation = operation
@@ -168,7 +202,8 @@ func configure(value: Dictionary, operation: String) -> void:
 	_preset_size.select([1,2,4].find(settings.get("preset_radius",2)))
 	_profile.select(settings.get("profile",2)-1)
 	_preset_shape.select(1 if settings.get("preset_shape","rounded")=="cliff" else 0)
-	if preset: _peak.value=settings.get(operation+"_peak",12 if operation=="mountain" else 6)
+	if preset: _peak_button.text=str(settings.get(operation+"_peak",12 if operation=="mountain" else 6))+" ▾"
+	if _peak_popup.visible and (not preset or operation!=_peak_operation):_peak_popup.hide()
 	_slope_row.visible = operation in ["raise","lower","shape"] and settings.get("shape", "flat") == "slope"
 	_shape.select(["flat", "slope", "cliff", "rounded"].find(settings.get("shape", "flat")))
 	_direction.select(["auto", "N", "E", "S", "W"].find(settings.get("direction", "auto")))

@@ -69,13 +69,13 @@ func run():
 	var stale_state=w.serialize()
 	check(not E.commit(w,p).changed and w.serialize()==stale_state,"Stale unchanged terrain dependency rejects atomically")
 	w=blank()
-	for tile in w.tiles:tile.elev=30
-	w.tiles[c].elev=29
+	for tile in w.tiles:tile.elev=40
+	w.tiles[c].elev=39
 	p=E.plan(w,[c,0],"raise",1,null,{"smooth_edges":true})
-	w.tiles[0].elev=29;stale_state=w.serialize()
+	w.tiles[0].elev=39;stale_state=w.serialize()
 	check(not E.commit(w,p).changed and w.serialize()==stale_state,"Distant unchanged selected core is guarded")
 	w=blank()
-	for i in E.footprint(c,1):w.tiles[i].elev=30
+	for i in E.footprint(c,1):w.tiles[i].elev=40
 	p=E.plan(w,[c],"raise",1,null,{"smooth_edges":true})
 	check(p.cost==0 and not E.commit(w,p).changed,"Maximum bound is free")
 	w=blank();p=E.plan(w,[c,c+1,c+52,c],"raise",1,null,{"smooth_edges":true})

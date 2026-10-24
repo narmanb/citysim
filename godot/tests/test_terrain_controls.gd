@@ -57,10 +57,10 @@ func run():
     check(game.construct_at(center) and w.tiles[center-53].elev==3 and w.tiles[center+53].elev==3,"Flatten samples first touched tile height")
     game.set_terrain_settings(0,1,-5)
     check(game.construct_at(center) and w.tiles[center].elev==-5,"Explicit Flatten target supports -5")
-    game.set_terrain_settings(0,1,30);game.construct_at(center);game.clear_history();game.choose_tool("raise")
+    game.set_terrain_settings(0,1,40);game.construct_at(center);game.clear_history();game.choose_tool("raise")
     var cash=w.cash
     check(not game.construct_at(center) and w.cash==cash and game.history.undo_stack.is_empty(),"Bound no-op makes no controller history")
-    check(not game.set_terrain_settings(3,1) and not game.set_terrain_settings(0,3) and not game.set_terrain_settings(0,1,31),"Invalid UI settings reject")
+    check(not game.set_terrain_settings(3,1) and not game.set_terrain_settings(0,3) and not game.set_terrain_settings(0,1,41),"Invalid UI settings reject")
     # Actual native touch stream: preview on down, cancel/pinch free, release commits.
     w=blank();game.set_world(w);game.choose_tool("raise");game.set_terrain_settings(1,1);game.set_placement_mode("paint")
     await process_frame;await process_frame

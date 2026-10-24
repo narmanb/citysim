@@ -50,11 +50,11 @@ const TOOL_HELP: Dictionary = {
 	"pump": "Power this pump. Waterfront capacity: 520; inland well: 286. Connect pipes to zones.",
 	"tower": "Stores up to 180 surplus water. Join a powered pump by pipe; towers do not create water.",
 	"bulldoze": "Remove one layer at a time: fire, building, zoning, road, rail, line, pipe or tree.",
-	"raise": "Raise natural terrain one step. Hills can reach elevation +30.",
+	"raise": "Raise natural terrain one step. Hills can reach elevation +40.",
 	"lower": "Lower natural terrain one step. Basins can reach elevation −5.",
 	"smooth": "Soften natural land with a bounded Rounded brush. Cliffs, water, buildings and infrastructure are protected.",
 	"hill": "Create a rounded hill with Size, absolute Peak and Profile in the right panel. Each stroke previews its full cost.",
-	"mountain": "Create a larger peak up to +30. Choose Rounded or Cliff and adjust its profile. Protected land stays unchanged.",
+	"mountain": "Create a larger peak up to +40. Choose Rounded or Cliff and adjust its profile. Protected land stays unchanged.",
 	"shape": "Shape natural ground as Flat, Sloped, Rounded or Cliff. Gentle slopes support roads and level foundations; Flatten steeper or Rounded ground before construction.",
 	"flatten": "Flatten natural ground to the first touched tile or a chosen height. Protected cells stay unchanged.",
 	"river": "Dig a channel. It fills only when connected to existing water.",
@@ -86,7 +86,7 @@ Undo and Redo restore a whole construction stroke and its cost. The city clock a
 Roads and rails can bridge up to eight water tiles with dry land at both ends. Trains need two stations on a connected line. Events contains disasters, fire dispatch and the city message log. Random disasters are optional.
 
 TERRAFORM TERRAIN
-Raise/Lower reaches −5 to +30. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Select a height/shape tool to keep its settings at the right of the map, even after the tool menu closes. Flatten uses the first touched tile or Set height. Preview shows cost and skipped cells; each changed cell costs $20. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Shape terrain makes Flat, Sloped, Rounded or Cliff caps. Sloped uses Auto or N/E/S/W (the high edge), with Gentle/Medium/Steep strength independent of height step. Auto needs neighboring height differences; manual directions work on level ground. Gentle directional slopes support roads and level building foundations. Smooth softens eligible land with Gentle/Medium/Strong strength while preserving marked Cliffs, water and construction. Hill/Mountain offers Size3/5/9, an absolute Peak and Broad/Balanced/Sharp profile. Each brush is one previewed transaction and Undo. Rounded and steeper slopes need Flatten before construction.
+Raise/Lower reaches −5 to +40. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Select a height/shape tool to keep its settings at the right of the map, even after the tool menu closes. Flatten uses the first touched tile or Set height. Preview shows cost and skipped cells; each changed cell costs $20. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Shape terrain makes Flat, Sloped, Rounded or Cliff caps. Sloped uses Auto or N/E/S/W (the high edge), with Gentle/Medium/Steep strength independent of height step. Auto needs neighboring height differences; manual directions work on level ground. Gentle directional slopes support roads and level building foundations. Smooth softens eligible land with Gentle/Medium/Strong strength while preserving marked Cliffs, water and construction. Hill/Mountain offers Size3/5/9, an absolute Peak and Broad/Balanced/Sharp profile. Each brush is one previewed transaction and Undo. Rounded and steeper slopes need Flatten before construction.
 
 9. KEEP YOUR CITY
 Your last city reopens automatically. The game checkpoints periodically and when backgrounded. Save writes a separate manual city in this app. Export makes a complete compatible JSON copy for backup or transfer. Import accepts JSON exported by the earlier MetroForge game. Use the native file picker or the copy/paste JSON fallback. Saves from the old Android app are transferred by exporting there and importing here.

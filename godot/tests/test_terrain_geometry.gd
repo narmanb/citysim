@@ -18,9 +18,9 @@ func run():
 		var expected = {"N":[1.,1.,-1.,-1.], "E":[-1.,1.,1.,-1.], "S":[-1.,-1.,1.,1.], "W":[1.,-1.,-1.,1.]}
 		check(Array(G.corners(w.tiles,c)) == expected[direction], "Correct high edge " + direction)
 		check(G.sample(w.tiles,c,.5,.5) == 0, "Surface center matches reference")
-		for elevation in [-5,30]:
+		for elevation in [-5,40]:
 			w.tiles[c].elev = elevation
-			for height in G.corners(w.tiles,c): check(height >= -5 and height <= 30, "Clamped real corners")
+			for height in G.corners(w.tiles,c): check(height >= -5 and height <= 40, "Clamped real corners")
 		w.tiles[c].elev = 0
 	w.tiles[c].slopeDir = "auto"
 	w.tiles[c+1].elev = 2
