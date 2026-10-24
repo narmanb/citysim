@@ -41,7 +41,7 @@ static func _direction(h: PackedFloat64Array) -> String:
 	if absf(x)>=absf(y):return "E" if x>=0 else "W"
 	return "S" if y>=0 else "N"
 
-static func plan(world,indices: Array,operation: String,step: int,protection: Callable) -> Dictionary:
+static func plan(world,indices: Array,operation: String,step: int,protection: Callable,price: float) -> Dictionary:
 	var out: Dictionary={"before":{},"after":{},"targets":{},"blocked":{},"cost":0.,"affordable":true,"error":"","core_count":0,"level_top":0,"vertices_visited":0}
 	var core: Dictionary={}
 	var old: Dictionary={}
@@ -152,6 +152,6 @@ static func plan(world,indices: Array,operation: String,step: int,protection: Ca
 			for xx in range(maxi(0,i%N-4),mini(N,i%N+5)):
 				var j: int=yy*N+xx
 				if not out.after.has(j) and not out.guards.has(j):out.guards[j]=world.tiles[j].duplicate(true)
-	out.cost=out.after.size()*20.
-	out.affordable=world.cash>=out.cost
+	out.cost=out.after.size()*price
+	out.affordable=out.cost<=0 or world.cash>=out.cost
 	return out

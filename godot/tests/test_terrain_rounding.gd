@@ -58,14 +58,15 @@ func run():
 		w=blank();settings.peak=6 if op=="hill" else 12
 		p=E.plan.call(w,[],op,1,null,settings,[c])
 		check(p.after.has(c) and p.after[c].elev==settings.peak,"Preset reaches selected reference peak " + op)
-		check(p.cost==p.after.size()*20 and p.after.size()<=25,"Preset charges unique footprint cells")
+		check(p.cost==0 and p.after.size()<=25,"Free preset changes only its unique footprint cells")
 		var retraced=E.plan.call(w,[],op,1,null,settings,[c,c,c])
 		check(retraced.after==p.after and retraced.cost==p.cost,"Retraced preset stamps never accumulate")
 		check(p.after[c].elev>=p.after.get(c+1,W.blank_tile()).elev,"Radial peak falls outward")
 		for i in p.after: check(p.after[i].elev>=0 and p.after[i].elev<=12,"Preset bounded")
-		var cash=w.cash;w.cash=1
-		check(not E.commit(w,p).changed and w.tiles[c].elev==0,"Unaffordable preset atomic")
-		w.cash=cash;w.recalculate()
+		w.tiles[c].tree=true
+		var stale_state=w.serialize()
+		check(not E.commit(w,p).changed and w.serialize()==stale_state,"Stale preset rejects atomically")
+		w.tiles[c].tree=false;w.recalculate()
 		var preset_before=S.export_json(w)
 		result=E.commit(w,p)
 		var preset_after=S.export_json(w)
@@ -96,7 +97,7 @@ func run():
 	var raised=0
 	for i in p.after:
 		if p.after[i].elev>w.tiles[i].elev: raised+=1
-	check(p.cost==raised*20,"Cliff preset charges only actually raised cells")
+	check(p.cost==0 and raised==p.after.size(),"Free Cliff preset changes only actually raised cells")
 	w=blank()
 	for i in range(W.COUNT): w.tiles[i]=W.blank_tile("water")
 	for i in [c,c+1,c+52,c+53]: w.tiles[i].merge({"terrain":"grass","elev":4,"terrainShape":"rounded"},true)

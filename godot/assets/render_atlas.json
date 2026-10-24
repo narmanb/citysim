@@ -3,7 +3,7 @@
 	"file": "assets/render_atlas.png",
 	"height": 2048,
 	"padding": 2,
-	"sha256": "b323eafea82e09dd50a6f089b6e6f8357c22704a458a4a6cc539883dfd09e55d",
+	"sha256": "1b1545430f72ccba8064fe594f4f2607da827a9eae27d49adbd4a56a2d93eec0",
 	"source_manifest_sha256": "e3ac0d47f0f090dbab93e28600f32c49cab410bed215a17202efabf9ebfeb139",
 	"sprites": {
 		"asphalt": {
@@ -1346,6 +1346,46 @@
 			"x": 723,
 			"y": 1146
 		},
+		"carNED": {
+			"anchor": {
+				"x": 15.5,
+				"y": 21
+			},
+			"derivation": "original",
+			"height": 22,
+			"source": "taxi_NED.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				205,
+				151,
+				31,
+				22
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 31,
+			"x": 759,
+			"y": 1146
+		},
+		"carNEU": {
+			"anchor": {
+				"x": 16.5,
+				"y": 29
+			},
+			"derivation": "original",
+			"height": 30,
+			"source": "taxi_NEU.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				140,
+				133,
+				33,
+				30
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 33,
+			"x": 794,
+			"y": 1146
+		},
 		"carNW": {
 			"anchor": {
 				"x": 16.0,
@@ -1353,7 +1393,47 @@
 			},
 			"height": 25.0,
 			"width": 32.0,
-			"x": 759,
+			"x": 831,
+			"y": 1146
+		},
+		"carNWD": {
+			"anchor": {
+				"x": 16.0,
+				"y": 21
+			},
+			"derivation": "original",
+			"height": 22,
+			"source": "taxi_NWD.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				173,
+				138,
+				32,
+				22
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 32,
+			"x": 867,
+			"y": 1146
+		},
+		"carNWU": {
+			"anchor": {
+				"x": 16.5,
+				"y": 29
+			},
+			"derivation": "original",
+			"height": 30,
+			"source": "taxi_NWU.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				140,
+				163,
+				33,
+				30
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 33,
+			"x": 903,
 			"y": 1146
 		},
 		"carSE": {
@@ -1363,8 +1443,48 @@
 			},
 			"height": 26.0,
 			"width": 32.0,
-			"x": 795,
+			"x": 940,
 			"y": 1146
+		},
+		"carSED": {
+			"anchor": {
+				"x": 16.0,
+				"y": 29
+			},
+			"derivation": "original",
+			"height": 30,
+			"source": "taxi_SED.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				173,
+				76,
+				32,
+				30
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 32,
+			"x": 976,
+			"y": 1146
+		},
+		"carSEU": {
+			"anchor": {
+				"x": 16.5,
+				"y": 22
+			},
+			"derivation": "original",
+			"height": 23,
+			"source": "taxi_SEU.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				140,
+				110,
+				33,
+				23
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 33,
+			"x": 2,
+			"y": 1213
 		},
 		"carSW": {
 			"anchor": {
@@ -1373,8 +1493,48 @@
 			},
 			"height": 26.0,
 			"width": 32.0,
-			"x": 831,
-			"y": 1146
+			"x": 39,
+			"y": 1213
+		},
+		"carSWD": {
+			"anchor": {
+				"x": 15.5,
+				"y": 30
+			},
+			"derivation": "original",
+			"height": 31,
+			"source": "taxi_SWD.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				205,
+				97,
+				31,
+				31
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 31,
+			"x": 75,
+			"y": 1213
+		},
+		"carSWU": {
+			"anchor": {
+				"x": 16.0,
+				"y": 21
+			},
+			"derivation": "original",
+			"height": 22,
+			"source": "taxi_SWU.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				204,
+				213,
+				32,
+				22
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 32,
+			"x": 110,
+			"y": 1213
 		},
 		"dirt": {
 			"anchor": {
@@ -1383,8 +1543,8 @@
 			},
 			"height": 83.0,
 			"width": 132.0,
-			"x": 867,
-			"y": 1146
+			"x": 146,
+			"y": 1213
 		},
 		"flatRoof": {
 			"anchor": {
@@ -1393,8 +1553,8 @@
 			},
 			"height": 54.0,
 			"width": 99.0,
-			"x": 2,
-			"y": 1233
+			"x": 282,
+			"y": 1213
 		},
 		"grass": {
 			"anchor": {
@@ -1403,8 +1563,8 @@
 			},
 			"height": 99.0,
 			"width": 132.0,
-			"x": 105,
-			"y": 1233
+			"x": 385,
+			"y": 1213
 		},
 		"house": {
 			"anchor": {
@@ -1413,8 +1573,8 @@
 			},
 			"height": 85.0,
 			"width": 99.0,
-			"x": 241,
-			"y": 1233
+			"x": 521,
+			"y": 1213
 		},
 		"houseBeige": {
 			"anchor": {
@@ -1423,8 +1583,8 @@
 			},
 			"height": 85.0,
 			"width": 99.0,
-			"x": 344,
-			"y": 1233
+			"x": 624,
+			"y": 1213
 		},
 		"industry": {
 			"anchor": {
@@ -1433,8 +1593,8 @@
 			},
 			"height": 85.0,
 			"width": 99.0,
-			"x": 447,
-			"y": 1233
+			"x": 727,
+			"y": 1213
 		},
 		"office": {
 			"anchor": {
@@ -1443,8 +1603,288 @@
 			},
 			"height": 85.0,
 			"width": 99.0,
-			"x": 550,
-			"y": 1233
+			"x": 830,
+			"y": 1213
+		},
+		"park_garden": {
+			"anchor": {
+				"x": 66.0,
+				"y": 46
+			},
+			"derivation": "remove base below original cap; trim transparent rows leaving two",
+			"height": 82,
+			"source": "cityTiles_067.png",
+			"source_atlas": "city",
+			"source_rect": [
+				397,
+				1803,
+				132,
+				113
+			],
+			"source_xml_sha256": "843f7b8a1026bc15088c98782bfea7081947c77c507a74ebc4d9305fcfdfdd0c",
+			"width": 132,
+			"x": 2,
+			"y": 1316
+		},
+		"park_plaza": {
+			"anchor": {
+				"x": 66.0,
+				"y": 34
+			},
+			"derivation": "remove base below original cap; trim transparent rows leaving two",
+			"height": 70,
+			"source": "cityTiles_051.png",
+			"source_atlas": "city",
+			"source_rect": [
+				529,
+				1520,
+				132,
+				101
+			],
+			"source_xml_sha256": "843f7b8a1026bc15088c98782bfea7081947c77c507a74ebc4d9305fcfdfdd0c",
+			"width": 132,
+			"x": 138,
+			"y": 1316
+		},
+		"parked_ambulanceNE": {
+			"anchor": {
+				"x": 17.5,
+				"y": 30
+			},
+			"derivation": "original",
+			"height": 31,
+			"source": "ambulance_NE.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				37,
+				178,
+				35,
+				31
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 35,
+			"x": 274,
+			"y": 1316
+		},
+		"parked_ambulanceNW": {
+			"anchor": {
+				"x": 17.5,
+				"y": 30
+			},
+			"derivation": "original",
+			"height": 31,
+			"source": "ambulance_NW.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				37,
+				119,
+				35,
+				31
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 35,
+			"x": 313,
+			"y": 1316
+		},
+		"parked_ambulanceSE": {
+			"anchor": {
+				"x": 17.5,
+				"y": 34
+			},
+			"derivation": "original",
+			"height": 35,
+			"source": "ambulance_SE.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				38,
+				36,
+				35,
+				35
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 35,
+			"x": 352,
+			"y": 1316
+		},
+		"parked_ambulanceSW": {
+			"anchor": {
+				"x": 17.5,
+				"y": 35
+			},
+			"derivation": "original",
+			"height": 36,
+			"source": "ambulance_SW.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				38,
+				0,
+				35,
+				36
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 35,
+			"x": 391,
+			"y": 1316
+		},
+		"parked_garbageNE": {
+			"anchor": {
+				"x": 17.5,
+				"y": 30
+			},
+			"derivation": "original",
+			"height": 31,
+			"source": "garbage_NE.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				72,
+				177,
+				35,
+				31
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 35,
+			"x": 430,
+			"y": 1316
+		},
+		"parked_garbageNW": {
+			"anchor": {
+				"x": 17.5,
+				"y": 31
+			},
+			"derivation": "original",
+			"height": 32,
+			"source": "garbage_NW.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				37,
+				209,
+				35,
+				32
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 35,
+			"x": 469,
+			"y": 1316
+		},
+		"parked_garbageSE": {
+			"anchor": {
+				"x": 17.5,
+				"y": 32
+			},
+			"derivation": "original",
+			"height": 33,
+			"source": "garbage_SE.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				72,
+				144,
+				35,
+				33
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 35,
+			"x": 508,
+			"y": 1316
+		},
+		"parked_garbageSW": {
+			"anchor": {
+				"x": 17.5,
+				"y": 32
+			},
+			"derivation": "original",
+			"height": 33,
+			"source": "garbage_SW.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				72,
+				111,
+				35,
+				33
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 35,
+			"x": 547,
+			"y": 1316
+		},
+		"parked_policeNE": {
+			"anchor": {
+				"x": 16.0,
+				"y": 25
+			},
+			"derivation": "original",
+			"height": 26,
+			"source": "police_NE.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				173,
+				50,
+				32,
+				26
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 32,
+			"x": 586,
+			"y": 1316
+		},
+		"parked_policeNW": {
+			"anchor": {
+				"x": 16.0,
+				"y": 26
+			},
+			"derivation": "original",
+			"height": 27,
+			"source": "police_NW.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				173,
+				0,
+				32,
+				27
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 32,
+			"x": 622,
+			"y": 1316
+		},
+		"parked_policeSE": {
+			"anchor": {
+				"x": 16.0,
+				"y": 26
+			},
+			"derivation": "original",
+			"height": 27,
+			"source": "police_SE.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				173,
+				186,
+				32,
+				27
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 32,
+			"x": 658,
+			"y": 1316
+		},
+		"parked_policeSW": {
+			"anchor": {
+				"x": 16.5,
+				"y": 26
+			},
+			"derivation": "original",
+			"height": 27,
+			"source": "police_SW.png",
+			"source_atlas": "vehicles",
+			"source_rect": [
+				107,
+				24,
+				33,
+				27
+			],
+			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
+			"width": 33,
+			"x": 694,
+			"y": 1316
 		},
 		"pavement": {
 			"anchor": {
@@ -1453,8 +1893,8 @@
 			},
 			"height": 101.0,
 			"width": 132.0,
-			"x": 653,
-			"y": 1233
+			"x": 731,
+			"y": 1316
 		},
 		"roof": {
 			"anchor": {
@@ -1463,8 +1903,8 @@
 			},
 			"height": 61.0,
 			"width": 99.0,
-			"x": 789,
-			"y": 1233
+			"x": 867,
+			"y": 1316
 		},
 		"sand": {
 			"anchor": {
@@ -1474,7 +1914,67 @@
 			"height": 99.0,
 			"width": 132.0,
 			"x": 2,
-			"y": 1338
+			"y": 1421
+		},
+		"street_barrier": {
+			"anchor": {
+				"x": 16.0,
+				"y": 31
+			},
+			"derivation": "original",
+			"height": 32,
+			"source": "cityDetails_002.png",
+			"source_atlas": "details",
+			"source_rect": [
+				71,
+				77,
+				32,
+				32
+			],
+			"source_xml_sha256": "7c54f9d5a88cecf9326f642ee3e7b7689fa347e37f160a28b2224f222aab282a",
+			"width": 32,
+			"x": 138,
+			"y": 1421
+		},
+		"street_lamp_e": {
+			"anchor": {
+				"x": 1,
+				"y": 45
+			},
+			"derivation": "original",
+			"height": 46,
+			"source": "cityDetails_005.png",
+			"source_atlas": "details",
+			"source_rect": [
+				147,
+				46,
+				22,
+				46
+			],
+			"source_xml_sha256": "7c54f9d5a88cecf9326f642ee3e7b7689fa347e37f160a28b2224f222aab282a",
+			"width": 22,
+			"x": 174,
+			"y": 1421
+		},
+		"street_lamp_s": {
+			"anchor": {
+				"x": 21,
+				"y": 45
+			},
+			"derivation": "original",
+			"height": 46,
+			"source": "cityDetails_006.png",
+			"source_atlas": "details",
+			"source_rect": [
+				135,
+				0,
+				22,
+				46
+			],
+			"source_xml_sha256": "7c54f9d5a88cecf9326f642ee3e7b7689fa347e37f160a28b2224f222aab282a",
+			"width": 22,
+			"x": 200,
+			"y": 1421
 		},
 		"tree": {
 			"anchor": {
@@ -1483,8 +1983,8 @@
 			},
 			"height": 45.0,
 			"width": 32.0,
-			"x": 138,
-			"y": 1338
+			"x": 226,
+			"y": 1421
 		},
 		"water": {
 			"anchor": {
@@ -1493,8 +1993,8 @@
 			},
 			"height": 83.0,
 			"width": 132.0,
-			"x": 174,
-			"y": 1338
+			"x": 262,
+			"y": 1421
 		}
 	},
 	"version": 1,

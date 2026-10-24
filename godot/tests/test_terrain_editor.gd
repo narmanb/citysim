@@ -38,9 +38,9 @@ func run():
     var before=w.serialize()
     var plan=editor.plan(w,cells+cells,"raise",4)
     check(w.serialize()==before and w.recalculations==0 and w.reflows==0,"Planning never mutates world or runs simulation")
-    check(plan.cost==500 and plan.targets.size()==25,"Duplicates are charged once per changed cell, not per height unit")
+    check(plan.cost==0 and plan.targets.size()==25,"Duplicates produce one free target per changed cell")
     var result=editor.commit(w,plan)
-    check(result.changed and w.cash==before.cash-500,"Atomic set commits exact preview cost")
+    check(result.changed and w.cash==before.cash,"Atomic set commits without spending")
     check(w.recalculations==1 and w.reflows==1,"A 25-cell stamp recalculates/reflows once")
     for i in cells: check(w.tiles[i].elev==4,"Step4 applies equally across footprint")
     for key in ["road","rail","line","pipe","civic","zone","terrain"]:
@@ -56,15 +56,15 @@ func run():
         var saved=w.tiles[0].duplicate(true)
         result=editor.commit(w,plan)
         check(result.changed and w.tiles[0]==saved,"Commit preserves protected "+key+" exactly")
-    w=blank();w.cash=499
+    w=blank();w.cash=-50
     plan=editor.plan(w,cells,"raise",4)
     before=w.serialize();result=editor.commit(w,plan)
-    check(not plan.affordable and not result.changed and w.serialize()==before,"Insufficient cash rejects entire transaction without history/state change")
+    check(plan.affordable and result.changed and w.cash==before.cash and result.after.size()==25,"Free terrain transaction works in debt without spending")
     w=blank();w.tiles[0].elev=39;w.tiles[1].elev=-4
     plan=editor.plan(w,[0],"raise",4);editor.commit(w,plan)
-    check(w.tiles[0].elev==40 and plan.cost==20,"Bounded step clamps upward and charges one changed cell")
+    check(w.tiles[0].elev==40 and plan.cost==0,"Free bounded step clamps upward")
     plan=editor.plan(w,[1],"lower",4);editor.commit(w,plan)
-    check(w.tiles[1].elev==-5 and plan.cost==20,"Bounded step clamps downward")
+    check(w.tiles[1].elev==-5 and plan.cost==0,"Bounded step clamps downward")
     plan=editor.plan(w,[0],"raise",4)
     check(plan.cost==0 and not editor.commit(w,plan).changed,"Bound no-op is free")
     plan=editor.plan(w,[0,1,2],"flatten",1,3);editor.commit(w,plan)
@@ -85,5 +85,5 @@ func run():
     var history=History.new();history.begin();history.record(result.before,result.after,result.cost);history.finish()
     w.cash+=123;w.month=5
     check(history.undo(w) and w.tiles==original and w.cash==1000123 and w.month==5,"Undo restores all channels and refunds only edit, preserving income/time")
-    check(history.redo(w) and w.tiles[103].terrain=="grass" and w.cash==1000103,"Redo restores full accepted edit and cost")
+    check(history.redo(w) and w.tiles[103].terrain=="grass" and w.cash==1000123,"Redo restores full accepted free edit")
     print("Terrain editor: %s checks, %s failures"%[checks,failures]);quit(1 if failures else 0)

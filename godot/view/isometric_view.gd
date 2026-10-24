@@ -17,6 +17,7 @@ const Geometry = preload("res://model/terrain_geometry.gd")
 const Civil = preload("res://model/civil_engineering.gd")
 const TerrainMaterial = preload("res://view/terrain_material.gd")
 const Transitions = preload("res://view/terrain_transitions.gd")
+const Furniture = preload("res://view/street_furniture.gd")
 const World = preload("res://model/city_world.gd")
 const N: int = World.N
 const BASE: float = 28.0
@@ -425,6 +426,8 @@ func _rebuild() -> void:
 				for xx in range(maxi(0,index%N-1),mini(N,index%N+2)): dirty[yy*N+xx]=true
 			for neighbor in _neighbors(index):
 				dirty[neighbor] = true
+				var adjacent:Dictionary=world.parcel_info(neighbor)
+				if not adjacent.is_empty():dirty[adjacent.root]=true
 				if world.tiles[neighbor].get("terrainShape","flat") == "slope" and world.tiles[neighbor].get("slopeDir","auto") == "auto":
 					for dependent in _neighbors(neighbor): dirty[dependent] = true
 			var old_parcel: int = _tile_parcels[index]
@@ -455,6 +458,14 @@ func _rebuild() -> void:
 				for xx in range(maxi(0,x-4),mini(N,x+5)):
 					var near: int = yy*N+xx
 					if world.tiles[near].get("terrainShape","flat")=="rounded" and world.tiles[near].get("surfaceTop","auto")!="auto":dirty[near]=true
+	# Parking belongs to its civic/parcel record, but samples a neighboring
+	# road deck. That deck can move when another adjacent road is edited.
+	for index in dirty.keys():
+		if not world.tiles[index].get("road",false) and not _graded_roads.has(index):continue
+		for owner in _neighbors(index):
+			if world.tiles[owner].get("civic",null):dirty[owner]=true
+			var parcel:Dictionary=world.parcel_info(owner)
+			if not parcel.is_empty():dirty[parcel.root]=true
 	for index in dirty:
 		_graded_roads.erase(index)
 	# Fill deck cache before recording: a road arm may sample a neighboring deck.
@@ -509,11 +520,18 @@ func _record_tile(index: int) -> void:
 	if tile.get("tree", false) and tile.get("terrain", "grass") != "water" and not tile.get("road", false) and not tile.get("rail", false) and not tile.get("civic", "") and not tile.get("level", 0):
 		_tree(_new_layer(depth + 1.1, true), x + 0.5, y + 0.5, Geometry.sample(world.tiles,index))
 	if tile.get("line", false): _draw_pole(_new_layer(depth + 1.2, true), index)
-	if tile.get("civic", ""): _draw_civic(_new_layer(depth + 1.6, true), tile, x, y)
+	if tile.get("civic", ""):
+		_draw_civic(_new_layer(depth + 1.6, true), tile, x, y)
+		_draw_parked_vehicle(index,[index])
 	if int(tile.get("level", 0)) > 0:
 		var parcel: Dictionary = world.parcel_info(index) if tile.get("parcel", 0) else {}
 		if not parcel.is_empty() and int(parcel.get("root", index)) != index: return
 		_draw_property(tile, parcel.get("members", [index]), index)
+		_draw_parked_vehicle(index,parcel.get("members",[index]))
+	if tile.get("road",false):
+		for detail in Furniture.road_details(world.tiles,index,_road_mask(index)):
+			var height:float=_road_height(index,detail.u,detail.v)
+			_sprite(_new_layer(x+y+detail.u+detail.v+.1,true),detail.sprite,_point(x+detail.u,y+detail.v,height),detail.span)
 
 func _rect_points(x: float, y: float, elevation: float, left: float = 0, top: float = 0, width: float = 1, height: float = 1) -> PackedVector2Array:
 	return PackedVector2Array([_point(x + left, y + top, elevation), _point(x + left + width, y + top, elevation), _point(x + left + width, y + top + height, elevation), _point(x + left, y + top + height, elevation)])
@@ -903,8 +921,7 @@ func _draw_civic(layer, tile: Dictionary, x: int, y: int) -> void:
 	var kind: String = str(tile.get("civic", ""))
 	var elevation: float = Civil.build_height(tile)
 	if kind == "park":
-		_tree(layer, x + 0.35, y + 0.35, elevation)
-		_tree(layer, x + 0.7, y + 0.65, elevation)
+		_sprite(layer,Furniture.park_style(_appearance_seed(),y*N+x),_point(x+.5,y+.5,elevation))
 		return
 	var palette: Dictionary = {"plant": ["a4a6a0", "525c60", "737d80"], "pump": ["84c7d6", "347484", "4994a3"], "tower": ["b2dbe0", "417c8b", "70a8b5"], "police": ["82acce", "385c89", "587d9f"], "fire": ["d98764", "9a3d38", "bd5e4c"], "school": ["e3cc86", "a2844c", "c1a66a"], "hospital": ["f1e8db", "a69d96", "d6cfc1"], "station": ["bcb1cd", "675d82", "91839f"]}
 	var colors: Array = palette.get(kind, ["bbbbbb", "777777", "999999"])
@@ -915,6 +932,19 @@ func _draw_civic(layer, tile: Dictionary, x: int, y: int) -> void:
 			_box(layer, x + offset, y + 0.27, elevation, 0.12, 0.12, BASE, ["cabfb0", "737572", "949891"])
 	var labels: Dictionary = {"plant": "PWR", "pump": "W", "tower": "T", "police": "POL", "fire": "F", "school": "E", "hospital": "+", "station": "R"}
 	layer.label_at(labels.get(kind, "?"), _point(x + 0.5, y + 0.5, elevation) + Vector2(0, -height + 3), 10, Color("fff5da"))
+
+
+func _appearance_seed()->int:
+	var value=world.get("seed")
+	return int(value) if value is int else 0
+
+func _draw_parked_vehicle(index:int,members:Array)->void:
+	var role:String=Furniture.parked_role(world.tiles[index],index,_appearance_seed())
+	if role.is_empty():return
+	var at:Dictionary=Furniture.curb(world.tiles,members)
+	if at.is_empty():return
+	var x:int=at.index%N;var y:int=at.index/N
+	_sprite(_new_layer(x+y+at.u+at.v+.1,true),"parked_"+role+at.heading,_point(x+at.u,y+at.v,_road_height(at.index,at.u,at.v)),.85)
 
 func _parcel_footprint(members: Array) -> Rect2i:
 	if members.is_empty(): return Rect2i(0, 0, 1, 1)
@@ -1127,6 +1157,14 @@ func _agent_height(a: int,b: int,fraction: float,x: float,y: float,car: bool) ->
 		return _road_height(i,x-i%N,y-int(i/N))
 	return lerpf(Geometry.sample(world.tiles,a),Geometry.sample(world.tiles,b),fraction)
 
+func _taxi_rise(a:int,b:int,fraction:float,x:float,y:float)->float:
+	if a==b or (not _graded_roads.has(a) and not _graded_roads.has(b)):return 0.
+	var start:float=maxf(0.,fraction-.04);var end:float=minf(1.,fraction+.04)
+	var dx:int=b%N-a%N;var dy:int=int(b/N)-int(a/N)
+	var lo:float=_agent_height(a,b,start,x+dx*(start-fraction),y+dy*(start-fraction),true)
+	var hi:float=_agent_height(a,b,end,x+dx*(end-fraction),y+dy*(end-fraction),true)
+	return (hi-lo)/(end-start)
+
 func _update_agents() -> void:
 	if world == null: return
 	var slot: int = 0
@@ -1156,7 +1194,9 @@ func _update_agents() -> void:
 			layer.modulate.a = 1.0 if overlay == "none" else 0.7
 			if kind == "car":
 				var direction: String = "SE" if dx > 0 else "NW" if dx < 0 else "SW" if dy > 0 else "NE"
-				_sprite(layer, "car" + direction, _point(x, y, elevation), 0.85)
+				var appearance:String="car"+direction
+				if _graded_roads.has(a) or _graded_roads.has(b):appearance=Furniture.taxi_sprite(direction,_taxi_rise(a,b,fraction,x,y))
+				_sprite(layer,appearance,_point(x,y,elevation),.85)
 			else:
 				_box(layer, x - 0.17, y - 0.17, elevation, 0.34, 0.34, BASE * 0.26, ["e39a7e", "924b49", "c66b56"])
 			layer.queue_redraw()

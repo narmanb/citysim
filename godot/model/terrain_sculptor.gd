@@ -90,6 +90,6 @@ static func plan(world, indices: Array, operation: String, settings: Dictionary,
 			out.before.erase(i);out.after.erase(i)
 			continue
 		out.targets[i]=after.elev
-		out.cost+=W.COST.raise
-	out.affordable=world.cash>=out.cost
+		out.cost+=W.COST[operation]
+	out.affordable=out.cost<=0 or world.cash>=out.cost
 	return out

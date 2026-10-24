@@ -53,7 +53,7 @@ const TOOL_HELP: Dictionary = {
 	"raise": "Raise natural terrain one step. Hills can reach elevation +40.",
 	"lower": "Lower natural terrain one step. Basins can reach elevation −5.",
 	"smooth": "Soften natural land with a bounded Rounded brush. Cliffs, water, buildings and infrastructure are protected.",
-	"hill": "Create a rounded hill with Size, absolute Peak and Profile in the right panel. Each stroke previews its full cost.",
+	"hill": "Create a rounded hill with Size, absolute Peak and Profile in the right panel. Terraforming is free; each stroke supports Undo.",
 	"mountain": "Create a larger peak up to +40. Choose Rounded or Cliff and adjust its profile. Protected land stays unchanged.",
 	"shape": "Shape natural ground as Flat, Sloped, Rounded or Cliff. Gentle slopes support roads and level foundations; Flatten steeper or Rounded ground before construction.",
 	"flatten": "Flatten natural ground to the first touched tile or a chosen height. Protected cells stay unchanged.",
@@ -86,7 +86,7 @@ Undo and Redo restore a whole construction stroke and its cost. The city clock a
 Roads and rails can bridge up to eight water tiles with dry land at both ends. Trains need two stations on a connected line. Events contains disasters, fire dispatch and the city message log. Random disasters are optional.
 
 TERRAFORM TERRAIN
-Raise/Lower reaches −5 to +40. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Select a height/shape tool to keep its settings at the right of the map, even after the tool menu closes. Flatten uses the first touched tile or Set height. Preview shows cost and skipped cells; each changed cell costs $20. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Shape terrain makes Flat, Sloped, Rounded or Cliff caps. Sloped uses Auto or N/E/S/W (the high edge), with Gentle/Medium/Steep strength independent of height step. Auto needs neighboring height differences; manual directions work on level ground. Gentle directional slopes support roads and level building foundations. Smooth softens eligible land with Gentle/Medium/Strong strength while preserving marked Cliffs, water and construction. Hill/Mountain offers Size3/5/9, an absolute Peak and Broad/Balanced/Sharp profile. Each brush is one previewed transaction and Undo. Rounded and steeper slopes need Flatten before construction.
+Raise/Lower reaches −5 to +40. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Select a height/shape tool to keep its settings at the right of the map, even after the tool menu closes. Flatten uses the first touched tile or Set height. All Terraform tools are free, even with a negative treasury. Preview shows changed and skipped cells. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Shape terrain makes Flat, Sloped, Rounded or Cliff caps. Sloped uses Auto or N/E/S/W (the high edge), with Gentle/Medium/Steep strength independent of height step. Auto needs neighboring height differences; manual directions work on level ground. Gentle directional slopes support roads and level building foundations. Smooth softens eligible land with Gentle/Medium/Strong strength while preserving marked Cliffs, water and construction. Hill/Mountain offers Size3/5/9, an absolute Peak and Broad/Balanced/Sharp profile. Each brush is one previewed transaction and Undo. Rounded and steeper slopes need Flatten before construction.
 
 9. KEEP YOUR CITY
 Your last city reopens automatically. The game checkpoints periodically and when backgrounded. Save writes a separate manual city in this app. Export makes a complete compatible JSON copy for backup or transfer. Import accepts JSON exported by the earlier MetroForge game. Use the native file picker or the copy/paste JSON fallback. Saves from the old Android app are transferred by exporting there and importing here.
@@ -1453,9 +1453,9 @@ func _update_terrain_summary() -> void:
 	if selected_tool == "flatten": detail = "first tile" if terrain_settings.flatten_target == null else "height %s" % terrain_settings.flatten_target
 	_tool_name.text = "%s · %s×%s · %s" % [TOOL_LABELS[selected_tool], width, width, detail]
 	_tool_name.tooltip_text = _tool_name.text
-	_status.text = _tool_name.text + (" · Free; colors only. " if selected_tool=="surface" else " · $20 per changed tile. ") + ("Flatten before construction." if (((terrain_settings.shape=="rounded" or (terrain_settings.shape=="slope" and terrain_settings.strength>1)) and selected_tool in ["raise","lower","shape"]) or selected_tool=="smooth" or (selected_tool in ["hill","mountain"] and terrain_settings.preset_shape=="rounded")) else "Gentle slopes support roads and level foundations." if terrain_settings.shape=="slope" else "Flat construction tops.")
+	_status.text = _tool_name.text + (" · Free; colors only. " if selected_tool=="surface" else " · Free. ") + ("Flatten before construction." if (((terrain_settings.shape=="rounded" or (terrain_settings.shape=="slope" and terrain_settings.strength>1)) and selected_tool in ["raise","lower","shape"]) or selected_tool=="smooth" or (selected_tool in ["hill","mountain"] and terrain_settings.preset_shape=="rounded")) else "Gentle slopes support roads and level foundations." if terrain_settings.shape=="slope" else "Flat construction tops.")
 	if selected_tool=="surface":_status.text=_tool_name.text+" · Free; changes colors without changing heights."
-	if selected_tool in ["raise","lower"] and terrain_settings.get("smooth_edges",false):_status.text=_tool_name.text+" · Level top and Gentle perimeter · $20 per changed tile, including edges."
+	if selected_tool in ["raise","lower"] and terrain_settings.get("smooth_edges",false):_status.text=_tool_name.text+" · Free level top and Gentle perimeter."
 	_terrain_panel.configure(terrain_settings, selected_tool)
 
 func _stage_terrain(index: int) -> bool:

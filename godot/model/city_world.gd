@@ -9,7 +9,7 @@ const N = Geometry.N
 const COUNT = N * N
 const MIN_TERRAIN_ELEV = Geometry.MIN_HEIGHT
 const MAX_TERRAIN_ELEV = Geometry.MAX_HEIGHT
-const COST = {"surface":0,"bulldoze":18,"road":18,"rail":36,"line":13,"pipe":12,"res":9,"apt":14,"shop":12,"office":16,"light":12,"heavy":22,"park":95,"plant":3000,"pump":950,"tower":800,"police":1200,"fire":1200,"school":1600,"hospital":1900,"station":550,"raise":20,"lower":20,"shape":20,"smooth":20,"hill":20,"mountain":20,"flatten":20,"river":24,"grass":5,"desert":5,"tree":4,"forest":6}
+const COST = {"surface":0,"bulldoze":18,"road":18,"rail":36,"line":13,"pipe":12,"res":9,"apt":14,"shop":12,"office":16,"light":12,"heavy":22,"park":95,"plant":3000,"pump":950,"tower":800,"police":1200,"fire":1200,"school":1600,"hospital":1900,"station":550,"raise":0,"lower":0,"shape":0,"smooth":0,"hill":0,"mountain":0,"flatten":0,"river":0,"grass":0,"desert":0,"tree":0,"forest":0}
 const CONFIG = {"monthSeconds":4,"startingCash":36000,"powerPlantCapacity":550,"waterPumpCapacity":520,"waterTowerCapacity":180,"waterTowerLoss":1,"bondAmount":10000,"bondPayment":150,"bondTerm":80,"maxCars":70,"maxTrains":9,"bridgeSpan":8,"milestones":[500,1000,2500,5000,10000],"buildingCapacity":{"res":[0,12,28,68,150],"com":[0,10,24,58,125],"ind":[0,12,30,68,130]},"maintenance":{"road":1.5,"rail":2.4,"line":0.4,"pipe":0.45,"park":8,"plant":120,"pump":32,"tower":18,"police":80,"fire":80,"school":110,"hospital":130,"station":28},"serviceRadius":{"police":8,"fire":8,"school":9,"hospital":9}}
 const TOOLS = [["pan","✋ Pan"],["bulldoze","▧ Bulldoze"],["road","═ Road"],["rail","≡ Rail"],["line","⚡ Power line"],["pipe","◌ Water pipe"],["res","⌂ House lots"],["apt","▥ Apartment lots"],["shop","▣ Shops & services"],["office","▥ Offices"],["light","▤ Light industry"],["heavy","♨ Heavy industry"],["park","♣ Park"],["plant","⚙ Power plant"],["pump","◉ Water pump"],["tower","◍ Water tower"],["police","✦ Police"],["fire","▲ Fire station"],["school","◆ School"],["hospital","✚ Hospital"],["station","▥ Rail station"],["raise","▲ Raise terrain"],["lower","▼ Lower terrain"],["flatten","═ Flatten terrain"],["surface","◩ Terrain surfaces"],["shape","◩ Shape terrain"],["smooth","≈ Smooth terrain"],["hill","▲ Create hill"],["mountain","▲ Create mountain"],["river","≈ Dig water channel"],["grass","· Grass biome"],["desert","░ Desert biome"],["tree","♠ Tree"],["forest","♣ Forest brush"]]
 const ZONE_TOOL = {"res":{"zone":"res","type":"house"},"apt":{"zone":"res","type":"apt"},"shop":{"zone":"com","type":"shop"},"office":{"zone":"com","type":"office"},"light":{"zone":"ind","type":"light"},"heavy":{"zone":"ind","type":"heavy"}}
@@ -165,7 +165,7 @@ func place(i: int, tool: String, bridge: bool = false, parcel_id: int = 0) -> bo
 	if tool == "desert" and t.biome == "desert" and not t.tree: return false
 	if tool in ["tree","forest"] and t.tree and t.biome == "grass": return false
 	if tool == "river" and t.channel and not t.waterSource and t.elev <= -1 and not t.tree: return false
-	if not spend(cost): return false
+	if cost > 0 and not spend(cost): return false
 	if tool=="road" or (tool!="bulldoze" and (ZONE_TOOL.has(tool) or tool in SERVICES or tool in ["park","plant","pump","tower"])):
 		Civil.freeze_direction(tiles,i)
 		if tool!="road" and Civil.gentle(t): t.foundationHeight=Civil.foundation_height(tiles,i)

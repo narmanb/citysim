@@ -28,7 +28,7 @@ func run():
 				var height: int=step if op=="raise" else -step
 				var size: int=(radius*2+1+step*2)
 				check(p.error.is_empty() and p.after.size()==size*size,"Smooth perimeter footprint "+op+str(radius)+str(step))
-				check(p.cost==p.after.size()*20 and w.tiles==original,"Pure proposal includes full transition cost")
+				check(p.cost==0 and w.tiles==original,"Pure proposal includes free transition cells")
 				for i in core:
 					check(p.after.has(i) and p.after[i].elev==height and p.after[i].terrainShape=="flat","Level buildable top")
 				for i in p.after:
@@ -44,10 +44,10 @@ func run():
 				check(decoded!=null,"Graded land save roundtrip")
 	var w=blank()
 	var p=E.plan(w,[c],"raise",1,null,{"smooth_edges":false})
-	check(p.after.size()==1 and p.cost==20,"Sharp remains unchanged")
+	check(p.after.size()==1 and p.cost==0,"Sharp footprint remains one free cell")
 	for i in [0,51,2652,2703]:
 		w=blank();p=E.plan(w,[i],"raise",1,null,{"smooth_edges":true})
-		check(p.after.size()==4 and p.cost==80 and E.commit(w,p).changed,"Smooth transition clips at map corner")
+		check(p.after.size()==4 and p.cost==0 and E.commit(w,p).changed,"Smooth transition clips at map corner")
 	for protected in ["road","rail","line","pipe","zone","civic","water","cliff","rounded"]:
 		w=blank();var t: Dictionary=w.tiles[c+1]
 		if protected in ["road","rail","line","pipe"]:t[protected]=true
@@ -58,9 +58,9 @@ func run():
 		var before=w.serialize()
 		p=E.plan(w,[c],"raise",1,null,{"smooth_edges":true})
 		check(not p.error.is_empty() and not E.commit(w,p).changed and w.serialize()==before,"Blocked transition atomic "+protected)
-	w=blank();w.cash=179
+	w=blank();w.cash=-50
 	p=E.plan(w,[c],"raise",1,null,{"smooth_edges":true})
-	check(not p.affordable and not E.commit(w,p).changed and w.cash==179,"Whole transition must be affordable")
+	check(p.affordable and E.commit(w,p).changed and w.cash==-50,"Whole free transition remains affordable while in debt")
 	w=blank();p=E.plan(w,[c],"raise",1,null,{"smooth_edges":true})
 	if p.after.has(c+1):w.tiles[c+1].tree=true
 	check(not E.commit(w,p).changed,"Stale transition snapshot rejects")

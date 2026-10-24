@@ -34,7 +34,7 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 	if shape_settings.has("smooth_edges") and not shape_settings.smooth_edges is bool:
 		out.error="Unsupported smooth edge setting.";return out
 	if operation in ["raise","lower"] and shape_settings.get("smooth_edges",false):
-		return Grader.plan(world,indices,operation,step,_protected_reason)
+		return Grader.plan(world,indices,operation,step,_protected_reason,World.COST[operation])
 	var seen: Dictionary = {}
 	for value in indices:
 		if not value is int or value < 0 or value >= world.tiles.size() or seen.has(value): continue
@@ -89,7 +89,7 @@ static func plan(world, indices: Array, operation: String, step: int = 1, target
 			out.after.erase(i)
 			continue
 		out.targets[i] = after.elev
-		out.cost += 0 if operation=="surface" else World.COST.raise
+		out.cost += World.COST[operation]
 	out.affordable = out.cost <= 0 or world.cash >= out.cost
 	return out
 

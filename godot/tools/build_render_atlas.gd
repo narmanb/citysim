@@ -57,6 +57,7 @@ func _initialize() -> void:
 			var variant: String = alias + "__" + palette.id
 			images[variant] = _recolor(crop, source, Color(palette[source.material]))
 			descriptors[variant] = {"width": source.width, "height": source.height, "anchor": source.anchor.duplicate()}
+	_add_street_art(source_images,images,descriptors)
 	var names: Array = images.keys()
 	names.sort()
 	var crops: Dictionary = {}
@@ -109,6 +110,36 @@ func _initialize() -> void:
 	_write_json("res://assets/render_atlas.json", layout)
 	print("Packed %s originals + %s selective building variants into %sx%s" % [manifest.sprites.size(), sources.size() * PALETTES.size(), WIDTH, height])
 	quit()
+
+func _add_street_art(source_images:Dictionary,images:Dictionary,descriptors:Dictionary)->void:
+	var wanted:Dictionary={"city":{"cityTiles_051.png":"park_plaza","cityTiles_067.png":"park_garden"},"details":{"cityDetails_005.png":"street_lamp_e","cityDetails_006.png":"street_lamp_s","cityDetails_002.png":"street_barrier"},"vehicles":{}}
+	for heading in ["NE","SE","SW","NW"]:
+		for role in ["police","ambulance","garbage"]:wanted.vehicles[role+"_"+heading+".png"]="parked_"+role+heading
+		for slope in ["U","D"]:wanted.vehicles["taxi_"+heading+slope+".png"]="car"+heading+slope
+	for atlas in wanted:
+		var path:String=ProjectSettings.globalize_path("res://").path_join("../assets/atlases/"+atlas+".xml").simplify_path()
+		var xml:=XMLParser.new();assert(xml.open(path)==OK)
+		while xml.read()==OK:
+			if xml.get_node_type()!=XMLParser.NODE_ELEMENT or xml.get_node_name()!="SubTexture":continue
+			var filename:String=xml.get_named_attribute_value("name")
+			if not wanted[atlas].has(filename):continue
+			var x:int=int(xml.get_named_attribute_value("x"));var y:int=int(xml.get_named_attribute_value("y"))
+			var width:int=int(xml.get_named_attribute_value("width"));var height:int=int(xml.get_named_attribute_value("height"))
+			var crop:Image=source_images[atlas].get_region(Rect2i(x,y,width,height))
+			var alias:String=wanted[atlas][filename]
+			var anchor:Dictionary={"x":width*.5,"y":height-1}
+			var rule:String="original"
+			if alias.begins_with("park_"):
+				anchor.y=height-67;rule="remove base below original cap; trim transparent rows leaving two"
+				for yy in range(height):
+					for xx in range(width):
+						if yy>height-34-absf(xx-66)*.5:
+							var c:Color=crop.get_pixel(xx,yy);c.a=0;crop.set_pixel(xx,yy,c)
+				crop=crop.get_region(Rect2i(0,0,width,height-31))
+			elif alias=="street_lamp_e":anchor.x=1
+			elif alias=="street_lamp_s":anchor.x=width-1
+			images[alias]=crop
+			descriptors[alias]={"width":crop.get_width(),"height":crop.get_height(),"anchor":anchor,"source_atlas":atlas,"source":filename,"source_rect":[x,y,width,height],"source_xml_sha256":FileAccess.get_sha256(path),"derivation":rule}
 
 func _write_json(path: String, data: Dictionary) -> void:
 	var output := FileAccess.open(path, FileAccess.WRITE)

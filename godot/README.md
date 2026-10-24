@@ -2,6 +2,12 @@
 
 Open `project.godot` with **Godot 4.6.3 standard edition** and press Play. This project runs the city simulation and renders its scene natively with GDScript and Godot 2D. The earlier browser/WebView game is retained separately in the repository.
 
+## Changes in 0.3.17 Streets and Free Terraform
+
+All Terraform tools are free. Supplied-art park variants, sparse street details,
+parked service vehicles and slope-facing taxi views add visual variety.
+See [behavior and tests](docs/streets-free-terrain-0.3.17.md).
+
 ## Changes in 0.3.16 Peak Picker and Height 40
 
 Peak opens a popup of ten numbered presets plus custom entry with Apply/Cancel.

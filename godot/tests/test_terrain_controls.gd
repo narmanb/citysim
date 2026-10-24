@@ -30,7 +30,7 @@ func run():
     check(game.terrain_settings.radius==0 and game.terrain_settings.step==1 and game.terrain_settings.flatten_target==null,"Session starts with single-cell one-step sampled settings")
     game.choose_tool("raise");game.set_terrain_settings(1,4)
     var preview=game.terrain_preview_at(center)
-    check(preview.cost==180 and preview.targets.size()==9 and w.tiles[center].elev==0,"Preview reports exact nine-cell cost before editing")
+    check(preview.cost==0 and preview.targets.size()==9 and w.tiles[center].elev==0,"Preview reports nine free changed cells before editing")
     check(game._tool_name.text.contains("3×3") and game._tool_name.text.contains("4"),"Selected tool summary always exposes radius/step")
     check(game.construct_at(center),"Tap applies one whole brush")
     check(w.tiles[center-53].elev==4 and w.tiles[center+53].elev==4 and game.history.undo_stack.size()==1,"Tap covers full square in one undo action")
@@ -49,9 +49,9 @@ func run():
     check(w.month==1,"Staged terrain transaction holds simulation clock until commit")
     game.end_stroke()
     check(w.tiles[center].elev==2 and w.tiles[center+2].elev==2 and game.history.undo_stack.size()==1,"Overlapping stroke stamps apply one frozen delta")
-    check(w.cash==1000000-12*20 and w.edits_recalculated==1,"Overlapping brushes charge12 unique cells and recalculate once")
-    game.clear_history();w.cash=1
-    var before=w.serialize();check(not game.construct_at(center) and w.serialize()==before and game.history.undo_stack.is_empty(),"Unaffordable brush makes no history or partial edits")
+    check(w.cash==1000000 and w.edits_recalculated==1,"Overlapping brushes change12 unique cells for free and recalculate once")
+    game.clear_history();w.cash=-50
+    var before=w.serialize();check(game.construct_at(center) and w.cash==before.cash and game.history.undo_stack.size()==1,"Free brush works in debt and records one history action")
     w=blank();game.set_world(w);game.choose_tool("flatten");game.set_terrain_settings(1,1)
     w.tiles[center].elev=3
     check(game.construct_at(center) and w.tiles[center-53].elev==3 and w.tiles[center+53].elev==3,"Flatten samples first touched tile height")
@@ -88,9 +88,9 @@ func run():
     var route=[10*52+10,11*52+10,12*52+10,11*52+10,11*52+11]
     p=game.view.tile_to_screen(route[0]);touch(game.view,0,p,true)
     for i in route.slice(1): drag(game.view,0,game.view.tile_to_screen(i))
-    check(game.view.terrain_preview.targets.size()==4 and game.view.terrain_preview.cost==80,"Retraced-path preview contains four actual cells")
+    check(game.view.terrain_preview.targets.size()==4 and game.view.terrain_preview.cost==0,"Retraced-path preview contains four actual cells")
     touch(game.view,0,game.view.tile_to_screen(route[-1]),false)
-    check(w.cash==1000000-80 and w.tiles[12*52+11].elev==0,"Retraced paint commits only previewed cells and exact cost")
+    check(w.cash==1000000 and w.tiles[12*52+11].elev==0,"Retraced paint commits only previewed cells and exact cost")
     # Trackpad/native gesture events must discard a pending mouse terrain edit.
     for gesture_kind in ["magnify","pan"]:
         w=blank();game.set_world(w);await process_frame;await process_frame

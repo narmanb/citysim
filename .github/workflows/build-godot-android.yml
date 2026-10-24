@@ -103,9 +103,9 @@ jobs:
 
       - name: Export and verify native Android APK
         run: |
-          python godot/tools/build_android.py --godot "$GODOT_BIN" --output dist/MetroForge-Godot-0.3.16-Peak-Picker.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/MetroForge-Godot-0.3.16-Peak-Picker.apk
-          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 dist/MetroForge-Godot-0.3.16-Peak-Picker.apk
+          python godot/tools/build_android.py --godot "$GODOT_BIN" --output dist/MetroForge-Godot-0.3.17-Streets-Free-Terrain.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/MetroForge-Godot-0.3.17-Streets-Free-Terrain.apk
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 dist/MetroForge-Godot-0.3.17-Streets-Free-Terrain.apk
           python - <<'PY'
           from pathlib import Path
           import hashlib
@@ -140,12 +140,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ! gh release view v0.3.16-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"; then
-            gh release create v0.3.16-terraform-preview --repo "$GITHUB_REPOSITORY" --draft --prerelease --target "$GITHUB_SHA" \
-              --title "MetroForge Godot 0.3.16 — Peak Picker and Height 40" \
-              --notes "Hill/Mountain Peak is now a button opening ten numbered presets and a custom numeric field. Presets apply immediately; custom input has Apply/Cancel. All terrain tools share a maximum elevation of40, minimum-5. Save13 is retained; older APKs cannot import cities with elevations above30. Existing cities keep their geometry. Both landscape orientations remain supported. Export your current city before replacing the app: stable signing remains deferred and temporary test certificates may require reinstall."
-            gh release view v0.3.16-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"
+          if ! gh release view v0.3.17-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"; then
+            gh release create v0.3.17-terraform-preview --repo "$GITHUB_REPOSITORY" --draft --prerelease --target "$GITHUB_SHA" \
+              --title "MetroForge Godot 0.3.17 — Parks, Street Details and Free Terraform" \
+              --notes "All13 Terraform tools are free, including mountains, channels, trees, biome and material painting, at zero or negative cash. Protected land, limits-5..40 and Undo/Redo remain. New supplied-art fountain/planted parks, sparse lamps/barriers and parked police, ambulance and industrial work trucks add visual variety without extra traffic agents. Taxis use local uphill/downhill views on graded roads. Existing palettes, growth and save13 are preserved. Export your city before replacing the app: stable signing is still deferred and temporary test certificates may require reinstall."
+            gh release view v0.3.17-terraform-preview --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/godot-draft.json"
           fi
           python -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"] + "/godot-draft.json"))["isDraft"], "Only an unpublished draft may receive test artifacts"'
-          gh release upload v0.3.16-terraform-preview dist/*.apk dist/*.zip dist/MetroForge-Godot-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY"
+          gh release upload v0.3.17-terraform-preview dist/*.apk dist/*.zip dist/MetroForge-Godot-SHA256SUMS.txt --repo "$GITHUB_REPOSITORY"
 # Terrain-test packaging; previous preview downloads remain untouched.
