@@ -60,7 +60,14 @@ static func plan(world, indices: Array, operation: String, settings: Dictionary,
 				var reason = _reason(world.tiles[i],protection)
 				if not reason.is_empty(): out.blocked[i]=reason;continue
 				var distance: float = Vector2(i%W.N-center%W.N,int(i/W.N)-int(center/W.N)).length()
-				var t: float = clampf(distance/(float(radius)+.5),0,1)
+				# Rounded filtering blends the nearest 3x3 controls at the
+				# summit. Give those controls the selected peak so the visible
+				# height agrees with Peak, while preserving the chosen footprint.
+				var span: float=float(radius)+.5
+				if shape=="rounded":
+					distance=Vector2(maxi(0,absi(i%W.N-center%W.N)-1),maxi(0,absi(int(i/W.N)-int(center/W.N))-1)).length()
+					span=float(radius)-.5
+				var t: float = clampf(distance/span,0,1)
 				var weight: float = pow(1.-t*t*(3.-2.*t),[.7,1.,1.6][profile-1])
 				var value: int = maxi(world.tiles[i].elev,roundi(lerpf(base,peak,weight)))
 				desired[i]=maxi(desired.get(i,world.tiles[i].elev),value)

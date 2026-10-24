@@ -112,7 +112,7 @@ func _ready() -> void:
 	_preset_size.item_selected.connect(func(which):
 		if not _syncing: sculpt_settings_changed.emit({"preset_radius":[1,2,4][which]}))
 	_appearance_button(size_row,"PresetAppearanceButton")
-	var peak_row := _row("Absolute peak height")
+	var peak_row := _row("Absolute summit elevation, not height added. Higher existing ground is preserved.")
 	_preset_rows.append(peak_row)
 	_label("Peak",peak_row)
 	_peak = SpinBox.new()

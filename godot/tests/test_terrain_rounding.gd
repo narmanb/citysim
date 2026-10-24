@@ -78,6 +78,17 @@ func run():
 		check(restored!=null and restored.tiles[c].terrainShape=="rounded" and restored.serialize().version==13,"Rounded save roundtrip")
 		settings.peak=0
 		check(E.plan.call(w,[],op,1,null,settings,[c]).cost==0,"Lower-than-center preset free")
+	# The visible rounded summit must reach the requested absolute Peak, not
+	# just its control tile. Include small stamps, profiles and raised land.
+	for radius in [1,2,4]:
+		for profile in [1,2,3]:
+			for base in [0,7]:
+				w=blank()
+				for tile in w.tiles:tile.elev=base
+				var peak_settings={"preset_radius":radius,"peak":30,"profile":profile}
+				p=E.plan.call(w,[],"mountain",1,null,peak_settings,[c])
+				check(is_equal_approx(G.sample(w.tiles,c,.5,.5,p.after),30.),"Visible Peak30 matches selected height radius/profile/base "+str([radius,profile,base]))
+				check(p.after.size()<=(radius*2+1)*(radius*2+1),"Exact visible peak keeps selected footprint")
 	w=blank()
 	var cliff_settings={"preset_radius":4,"peak":6,"preset_shape":"cliff"}
 	p=E.plan.call(w,[],"hill",1,null,cliff_settings,[c])

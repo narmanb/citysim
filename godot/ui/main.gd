@@ -1449,7 +1449,7 @@ func _update_terrain_summary() -> void:
 	if selected_tool=="surface":detail="%s top · %s slopes" % [terrain_settings.surface_top,terrain_settings.surface_rock]
 	if selected_tool == "shape": detail = terrain_settings.shape + (" " + terrain_settings.direction if terrain_settings.shape == "slope" else "")
 	if selected_tool == "smooth": detail = ["Gentle","Medium","Strong"][terrain_settings.smooth_strength-1]
-	if selected_tool in ["hill","mountain"]: detail = "peak %s · %s" % [terrain_settings[selected_tool+"_peak"],terrain_settings.preset_shape]
+	if selected_tool in ["hill","mountain"]: detail = "absolute peak %s · %s" % [terrain_settings[selected_tool+"_peak"],terrain_settings.preset_shape]
 	if selected_tool == "flatten": detail = "first tile" if terrain_settings.flatten_target == null else "height %s" % terrain_settings.flatten_target
 	_tool_name.text = "%s · %s×%s · %s" % [TOOL_LABELS[selected_tool], width, width, detail]
 	_tool_name.tooltip_text = _tool_name.text

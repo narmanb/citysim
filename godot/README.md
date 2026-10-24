@@ -2,6 +2,12 @@
 
 Open `project.godot` with **Godot 4.6.3 standard edition** and press Play. This project runs the city simulation and renders its scene natively with GDScript and Godot 2D. The earlier browser/WebView game is retained separately in the repository.
 
+## Changes in 0.3.15 Mountain Peak Fix
+
+New rounded Hill/Mountain presets reach the selected visible summit on clear
+ground. Peak is an absolute elevation, including on raised land. Existing cities
+keep their geometry. See [details and testing](docs/mountain-peak-0.3.15.md).
+
 ## Changes in 0.3.14 Smooth Platform Edges
 
 Raise/Lower → Shape Flat → Edges Smooth keeps the edited platform level and
