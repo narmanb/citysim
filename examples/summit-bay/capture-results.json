@@ -1,0 +1,9 @@
+{
+  "cached_full_equal": true,
+  "native_file_import": true,
+  "population": 3844,
+  "renderer": "llvmpipe (LLVM 19.1.7, 256 bits)",
+  "rendering_preserves_city": true,
+  "save_sha256": "6d40881d0a29d516accc25b301858a8e937d2d054dc39f9cc2ec516bcbc03c98",
+  "save_version": 13
+}

@@ -2,6 +2,8 @@
 
 Import these city saves in **MetroForge Godot** using **City / Files → Import JSON file**. Extract the chosen ZIP first. Save/export your current city if you want to keep it.
 
+- **[Summit Bay — latest streets and terrain showcase](summit-bay/)**: 3,844 residents, new fountain/garden parks, street lamps, parked service vehicles, taxis on graded roads, a lakeside town, sparse trees and snowy +40 mountains. Requires 0.3.17; all Terraform tools are free.
+
 - **[Cedar Reach — terrain variety city](cedar-reach/)**: 3,786 residents, a terraced city, separate lakeside town, graded roads, river bridge, rail loop, snowy +30 peaks, forest pond, island, cliffs, dunes and a dry −5 quarry. Requires 0.3.14.
 
 - **[0.3.3 terrain test city](terrain-test/)**: $1 million, working small town, brush field, stepped desert, +12 plateau, −5 basin, bridges and a channel. Includes a phone checklist; requires 0.3.3 Terrain Test.
