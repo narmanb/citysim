@@ -18,6 +18,7 @@ const Civil = preload("res://model/civil_engineering.gd")
 const TerrainMaterial = preload("res://view/terrain_material.gd")
 const Transitions = preload("res://view/terrain_transitions.gd")
 const Furniture = preload("res://view/street_furniture.gd")
+const CivicCatalog = preload("res://view/civic_catalog.gd")
 const World = preload("res://model/city_world.gd")
 const N: int = World.N
 const BASE: float = 28.0
@@ -923,15 +924,9 @@ func _draw_civic(layer, tile: Dictionary, x: int, y: int) -> void:
 	if kind == "park":
 		_sprite(layer,Furniture.park_style(_appearance_seed(),y*N+x),_point(x+.5,y+.5,elevation))
 		return
-	var palette: Dictionary = {"plant": ["a4a6a0", "525c60", "737d80"], "pump": ["84c7d6", "347484", "4994a3"], "tower": ["b2dbe0", "417c8b", "70a8b5"], "police": ["82acce", "385c89", "587d9f"], "fire": ["d98764", "9a3d38", "bd5e4c"], "school": ["e3cc86", "a2844c", "c1a66a"], "hospital": ["f1e8db", "a69d96", "d6cfc1"], "station": ["bcb1cd", "675d82", "91839f"]}
-	var colors: Array = palette.get(kind, ["bbbbbb", "777777", "999999"])
-	var height: float = BASE * (1.2 if kind == "tower" else 0.55 if kind == "plant" else 0.6)
-	_box(layer, x + 0.16, y + 0.16, elevation, 0.68, 0.68, height, colors)
-	if kind == "plant":
-		for offset in [0.25, 0.55]:
-			_box(layer, x + offset, y + 0.27, elevation, 0.12, 0.12, BASE, ["cabfb0", "737572", "949891"])
-	var labels: Dictionary = {"plant": "PWR", "pump": "W", "tower": "T", "police": "POL", "fire": "F", "school": "E", "hospital": "+", "station": "R"}
-	layer.label_at(labels.get(kind, "?"), _point(x + 0.5, y + 0.5, elevation) + Vector2(0, -height + 3), 10, Color("fff5da"))
+	var alias: String = CivicCatalog.sprite_for(kind, _appearance_seed(), y * N + x)
+	if not alias.is_empty():
+		_sprite(layer, alias, _point(x + .5, y + .5, elevation))
 
 
 func _appearance_seed()->int:
@@ -1017,11 +1012,19 @@ func _draw_development(layer, tile: Dictionary, x: float, y: float, span: float,
 	var floors: int = (2 if level >= 3 else 1) if type == "house" else mini(2, level) if type == "shop" else mini(6, level + 2) if type == "apt" else mini(5, level + 1)
 	var step: float = float(style.recipe.get("step", 35.5))
 	var tint: Color = Color(0.65, 0.65, 0.65, 0.65) if abandoned else Color.WHITE
-	for floor_number in range(floors):
-		_sprite(layer, style.floor, _point(x, y, elevation), span, floor_number * step, tint)
-	_sprite(layer, style.roof, _point(x, y, elevation), span, floors * step, tint)
-	if type == "shop" and bool(style.recipe.get("awning", false)):
-		_draw_awning(layer, style, x, y, elevation, span, abandoned)
+	if type=="shop" and style.has("storefront"):
+		# Complete source frontage is already a ground-level building and canopy.
+		_sprite(layer,style.storefront,_point(x,y,elevation),span,0,tint)
+		if floors>1:
+			for floor_number in range(1,floors):
+				_sprite(layer,style.floor,_point(x,y,elevation),span,floor_number*step,tint)
+			_sprite(layer,style.roof,_point(x,y,elevation),span,floors*step,tint)
+	else:
+		for floor_number in range(floors):
+			_sprite(layer, style.floor, _point(x, y, elevation), span, floor_number * step, tint)
+		_sprite(layer, style.roof, _point(x, y, elevation), span, floors * step, tint)
+		if type == "shop" and bool(style.recipe.get("awning", false)):
+			_draw_awning(layer, style, x, y, elevation, span, abandoned)
 	if abandoned:
 		layer.label_at("×", _point(x, y, elevation) - Vector2(0, floors * step * BASE / 66.0 * span + 8), 11, Color("f5ba90"))
 
@@ -1036,21 +1039,60 @@ func _draw_awning(layer, style: Dictionary, x: float, y: float, elevation: float
 		layer.polygon(PackedVector2Array([points[3], points[2], points[2] + Vector2(0, 2 * span), points[3] + Vector2(0, 2 * span)]), color.darkened(0.2))
 
 func _draw_factory(layer, style: Dictionary, x: float, y: float, span: float, elevation: float, level: int, heavy: bool, abandoned: bool) -> void:
-	var footprint: float = span * 0.75
-	var height: float = BASE * span * (0.38 + mini(level, 4) * 0.07)
-	var wall: Color = style.wall.darkened(0.35) if abandoned else style.wall
-	_box(layer, x - footprint * 0.5, y - footprint * 0.5, elevation, footprint, footprint, height,
-		[wall.lightened(0.12).to_html(), wall.darkened(0.28).to_html(), wall.darkened(0.12).to_html()])
-	# A large loading door identifies a workshop without putting house windows
-	# on it. Its four vertices sit on the front face, below the roof.
-	var left: Vector2 = _point(x - footprint * 0.22, y + footprint * 0.5, elevation)
-	var right: Vector2 = _point(x + footprint * 0.22, y + footprint * 0.5, elevation)
-	layer.polygon(PackedVector2Array([left, right, right - Vector2(0, height * 0.76), left - Vector2(0, height * 0.76)]), wall.darkened(0.6))
-	_sprite(layer, style.roof, _point(x, y, elevation), span, height / (BASE / 66.0 * span), Color("aaaaaa") if abandoned else Color.WHITE)
+	var profile:String=str(style.get("profile","warehouse"))
+	var footprint:float=span*(.62 if profile=="shed" else .75)
+	var height:float=BASE*span*(.30+mini(level,4)*.06 if profile=="shed" else .38+mini(level,4)*.07)
+	var wall:Color=style.wall.darkened(.35) if abandoned else style.wall
+	var colors:Array=[wall.lightened(.12).to_html(),wall.darkened(.28).to_html(),wall.darkened(.12).to_html()]
+	var cx:float=x;var cy:float=y
+	if profile=="tankyard":
+		footprint=span*.43;cx=x-span*.17;cy=y-span*.17
+	_box(layer,cx-footprint*.5,cy-footprint*.5,elevation,footprint,footprint,height,colors)
+	var left:Vector2=_point(cx-footprint*.22,cy+footprint*.5,elevation)
+	var right:Vector2=_point(cx+footprint*.22,cy+footprint*.5,elevation)
+	layer.polygon(PackedVector2Array([left,right,right-Vector2(0,height*.76),left-Vector2(0,height*.76)]),wall.darkened(.6))
+	if profile=="sawtooth":
+		_factory_sawtooth(layer,x,y,span,elevation,height,wall,abandoned)
+	else:
+		var roof_span:float=span*(.57 if profile=="tankyard" else .825 if profile=="shed" else 1.)
+		_sprite(layer,style.roof,_point(cx,cy,elevation),roof_span,height/(BASE/66.*roof_span),Color("aaaaaa") if abandoned else Color.WHITE)
+	if profile=="warehouse":
+		for offset in [-.18,.12]:
+			_box(layer,x+offset*span,y-.16*span,elevation+height/(BASE*ELEVATION),span*.13,span*.16,BASE*span*.10,["b7bdb5","707b78","939f98"] if not abandoned else ["858980","545b54","68716a"])
+	elif profile=="tankyard":
+		_factory_tank(layer,x+span*.23,y-span*.02,span,elevation,BASE*span*.17,BASE*span*.55,wall)
+		_factory_tank(layer,x-span*.02,y+span*.23,span,elevation,BASE*span*.19,BASE*span*.45,wall)
 	if heavy:
-		for offset in [-0.2, 0.15]:
-			_box(layer, x + offset * span, y - footprint * 0.25, elevation + height / (BASE * ELEVATION), span * 0.13, span * 0.13,
-				BASE * span * (0.65 + level * 0.08), ["b2aca2", "66676a", "8a8884"])
+		for offset in ([-.18] if profile=="tankyard" else [-.2,.15]):
+			var chimney:Color=Color("aaa89c").darkened(.35) if abandoned else Color("aaa89c")
+			_box(layer,cx+offset*span,cy-footprint*.25,elevation+height/(BASE*ELEVATION),span*.13,span*.13,BASE*span*(.65+level*.08),[chimney.lightened(.1).to_html(),chimney.darkened(.35).to_html(),chimney.darkened(.15).to_html()])
+
+func _factory_sawtooth(layer,x:float,y:float,span:float,elevation:float,height:float,wall:Color,abandoned:bool)->void:
+	var start:float=x-span*.375;var back:float=y-span*.375;var front:float=y+span*.375
+	var lift:=Vector2(0,height);var rise:=Vector2(0,BASE*span*.16)
+	for i in range(3):
+		var a:float=start+i*span*.25;var b:float=a+span*.25
+		var ridge:float=b-span*.04
+		var ab:Vector2=_point(a,back,elevation)-lift;var af:Vector2=_point(a,front,elevation)-lift
+		var rb:Vector2=_point(ridge,back,elevation)-lift-rise;var rf:Vector2=_point(ridge,front,elevation)-lift-rise
+		var bb:Vector2=_point(b,back,elevation)-lift;var bf:Vector2=_point(b,front,elevation)-lift
+		layer.polygon(PackedVector2Array([ab,rb,rf,af]),wall.lightened(.2))
+		layer.polygon(PackedVector2Array([rb,bb,bf,rf]),Color("88a7aa").darkened(.35) if abandoned else Color("88a7aa"))
+		layer.polygon(PackedVector2Array([af,rf,bf]),wall.darkened(.12))
+
+func _factory_tank(layer,x:float,y:float,_span:float,elevation:float,radius:float,height:float,wall:Color)->void:
+	var base:Vector2=_point(x,y,elevation);var top:Vector2=base-Vector2(0,height)
+	var shell:=PackedVector2Array([top+Vector2(-radius,0),top+Vector2(radius,0)])
+	for i in range(9):
+		var angle:float=i*PI/8.
+		shell.append(base+Vector2(cos(angle)*radius,sin(angle)*radius*.5))
+	layer.polygon(shell,wall.darkened(.18))
+	var cap:=PackedVector2Array()
+	for i in range(16):
+		var angle:float=i*TAU/16.
+		cap.append(top+Vector2(cos(angle)*radius,sin(angle)*radius*.5))
+	layer.polygon(cap,wall.lightened(.23))
+	layer.line(PackedVector2Array([top+Vector2(-radius,0),base+Vector2(-radius,0)]),wall.darkened(.35),BASE*.02)
 
 func _field(name: String, index: int, fallback: float = 0.0) -> float:
 	var values = world.fields.get(name, [])

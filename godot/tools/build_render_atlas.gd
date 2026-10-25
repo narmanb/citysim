@@ -2,6 +2,9 @@ extends SceneTree
 ## Bake curated Kenney module palettes once; preserve the original selected RGBA.
 ## Run: godot --headless --path godot --script tools/build_render_atlas.gd
 
+const CivicArt=preload("res://tools/bake_civic_art.gd")
+const PropertyArt=preload("res://tools/bake_property_art.gd")
+
 const WIDTH: int = 1024
 const PADDING: int = 2
 const FLOOR_IDS: Array = [0, 32, 38, 39, 43, 44, 45, 47, 48, 49, 53, 56]
@@ -58,6 +61,8 @@ func _initialize() -> void:
 			images[variant] = _recolor(crop, source, Color(palette[source.material]))
 			descriptors[variant] = {"width": source.width, "height": source.height, "anchor": source.anchor.duplicate()}
 	_add_street_art(source_images,images,descriptors)
+	var developments:Dictionary=PropertyArt.add(source_images,images,descriptors,_recipes())
+	var facilities:Dictionary=CivicArt.add(images,descriptors)
 	var names: Array = images.keys()
 	names.sort()
 	var crops: Dictionary = {}
@@ -95,7 +100,7 @@ func _initialize() -> void:
 		push_error("Could not write the render atlas")
 		quit(1)
 		return
-	var styles: Dictionary = {"version": 1, "palettes": PALETTES, "recipes": _recipes(), "sources": sources,
+	var styles: Dictionary = {"version": 1, "palettes": PALETTES, "recipes": developments.recipes, "sources": sources, "property_sources":developments.provenance,"civic_art":facilities,
 		"source_png": "assets/atlases/buildings.png", "source_png_sha256": FileAccess.get_sha256("res://assets/atlases/buildings.png"),
 		"source_xml": "assets/atlases/buildings.xml", "source_xml_sha256": FileAccess.get_sha256(xml_path),
 		"license": "Kenney CC0; assets/licenses/Buildings.txt unchanged",
@@ -108,7 +113,7 @@ func _initialize() -> void:
 		"building_styles_sha256": FileAccess.get_sha256("res://assets/building_styles.json"),
 		"sha256": FileAccess.get_sha256(png_path), "sprites": crops}
 	_write_json("res://assets/render_atlas.json", layout)
-	print("Packed %s originals + %s selective building variants into %sx%s" % [manifest.sprites.size(), sources.size() * PALETTES.size(), WIDTH, height])
+	print("Packed %s sprites: %s originals, %s module palettes, %s frontages, %s facilities into %sx%s" % [images.size(),manifest.sprites.size(),sources.size()*PALETTES.size(),developments.provenance.size()*PALETTES.size(),facilities.size(),WIDTH,height])
 	quit()
 
 func _add_street_art(source_images:Dictionary,images:Dictionary,descriptors:Dictionary)->void:

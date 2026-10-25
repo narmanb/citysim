@@ -18,13 +18,13 @@ These are eligibility thresholds, not guarantees. A stable city-seed/property su
 
 ## Appearance and terrain
 
-There are 24 curated recipes: six houses, four apartments, four shops, four offices, three light-industrial and three heavy-industrial compositions. Six palettes provide cream, stone, terracotta, sage, slate and ochre walls/roofs. Selection depends on city seed, property identity and unit position; it does not consume simulation randomness.
+As of0.3.18 there are41 curated recipes: ten houses, six apartments, seven shops, six offices, six light-industrial and six heavy-industrial compositions. Three complete source storefronts and four industrial massing profiles extend the initial24-recipe batch. Six palettes provide cream, stone, terracotta, sage, slate and ochre walls/roofs. Selection depends on city seed, property identity and unit position; it does not consume simulation randomness.
 
 Homes and shops draw an individual building on each member tile at that tile's elevation. A flat 3×3 apartment property draws four wings around shared courtyard paving. Other blocks use the largest supported flat rectangle, up to 3×3. Buildings do not stretch across a terrain step. This does not introduce smooth corner-height terrain or parcel subdivision.
 
 The art combines existing Kenney CC0 modules, selectively recolored walls/roofs, storefront awnings and industrial shells/loading doors/chimneys. Factory bodies remain procedural composites. Windows, unselected pixels, transparency and source shading ratios are preserved. Original atlas PNGs and license receipts remain unchanged.
 
-The generated render atlas contains the original 17 entries plus 132 color variants from 22 source modules. It remains one texture: 1024×2048, approximately 301 KiB PNG and 8 MiB uncompressed RGBA. `assets/building_styles.json` records recipe IDs, source rectangles/hashes, palettes and material masks. Rebuild with `godot --headless --path . --script tools/build_render_atlas.gd`.
+The generated0.3.18 render atlas contains200 entries, including the original17,132 color variants from22 source modules,18 supplied-art frontages, eight facility composites and the park/street/vehicle additions. It remains one1024×2048 texture (8MiB uncompressed RGBA). `assets/building_styles.json` records recipe IDs, source rectangles/hashes, palettes and material masks. Rebuild with `godot --headless --path . --script tools/build_render_atlas.gd`.
 
 ## Validation
 

@@ -1,4 +1,110 @@
 {
+	"civic_art": {
+		"civic_fire": {
+			"authored_details": "fire",
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"ground_projection": [
+				132,
+				66
+			],
+			"modules": [
+				"buildingTiles_048__terracotta",
+				"buildingTiles_005__terracotta"
+			],
+			"source_family": "Kenney Isometric Tiles Buildings CC0"
+		},
+		"civic_hospital": {
+			"authored_details": "hospital",
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"ground_projection": [
+				132,
+				66
+			],
+			"modules": [
+				"buildingTiles_000__cream",
+				"buildingTiles_118__cream"
+			],
+			"source_family": "Kenney Isometric Tiles Buildings CC0"
+		},
+		"civic_plant": {
+			"authored_details": "plant",
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"ground_projection": [
+				132,
+				66
+			],
+			"modules": [
+				"buildingTiles_032__stone",
+				"buildingTiles_118__stone"
+			],
+			"source_family": "Kenney Isometric Tiles Buildings CC0"
+		},
+		"civic_police": {
+			"authored_details": "police",
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"ground_projection": [
+				132,
+				66
+			],
+			"modules": [
+				"buildingTiles_000__slate",
+				"buildingTiles_118__slate"
+			],
+			"source_family": "Kenney Isometric Tiles Buildings CC0"
+		},
+		"civic_pump": {
+			"authored_details": "pump",
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"ground_projection": [
+				132,
+				66
+			],
+			"modules": [
+				"buildingTiles_000__slate",
+				"buildingTiles_118__slate"
+			],
+			"source_family": "Kenney Isometric Tiles Buildings CC0"
+		},
+		"civic_school": {
+			"authored_details": "school",
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"ground_projection": [
+				132,
+				66
+			],
+			"modules": [
+				"buildingTiles_048__ochre",
+				"buildingTiles_065__ochre"
+			],
+			"source_family": "Kenney Isometric Tiles Buildings CC0"
+		},
+		"civic_station": {
+			"authored_details": "station",
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"ground_projection": [
+				132,
+				66
+			],
+			"modules": [
+				"buildingTiles_048__stone",
+				"buildingTiles_081__stone"
+			],
+			"source_family": "Kenney Isometric Tiles Buildings CC0"
+		},
+		"civic_tower": {
+			"authored_details": "tower",
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"ground_projection": [
+				132,
+				66
+			],
+			"modules": [
+				"buildingTiles_048__stone",
+				"buildingTiles_118__stone"
+			],
+			"source_family": "Kenney Isometric Tiles Buildings CC0"
+		}
+	},
 	"excluded_foundations": [
 		"buildingTiles_002",
 		"buildingTiles_009",
@@ -44,6 +150,65 @@
 			"wall": "#c9ac76"
 		}
 	],
+	"property_sources": {
+		"storefront_018": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"front_y": 82.0,
+			"license": "Kenney CC0; retained assets/licenses/Buildings.txt",
+			"source": "buildingTiles_018.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				265,
+				639,
+				132,
+				127
+			],
+			"source_rgba_sha256": "d10ea9ee2aec1862e43dbe0132b3fdfe7fca689cf3dec132d7ac3d5caa389feb",
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05"
+		},
+		"storefront_100": {
+			"anchor": {
+				"x": 66.5,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"front_y": 82.0,
+			"license": "Kenney CC0; retained assets/licenses/Buildings.txt",
+			"source": "buildingTiles_100.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				0,
+				508,
+				133,
+				127
+			],
+			"source_rgba_sha256": "6e6c016276e99cb648aa5e2bfe1f078870706aab2517faaf329128772511d937",
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05"
+		},
+		"storefront_124": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"front_y": 82.0,
+			"license": "Kenney CC0; retained assets/licenses/Buildings.txt",
+			"source": "buildingTiles_124.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				132,
+				1905,
+				132,
+				127
+			],
+			"source_rgba_sha256": "9996275752a4510b6d92e12b7831486ae6bd3c68ed225fa8434a0005d1b4cd2b",
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05"
+		}
+	},
 	"recipes": {
 		"apt": [
 			{
@@ -69,25 +234,61 @@
 				"id": "square_hip_block",
 				"roof": "buildingTiles_065",
 				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_044",
+				"id": "arched_flat_apartments",
+				"roof": "buildingTiles_005",
+				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_048",
+				"id": "paired_gable_apartments",
+				"roof": "buildingTiles_081",
+				"step": 35.5
 			}
 		],
 		"heavy": [
 			{
 				"floor": "buildingTiles_032",
 				"id": "works_barrel",
+				"profile": "sawtooth",
 				"roof": "buildingTiles_104",
 				"step": 35.5
 			},
 			{
 				"floor": "buildingTiles_047",
 				"id": "works_terrace",
+				"profile": "tankyard",
 				"roof": "buildingTiles_118",
 				"step": 35.5
 			},
 			{
 				"floor": "buildingTiles_053",
 				"id": "works_flat",
+				"profile": "warehouse",
 				"roof": "buildingTiles_005",
+				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_044",
+				"id": "tank_processing_yard",
+				"profile": "tankyard",
+				"roof": "buildingTiles_005",
+				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_045",
+				"id": "sawtooth_manufacturing",
+				"profile": "sawtooth",
+				"roof": "buildingTiles_104",
+				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_056",
+				"id": "large_loading_works",
+				"profile": "warehouse",
+				"roof": "buildingTiles_118",
 				"step": 35.5
 			}
 		],
@@ -127,25 +328,73 @@
 				"id": "arched_barrel",
 				"roof": "buildingTiles_090",
 				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_039",
+				"id": "paired_barrel_house",
+				"roof": "buildingTiles_104",
+				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_043",
+				"id": "square_flat_cottage",
+				"roof": "buildingTiles_005",
+				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_053",
+				"id": "arched_hip_cottage",
+				"roof": "buildingTiles_060",
+				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_056",
+				"id": "square_gable_cottage",
+				"roof": "buildingTiles_069",
+				"step": 35.5
 			}
 		],
 		"light": [
 			{
 				"floor": "buildingTiles_032",
 				"id": "workshop_terrace",
+				"profile": "warehouse",
 				"roof": "buildingTiles_118",
 				"step": 35.5
 			},
 			{
 				"floor": "buildingTiles_043",
 				"id": "workshop_flat",
+				"profile": "shed",
 				"roof": "buildingTiles_005",
 				"step": 35.5
 			},
 			{
 				"floor": "buildingTiles_056",
 				"id": "workshop_gable",
+				"profile": "sawtooth",
 				"roof": "buildingTiles_081",
+				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_038",
+				"id": "small_shed",
+				"profile": "shed",
+				"roof": "buildingTiles_069",
+				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_048",
+				"id": "broad_warehouse",
+				"profile": "warehouse",
+				"roof": "buildingTiles_118",
+				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_053",
+				"id": "northlight_workshop",
+				"profile": "sawtooth",
+				"roof": "buildingTiles_104",
 				"step": 35.5
 			}
 		],
@@ -172,6 +421,18 @@
 				"floor": "buildingTiles_056",
 				"id": "square_barrel_office",
 				"roof": "buildingTiles_104",
+				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_048",
+				"id": "paired_barrel_office",
+				"roof": "buildingTiles_090",
+				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_044",
+				"id": "arched_hip_office",
+				"roof": "buildingTiles_074",
 				"step": 35.5
 			}
 		],
@@ -203,6 +464,33 @@
 				"id": "square_corner",
 				"roof": "buildingTiles_069",
 				"step": 35.5
+			},
+			{
+				"floor": "buildingTiles_039",
+				"id": "awning_convenience",
+				"roof": "buildingTiles_118",
+				"step": 35.5,
+				"storefront": "storefront_018",
+				"storefront_complete": true,
+				"storefront_roof_lift": 35.5
+			},
+			{
+				"floor": "buildingTiles_048",
+				"id": "framed_market",
+				"roof": "buildingTiles_118",
+				"step": 35.5,
+				"storefront": "storefront_100",
+				"storefront_complete": true,
+				"storefront_roof_lift": 35.5
+			},
+			{
+				"floor": "buildingTiles_053",
+				"id": "glazed_corner_shop",
+				"roof": "buildingTiles_005",
+				"step": 35.5,
+				"storefront": "storefront_124",
+				"storefront_complete": true,
+				"storefront_roof_lift": 35.5
 			}
 		]
 	},

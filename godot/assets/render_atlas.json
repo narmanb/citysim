@@ -1,9 +1,9 @@
 {
-	"building_styles_sha256": "216496f27b0ae384076d0a82724c9562db13daaf45cf50b3a9c6dacb35efc66c",
+	"building_styles_sha256": "a644b2b10eef4e8291bdda7b01a66c0d2606cc874bff0110cd0e31f44b8b42f1",
 	"file": "assets/render_atlas.png",
 	"height": 2048,
 	"padding": 2,
-	"sha256": "1b1545430f72ccba8064fe594f4f2607da827a9eae27d49adbd4a56a2d93eec0",
+	"sha256": "845fe661b3f7a444c908a80a687fc3d89c9563ac8cdb36041dbe0f038b63e9fb",
 	"source_manifest_sha256": "e3ac0d47f0f090dbab93e28600f32c49cab410bed215a17202efabf9ebfeb139",
 	"sprites": {
 		"asphalt": {
@@ -1536,6 +1536,126 @@
 			"x": 110,
 			"y": 1213
 		},
+		"civic_fire": {
+			"anchor": {
+				"x": 66.0,
+				"y": 77.0
+			},
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"height": 107,
+			"source_modules": [
+				"buildingTiles_048__terracotta",
+				"buildingTiles_005__terracotta"
+			],
+			"width": 132,
+			"x": 146,
+			"y": 1213
+		},
+		"civic_hospital": {
+			"anchor": {
+				"x": 66.0,
+				"y": 102.0
+			},
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"height": 132,
+			"source_modules": [
+				"buildingTiles_000__cream",
+				"buildingTiles_118__cream"
+			],
+			"width": 132,
+			"x": 282,
+			"y": 1213
+		},
+		"civic_plant": {
+			"anchor": {
+				"x": 66.0,
+				"y": 123.0
+			},
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"height": 153,
+			"source_modules": [
+				"buildingTiles_032__stone",
+				"buildingTiles_118__stone"
+			],
+			"width": 132,
+			"x": 418,
+			"y": 1213
+		},
+		"civic_police": {
+			"anchor": {
+				"x": 66.0,
+				"y": 97.0
+			},
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"height": 127,
+			"source_modules": [
+				"buildingTiles_000__slate",
+				"buildingTiles_118__slate"
+			],
+			"width": 132,
+			"x": 554,
+			"y": 1213
+		},
+		"civic_pump": {
+			"anchor": {
+				"x": 66.0,
+				"y": 54.0
+			},
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"height": 84,
+			"source_modules": [
+				"buildingTiles_000__slate",
+				"buildingTiles_118__slate"
+			],
+			"width": 132,
+			"x": 690,
+			"y": 1213
+		},
+		"civic_school": {
+			"anchor": {
+				"x": 66.0,
+				"y": 99.0
+			},
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"height": 129,
+			"source_modules": [
+				"buildingTiles_048__ochre",
+				"buildingTiles_065__ochre"
+			],
+			"width": 132,
+			"x": 826,
+			"y": 1213
+		},
+		"civic_station": {
+			"anchor": {
+				"x": 66.0,
+				"y": 63.0
+			},
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"height": 93,
+			"source_modules": [
+				"buildingTiles_048__stone",
+				"buildingTiles_081__stone"
+			],
+			"width": 132,
+			"x": 2,
+			"y": 1370
+		},
+		"civic_tower": {
+			"anchor": {
+				"x": 66.0,
+				"y": 123.0
+			},
+			"derivation": "Supplied Kenney selective module shell; authored geometric service signs, bay doors, equipment, paving and planting; offline RGBA composite, no dedicated facility prefab claimed.",
+			"height": 153,
+			"source_modules": [
+				"buildingTiles_048__stone",
+				"buildingTiles_118__stone"
+			],
+			"width": 132,
+			"x": 138,
+			"y": 1370
+		},
 		"dirt": {
 			"anchor": {
 				"x": 66.0,
@@ -1543,8 +1663,8 @@
 			},
 			"height": 83.0,
 			"width": 132.0,
-			"x": 146,
-			"y": 1213
+			"x": 274,
+			"y": 1370
 		},
 		"flatRoof": {
 			"anchor": {
@@ -1553,8 +1673,8 @@
 			},
 			"height": 54.0,
 			"width": 99.0,
-			"x": 282,
-			"y": 1213
+			"x": 410,
+			"y": 1370
 		},
 		"grass": {
 			"anchor": {
@@ -1563,8 +1683,8 @@
 			},
 			"height": 99.0,
 			"width": 132.0,
-			"x": 385,
-			"y": 1213
+			"x": 513,
+			"y": 1370
 		},
 		"house": {
 			"anchor": {
@@ -1573,8 +1693,8 @@
 			},
 			"height": 85.0,
 			"width": 99.0,
-			"x": 521,
-			"y": 1213
+			"x": 649,
+			"y": 1370
 		},
 		"houseBeige": {
 			"anchor": {
@@ -1583,8 +1703,8 @@
 			},
 			"height": 85.0,
 			"width": 99.0,
-			"x": 624,
-			"y": 1213
+			"x": 752,
+			"y": 1370
 		},
 		"industry": {
 			"anchor": {
@@ -1593,8 +1713,8 @@
 			},
 			"height": 85.0,
 			"width": 99.0,
-			"x": 727,
-			"y": 1213
+			"x": 855,
+			"y": 1370
 		},
 		"office": {
 			"anchor": {
@@ -1603,8 +1723,8 @@
 			},
 			"height": 85.0,
 			"width": 99.0,
-			"x": 830,
-			"y": 1213
+			"x": 2,
+			"y": 1527
 		},
 		"park_garden": {
 			"anchor": {
@@ -1623,8 +1743,8 @@
 			],
 			"source_xml_sha256": "843f7b8a1026bc15088c98782bfea7081947c77c507a74ebc4d9305fcfdfdd0c",
 			"width": 132,
-			"x": 2,
-			"y": 1316
+			"x": 105,
+			"y": 1527
 		},
 		"park_plaza": {
 			"anchor": {
@@ -1643,8 +1763,8 @@
 			],
 			"source_xml_sha256": "843f7b8a1026bc15088c98782bfea7081947c77c507a74ebc4d9305fcfdfdd0c",
 			"width": 132,
-			"x": 138,
-			"y": 1316
+			"x": 241,
+			"y": 1527
 		},
 		"parked_ambulanceNE": {
 			"anchor": {
@@ -1663,8 +1783,8 @@
 			],
 			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
 			"width": 35,
-			"x": 274,
-			"y": 1316
+			"x": 377,
+			"y": 1527
 		},
 		"parked_ambulanceNW": {
 			"anchor": {
@@ -1683,8 +1803,8 @@
 			],
 			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
 			"width": 35,
-			"x": 313,
-			"y": 1316
+			"x": 416,
+			"y": 1527
 		},
 		"parked_ambulanceSE": {
 			"anchor": {
@@ -1703,8 +1823,8 @@
 			],
 			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
 			"width": 35,
-			"x": 352,
-			"y": 1316
+			"x": 455,
+			"y": 1527
 		},
 		"parked_ambulanceSW": {
 			"anchor": {
@@ -1723,8 +1843,8 @@
 			],
 			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
 			"width": 35,
-			"x": 391,
-			"y": 1316
+			"x": 494,
+			"y": 1527
 		},
 		"parked_garbageNE": {
 			"anchor": {
@@ -1743,8 +1863,8 @@
 			],
 			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
 			"width": 35,
-			"x": 430,
-			"y": 1316
+			"x": 533,
+			"y": 1527
 		},
 		"parked_garbageNW": {
 			"anchor": {
@@ -1763,8 +1883,8 @@
 			],
 			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
 			"width": 35,
-			"x": 469,
-			"y": 1316
+			"x": 572,
+			"y": 1527
 		},
 		"parked_garbageSE": {
 			"anchor": {
@@ -1783,8 +1903,8 @@
 			],
 			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
 			"width": 35,
-			"x": 508,
-			"y": 1316
+			"x": 611,
+			"y": 1527
 		},
 		"parked_garbageSW": {
 			"anchor": {
@@ -1803,8 +1923,8 @@
 			],
 			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
 			"width": 35,
-			"x": 547,
-			"y": 1316
+			"x": 650,
+			"y": 1527
 		},
 		"parked_policeNE": {
 			"anchor": {
@@ -1823,8 +1943,8 @@
 			],
 			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
 			"width": 32,
-			"x": 586,
-			"y": 1316
+			"x": 689,
+			"y": 1527
 		},
 		"parked_policeNW": {
 			"anchor": {
@@ -1843,8 +1963,8 @@
 			],
 			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
 			"width": 32,
-			"x": 622,
-			"y": 1316
+			"x": 725,
+			"y": 1527
 		},
 		"parked_policeSE": {
 			"anchor": {
@@ -1863,8 +1983,8 @@
 			],
 			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
 			"width": 32,
-			"x": 658,
-			"y": 1316
+			"x": 761,
+			"y": 1527
 		},
 		"parked_policeSW": {
 			"anchor": {
@@ -1883,8 +2003,8 @@
 			],
 			"source_xml_sha256": "cce547cb67289decf271eff4cc92d61812517eaf40f3958f2edc68e69b5c44ba",
 			"width": 33,
-			"x": 694,
-			"y": 1316
+			"x": 797,
+			"y": 1527
 		},
 		"pavement": {
 			"anchor": {
@@ -1893,8 +2013,8 @@
 			},
 			"height": 101.0,
 			"width": 132.0,
-			"x": 731,
-			"y": 1316
+			"x": 834,
+			"y": 1527
 		},
 		"roof": {
 			"anchor": {
@@ -1903,8 +2023,8 @@
 			},
 			"height": 61.0,
 			"width": 99.0,
-			"x": 867,
-			"y": 1316
+			"x": 2,
+			"y": 1632
 		},
 		"sand": {
 			"anchor": {
@@ -1913,8 +2033,386 @@
 			},
 			"height": 99.0,
 			"width": 132.0,
+			"x": 105,
+			"y": 1632
+		},
+		"storefront_018__cream": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "cream",
+			"source": "buildingTiles_018.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				265,
+				639,
+				132,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 132,
+			"x": 241,
+			"y": 1632
+		},
+		"storefront_018__ochre": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "ochre",
+			"source": "buildingTiles_018.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				265,
+				639,
+				132,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 132,
+			"x": 377,
+			"y": 1632
+		},
+		"storefront_018__sage": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "sage",
+			"source": "buildingTiles_018.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				265,
+				639,
+				132,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 132,
+			"x": 513,
+			"y": 1632
+		},
+		"storefront_018__slate": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "slate",
+			"source": "buildingTiles_018.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				265,
+				639,
+				132,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 132,
+			"x": 649,
+			"y": 1632
+		},
+		"storefront_018__stone": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "stone",
+			"source": "buildingTiles_018.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				265,
+				639,
+				132,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 132,
+			"x": 785,
+			"y": 1632
+		},
+		"storefront_018__terracotta": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "terracotta",
+			"source": "buildingTiles_018.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				265,
+				639,
+				132,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 132,
 			"x": 2,
-			"y": 1421
+			"y": 1735
+		},
+		"storefront_100__cream": {
+			"anchor": {
+				"x": 66.5,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "cream",
+			"source": "buildingTiles_100.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				0,
+				508,
+				133,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 133,
+			"x": 138,
+			"y": 1735
+		},
+		"storefront_100__ochre": {
+			"anchor": {
+				"x": 66.5,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "ochre",
+			"source": "buildingTiles_100.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				0,
+				508,
+				133,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 133,
+			"x": 275,
+			"y": 1735
+		},
+		"storefront_100__sage": {
+			"anchor": {
+				"x": 66.5,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "sage",
+			"source": "buildingTiles_100.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				0,
+				508,
+				133,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 133,
+			"x": 412,
+			"y": 1735
+		},
+		"storefront_100__slate": {
+			"anchor": {
+				"x": 66.5,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "slate",
+			"source": "buildingTiles_100.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				0,
+				508,
+				133,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 133,
+			"x": 549,
+			"y": 1735
+		},
+		"storefront_100__stone": {
+			"anchor": {
+				"x": 66.5,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "stone",
+			"source": "buildingTiles_100.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				0,
+				508,
+				133,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 133,
+			"x": 686,
+			"y": 1735
+		},
+		"storefront_100__terracotta": {
+			"anchor": {
+				"x": 66.5,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "terracotta",
+			"source": "buildingTiles_100.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				0,
+				508,
+				133,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 133,
+			"x": 823,
+			"y": 1735
+		},
+		"storefront_124__cream": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "cream",
+			"source": "buildingTiles_124.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				132,
+				1905,
+				132,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 132,
+			"x": 2,
+			"y": 1823
+		},
+		"storefront_124__ochre": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "ochre",
+			"source": "buildingTiles_124.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				132,
+				1905,
+				132,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 132,
+			"x": 138,
+			"y": 1823
+		},
+		"storefront_124__sage": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "sage",
+			"source": "buildingTiles_124.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				132,
+				1905,
+				132,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 132,
+			"x": 274,
+			"y": 1823
+		},
+		"storefront_124__slate": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "slate",
+			"source": "buildingTiles_124.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				132,
+				1905,
+				132,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 132,
+			"x": 410,
+			"y": 1823
+		},
+		"storefront_124__stone": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "stone",
+			"source": "buildingTiles_124.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				132,
+				1905,
+				132,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 132,
+			"x": 546,
+			"y": 1823
+		},
+		"storefront_124__terracotta": {
+			"anchor": {
+				"x": 66.0,
+				"y": 57.25
+			},
+			"derivation": "Keep facade above its front diamond y=height-45-abs(x-width/2)*0.5; remove the tile pedestal and side ledges outside the99px facade; selectively recolor opaque wall material below roof, preserving glazing, awnings and roof RGBA.",
+			"height": 84,
+			"palette": "terracotta",
+			"source": "buildingTiles_124.png",
+			"source_atlas": "buildings",
+			"source_rect": [
+				132,
+				1905,
+				132,
+				127
+			],
+			"source_xml_sha256": "a4e04d570d1cf22a021b96b454154cc9da2fdfffa0131ec1cf1a46c306282a05",
+			"width": 132,
+			"x": 682,
+			"y": 1823
 		},
 		"street_barrier": {
 			"anchor": {
@@ -1933,8 +2431,8 @@
 			],
 			"source_xml_sha256": "7c54f9d5a88cecf9326f642ee3e7b7689fa347e37f160a28b2224f222aab282a",
 			"width": 32,
-			"x": 138,
-			"y": 1421
+			"x": 818,
+			"y": 1823
 		},
 		"street_lamp_e": {
 			"anchor": {
@@ -1953,8 +2451,8 @@
 			],
 			"source_xml_sha256": "7c54f9d5a88cecf9326f642ee3e7b7689fa347e37f160a28b2224f222aab282a",
 			"width": 22,
-			"x": 174,
-			"y": 1421
+			"x": 854,
+			"y": 1823
 		},
 		"street_lamp_s": {
 			"anchor": {
@@ -1973,8 +2471,8 @@
 			],
 			"source_xml_sha256": "7c54f9d5a88cecf9326f642ee3e7b7689fa347e37f160a28b2224f222aab282a",
 			"width": 22,
-			"x": 200,
-			"y": 1421
+			"x": 880,
+			"y": 1823
 		},
 		"tree": {
 			"anchor": {
@@ -1983,8 +2481,8 @@
 			},
 			"height": 45.0,
 			"width": 32.0,
-			"x": 226,
-			"y": 1421
+			"x": 906,
+			"y": 1823
 		},
 		"water": {
 			"anchor": {
@@ -1993,8 +2491,8 @@
 			},
 			"height": 83.0,
 			"width": 132.0,
-			"x": 262,
-			"y": 1421
+			"x": 2,
+			"y": 1911
 		}
 	},
 	"version": 1,

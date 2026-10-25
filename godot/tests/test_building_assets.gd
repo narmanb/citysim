@@ -121,7 +121,9 @@ func _initialize() -> void:
 				_fail("Expected material recolor and unchanged glazing: " + variant)
 				return
 			checked += 1
-	print("Building assets: %s recipes, %s baked selective variants, anchors/alpha/glazing/shading/borders: PASS" % [24, checked])
+	var recipe_count:int=0
+	for recipes in styles.recipes.values():recipe_count+=recipes.size()
+	print("Building assets: %s recipes, %s baked selective variants, anchors/alpha/glazing/shading/borders: PASS" % [recipe_count, checked])
 	quit()
 
 func _fail(message: String) -> void:

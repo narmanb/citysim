@@ -41,6 +41,8 @@ func run():
  for name in layout.sprites:
   var target:Dictionary=layout.sprites[name]
   if not target.has("source_atlas"):continue
+  # Selective storefront recolors have independent derivation/alpha tests.
+  if name.begins_with("storefront_"):continue
   var source=(load("res://assets/atlases/"+target.source_atlas+".png") as Texture2D).get_image()
   var rect:Array=target.source_rect
   var matched=true;var clipped=true

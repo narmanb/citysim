@@ -2,6 +2,14 @@
 
 Open `project.godot` with **Godot 4.6.3 standard edition** and press Play. This project runs the city simulation and renders its scene natively with GDScript and Godot 2D. The earlier browser/WebView game is retained separately in the repository.
 
+## Changes in 0.3.18 Services, Utilities and Building Variety
+
+Police/fire/school/hospital and power/pump/tower placeholders now use grounded
+facility composites; rail stations also have a matching canopy. Housing,
+business and industry have41 recipes, three new supplied-art storefronts and
+four industrial profiles. Existing cities gain the art automatically.
+See [artwork, testing and limits](docs/civic-utilities-variety-0.3.18.md).
+
 ## Changes in 0.3.17 Streets and Free Terraform
 
 All Terraform tools are free. Supplied-art park variants, sparse street details,
