@@ -1,0 +1,71 @@
+name: Publish Three Valleys example files
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/godot-migration]
+    paths: ['.github/workflows/publish-three-valleys-example.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: three-valleys-example-publish
+  cancel-in-progress: false
+
+jobs:
+  attach-example:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out tested example
+        uses: actions/checkout@v4
+
+      - name: Verify city, preview and single-city ZIP
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          import hashlib
+          import json
+          import shutil
+          root = Path('examples/three-valleys')
+          filename = 'MetroForge-Three-Valleys-0.3.19.json'
+          city_bytes = (root / filename).read_bytes()
+          city = json.loads(city_bytes)
+          report = json.loads((root / 'validation.json').read_text())
+          capture = json.loads((root / 'capture-results.json').read_text())
+          assert city['version'] == 14 and len(city['tiles']) == 52 * 52
+          assert report['failures'] == [] and report['checks'] == 31695
+          assert report['sha256'] == capture['city_sha256'] == hashlib.sha256(city_bytes).hexdigest()
+          assert capture['native_file_import'] and capture['retained_full_equal'] and capture['rendering_preserves_city']
+          with ZipFile(root / 'MetroForge-Three-Valleys-0.3.19.zip') as z:
+              assert z.testzip() is None
+              assert [p for p in z.namelist() if p.endswith('.json')] == ['MetroForge-Three-Valleys/' + filename]
+              assert z.read('MetroForge-Three-Valleys/' + filename) == city_bytes
+              assert z.read('MetroForge-Three-Valleys/README.md') == (root / 'README.md').read_bytes()
+              assert len([p for p in z.namelist() if p.endswith('.png')]) == 6
+              assert z.read('MetroForge-Three-Valleys/Three-Valleys-Overview.png') == (root / 'Three-Valleys-Overview.png').read_bytes()
+          dist = Path('dist')
+          dist.mkdir()
+          for line in (root / 'MetroForge-Three-Valleys-SHA256SUMS.txt').read_text().splitlines():
+              digest, name = line.split(None, 1)
+              name = name.strip()
+              assert Path(name).name == name
+              assert hashlib.sha256((root / name).read_bytes()).hexdigest() == digest
+              shutil.copyfile(root / name, dist / name)
+          shutil.copyfile(root / 'MetroForge-Three-Valleys-SHA256SUMS.txt', dist / 'MetroForge-Three-Valleys-SHA256SUMS.txt')
+          print('PASS tested city identity, ZIP integrity, one importable JSON, six previews and SHA256 receipts')
+          PY
+
+      - name: Attach only to the unpublished example release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view three-valleys-example-0.3.19 --repo "$GITHUB_REPOSITORY" --json isDraft > "$RUNNER_TEMP/example-release.json"
+          python -c 'import json,os; assert json.load(open(os.environ["RUNNER_TEMP"] + "/example-release.json"))["isDraft"], "Published example releases must never be overwritten"'
+          gh release upload three-valleys-example-0.3.19 --repo "$GITHUB_REPOSITORY" \
+            dist/MetroForge-Three-Valleys-0.3.19.json \
+            dist/MetroForge-Three-Valleys-0.3.19.zip \
+            dist/Three-Valleys-Overview.png \
+            dist/MetroForge-Three-Valleys-SHA256SUMS.txt
