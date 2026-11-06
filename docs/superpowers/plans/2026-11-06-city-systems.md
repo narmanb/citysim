@@ -54,5 +54,11 @@ persistence/city_store.gd onlyifneeded,tests/test_city_progression.gd,test_city_
 - [x] Run save roundtrip/monthly/sandbox integration and all native suites; fix regressions.
 - [x] Capture real phone-layout native screens and exact model neutrality; compare performance.
 - [x] Fresh independent review; resolve important findings and validate fixes.
-- [ ] Version0.3.19/code20,freshrelease path,CI/APK/source/signature/alignment checks,
+- [x] Version0.3.19/code20,freshrelease path,CI/APK/source/signature/alignment checks,
   publish separatepreview and verify public download; final release-page link.
+
+Completed in code commit `92162de13932f246927f0eb9d90cb6b879b91269`.
+CI run `42202245540` passed all 48 suites and export verification. Release assets
+were independently downloaded and checked for source receipts, signatures and
+16 KB alignment. Public page and full anonymous APK download verified:
+https://github.com/narmanb/citysim/releases/tag/v0.3.19-terraform-preview
