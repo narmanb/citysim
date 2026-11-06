@@ -1,0 +1,10 @@
+{
+  "city_sha256": "d03578e87c6dd5616f9cb72141962e64e3721320e2ff22c35850de9b09886101",
+  "native_file_import": true,
+  "population": 4517,
+  "real_history_months": 25,
+  "renderer": "llvmpipe (LLVM 19.1.7, 256 bits)",
+  "rendering_preserves_city": true,
+  "retained_full_equal": true,
+  "save_version": 14
+}
