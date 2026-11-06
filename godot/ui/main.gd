@@ -6,6 +6,7 @@ const CityView = preload("res://view/isometric_view.gd")
 const Session = preload("res://persistence/city_session.gd")
 const Store = preload("res://persistence/city_store.gd")
 const ConstructionHistory = preload("res://ui/construction_history.gd")
+const ReportPanel = preload("res://ui/city_report_panel.gd")
 const TerrainEditor = preload("res://model/terrain_editor.gd")
 const TerrainSettings = preload("res://ui/terrain_settings.gd")
 const PerformanceDisplay = preload("res://ui/performance_display.gd")
@@ -88,6 +89,9 @@ Roads and rails can bridge up to eight water tiles with dry land at both ends. T
 TERRAFORM TERRAIN
 Raise/Lower reaches −5 to +40. Terraform offers 1×1, 3×3 or 5×5 brushes and height steps 1/2/4. Select a height/shape tool to keep its settings at the right of the map, even after the tool menu closes. Flatten uses the first touched tile or Set height. All Terraform tools are free, even with a negative treasury. Preview shows changed and skipped cells. One stroke is one Undo. Buildings, zones, roads, rails, lines, pipes and natural water are protected. Shape terrain makes Flat, Sloped, Rounded or Cliff caps. Sloped uses Auto or N/E/S/W (the high edge), with Gentle/Medium/Steep strength independent of height step. Auto needs neighboring height differences; manual directions work on level ground. Gentle directional slopes support roads and level building foundations. Smooth softens eligible land with Gentle/Medium/Strong strength while preserving marked Cliffs, water and construction. Hill/Mountain offers Size3/5/9, an absolute Peak and Broad/Balanced/Sharp profile. Each brush is one previewed transaction and Undo. Rounded and steeper slopes need Flatten before construction.
 
+CITY REPORT
+Report shows resident approval, ranked concerns and reasons a selected property is not growing. History records one point each simulated month; imported cities start recording now. Optional challenges use the current city, preserve their deadline when saved, and leave the city playable after winning or losing.
+
 9. KEEP YOUR CITY
 Your last city reopens automatically. The game checkpoints periodically and when backgrounded. Save writes a separate manual city in this app. Export makes a complete compatible JSON copy for backup or transfer. Import accepts JSON exported by the earlier MetroForge game. Use the native file picker or the copy/paste JSON fallback. Saves from the old Android app are transferred by exporting there and importing here.
 """
@@ -147,6 +151,7 @@ var _toast: Label
 var _toast_time: float = 0.0
 var _modal: ColorRect
 var _dialog_panel: PanelContainer
+var _report_panel
 var _dialog_body: VBoxContainer
 var _dialog_title: Label
 var _dialog_kind: String = ""
@@ -636,6 +641,7 @@ func refresh_ui() -> void:
 	_refresh_history()
 	refresh_selection()
 	_refresh_growth()
+	_refresh_report()
 	if is_instance_valid(_ledger):
 		_ledger.text = "Taxes: +%s\nServices and infrastructure: %s\nNet per month: %s\nYear to date: %s · Last year: %s\nAnnual projection: %s\nBond: %s\n\nPopulation: %s / capacity %s\nCommercial jobs: %s · industrial jobs: %s\nEmployed: %s · unemployment: %s%%\nAverage land value: %s · crime: %s" % [_money(s.get("revenue", 0)), _money(s.get("expenses", 0)), _money(s.get("net", 0)), _money(s.get("yearToDate", 0)), _money(s.get("lastYearNet", 0)), _money(s.get("net", 0) * 12), "$150/month · %s months left" % world.bondMonths if world.bondMonths > 0 else "none", s.get("population", 0), s.get("resCapacity", 0), s.get("commercialJobs", 0), s.get("industrialJobs", 0), s.get("employed", 0), s.get("unemployment", 0), s.get("avgLand", 0), s.get("avgCrime", 0)]
 	if is_instance_valid(_event_log):
@@ -643,6 +649,19 @@ func refresh_ui() -> void:
 		for item in world.messages.slice(0, 16):
 			notes.append(str(item.get("text", "")) if item is Dictionary else str(item))
 		_event_log.text = "\n\n".join(notes) if not notes.is_empty() else "No city events reported yet."
+
+func _refresh_report() -> void:
+	if not is_instance_valid(_report_panel) or world==null:return
+	_report_panel.present(world.city_report(_selected),world.cityHistory,world.challenge_definitions(),world.challenge_progress())
+
+func _start_challenge(id:String) -> void:
+	if world.start_challenge(id):
+		session.mark_dirty();show_notice("Challenge started. Your current city remains open.")
+	else:show_notice("Abandon the active challenge first, and check the population requirement.")
+	_refresh_report()
+
+func _abandon_challenge() -> void:
+	world.abandon_challenge();session.mark_dirty();show_notice("Challenge abandoned. Sandbox continues.");_refresh_report()
 
 func _refresh_history() -> void:
 	if _undo_button != null:
@@ -1002,7 +1021,7 @@ func _build_ui() -> void:
 	var actions = _horizontal_scroll("Actions", footer_row, 0)
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	actions.alignment = BoxContainer.ALIGNMENT_END
-	for pair in [["Overlays", "overlays"], ["Budget", "budget"], ["Events", "events"], ["Guide", "guide"], ["City / Files", "files"]]:
+	for pair in [["Overlays", "overlays"], ["Report", "report"], ["Budget", "budget"], ["Events", "events"], ["Guide", "guide"], ["City / Files", "files"]]:
 		_button(pair[0], func(): open_dialog(pair[1]), actions)
 	_build_dialog()
 	resized.connect(_layout_shell)
@@ -1219,6 +1238,7 @@ func _layout_dialog() -> void:
 func open_dialog(kind: String) -> void:
 	_close_tool_menu()
 	_dialog_kind = kind
+	_report_panel = null
 	_ledger = null
 	_event_log = null
 	_json_text = null
@@ -1227,6 +1247,13 @@ func open_dialog(kind: String) -> void:
 		child.queue_free()
 	_modal.visible = true
 	match kind:
+		"report":
+			_dialog_title.text = "City Report"
+			_report_panel=ReportPanel.new();_report_panel.name="CityReportPanel";_dialog_body.add_child(_report_panel)
+			_report_panel.overlay_requested.connect(func(key):set_overlay(key);close_dialog())
+			_report_panel.challenge_start_requested.connect(_start_challenge)
+			_report_panel.challenge_abandon_requested.connect(_abandon_challenge)
+			_refresh_report()
 		"overlays":
 			_dialog_title.text = "City overlays"
 			var grid_toggle:=CheckButton.new()

@@ -6,7 +6,7 @@ static var last_error: String = ""
 const MAX_BYTES = 8 * 1024 * 1024
 
 static func export_json(world) -> String:
-	return JSON.stringify(world.serialize(), "\t")
+	return JSON.stringify(world.serialize(), "\t", true, true)
 
 static func import_json(text: String):
 	var result = decode_json(text)
@@ -56,7 +56,7 @@ static func write_snapshot(data: Dictionary, path: String) -> Dictionary:
 	var temporary = absolute + ".tmp"
 	var file = FileAccess.open(temporary, FileAccess.WRITE)
 	if file == null: return {"code": FileAccess.get_open_error(), "message": "Could not open the city file for writing."}
-	file.store_string(JSON.stringify(data, "\t"))
+	file.store_string(JSON.stringify(data, "\t", true, true))
 	file.flush()
 	error = file.get_error()
 	file.close()

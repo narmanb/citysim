@@ -5,6 +5,11 @@ extends RefCounted
 const Geometry = preload("res://model/terrain_geometry.gd")
 const Surfaces = preload("res://model/terrain_surfaces.gd")
 const Civil = preload("res://model/civil_engineering.gd")
+const Commute = preload("res://model/commute_system.gd")
+const Report = preload("res://model/city_report.gd")
+const Chronicle = preload("res://model/city_history.gd")
+const Scenarios = preload("res://model/scenario_system.gd")
+const SAVE_VERSION = 14
 const N = Geometry.N
 const COUNT = N * N
 const MIN_TERRAIN_ELEV = Geometry.MIN_HEIGHT
@@ -39,17 +44,24 @@ var messages: Array = []
 var network: Dictionary = {}
 var selected: int = -1
 var trafficHeat = PackedFloat32Array()
+var _commute_result: Dictionary = {}
+var cityHistory: Array = []
+var scenario: Dictionary = {}
 var _parcels: Dictionary = {}
 var _parcelAt: Array = []
 var _spawnElapsed: float = 0.0
 var _lastPop: int = 0
 var _rng = RandomNumberGenerator.new()
+# Display sampling never consumes the authoritative simulation random stream.
+var _agent_rng = RandomNumberGenerator.new()
 
 func _init(seed_value: int = 0):
 	seed = seed_value if seed_value != 0 else randi_range(1, 99999999)
 	_rng.seed = seed
+	_agent_rng.seed = seed ^ 7919
 	generate()
 	recalculate()
+	_record_month()
 
 static func blank_tile(terrain: String = "grass", tree: bool = false) -> Dictionary:
 	return {"terrain":terrain,"tree":tree,"road":false,"rail":false,"line":false,"pipe":false,"zone":null,"resType":null,"zoneType":null,"autoGrow":false,"parcel":0,"level":0,"occupancy":0,"abandoned":0,"civic":null,"condition":1.0,"fire":0.0,"damage":0.0,"storage":0.0,"elev":0,"terrainShape":"flat","slopeDir":"auto","shapeStrength":1,"biome":"grass","channel":false,"waterSource":terrain == "water"}
@@ -363,12 +375,14 @@ static func _js_round(value: float) -> int:
 	return int(floor(value+0.5))
 
 func serialize() -> Dictionary:
-	return {"version":13,"seed":seed,"tiles":tiles.duplicate(true),"cash":cash,"year":year,"month":month,"tick":tick,"taxes":taxes.duplicate(true),"funding":funding.duplicate(true),"randomDisasters":randomDisasters,"bondMonths":bondMonths,"milestones":milestones.duplicate(true),"messages":messages.duplicate(true),"events":events.duplicate(true),"stats":stats.duplicate(true),"cars":cars.duplicate(true),"trains":trains.duplicate(true),"nextParcelId":nextParcelId}
+	return {"version":SAVE_VERSION,"cityHistory":cityHistory.duplicate(true),"scenario":scenario.duplicate(true),"seed":seed,"tiles":tiles.duplicate(true),"cash":cash,"year":year,"month":month,"tick":tick,"taxes":taxes.duplicate(true),"funding":funding.duplicate(true),"randomDisasters":randomDisasters,"bondMonths":bondMonths,"milestones":milestones.duplicate(true),"messages":messages.duplicate(true),"events":events.duplicate(true),"stats":stats.duplicate(true),"cars":cars.duplicate(true),"trains":trains.duplicate(true),"nextParcelId":nextParcelId}
 
 static func _finite(value) -> bool:
 	return (value is int or value is float) and is_finite(float(value))
 
 static func from_dict(data: Dictionary) -> CityWorld:
+	if data.has("cityHistory") and not Chronicle.validate(data.cityHistory):return null
+	if data.has("scenario") and not Scenarios.validate(data.scenario):return null
 	if not data.get("tiles") is Array or data.tiles.size() != COUNT: return null
 	var normalized: Array = []
 	var saved_occupancy: Array = []
@@ -444,6 +458,7 @@ static func from_dict(data: Dictionary) -> CityWorld:
 	var world = CityWorld.new(int(data.seed) if _finite(data.get("seed")) else 24)
 	world.seed = int(data.seed) if _finite(data.get("seed")) else 24
 	world._rng.seed = world.seed
+	world._agent_rng.seed = world.seed ^ 7919
 	world.tiles = normalized
 	world.cash = float(data.cash) if _finite(data.get("cash")) else CONFIG.startingCash
 	world.year = int(data.year) if _finite(data.get("year")) and data.year != 0 else 2000
@@ -494,6 +509,12 @@ static func from_dict(data: Dictionary) -> CityWorld:
 		for key in ["yearToDate","lastYearNet"]:
 			if _finite(saved_stats.get(key)): world.stats[key] = saved_stats[key]
 		world._demand_update()
+	world.cityHistory=Chronicle.normalize(data.get("cityHistory",[]))
+	world.scenario=Scenarios.normalize(data.get("scenario",{}))
+	if not world.cityHistory.is_empty() and world.cityHistory.back().month>world.year*12+world.month-1:return null
+	if not world.scenario.is_empty() and world.scenario.lastTick>world.tick:return null
+	world._feedback_update()
+	if world.cityHistory.is_empty():world._record_month()
 	return world
 
 func recalculate() -> void:
@@ -506,6 +527,7 @@ func recalculate() -> void:
 	_demand_update()
 	_traffic_prepare()
 	_economy_calculate()
+	_feedback_update()
 
 func step() -> void:
 	tick += 1
@@ -527,10 +549,62 @@ func step() -> void:
 	_population_update()
 	_demand_update()
 	_traffic_prepare()
-	_infrastructure_update()
-	_disaster_update()
+	var infrastructure_changed:bool=_infrastructure_update()
+	var disaster_changed:bool=_disaster_update()
+	if infrastructure_changed or disaster_changed:_refresh_after_incident()
 	_economy_update()
 	_alerts()
+	_feedback_update()
+	var previous_status:String=str(scenario.get("status",""))
+	scenario=Scenarios.update(self,scenario)
+	if not scenario.is_empty() and scenario.status!=previous_status:
+		notify("Challenge completed! Your city remains playable." if scenario.status=="won" else "Challenge deadline reached. Your city remains playable.","good" if scenario.status=="won" else "warn")
+	_record_month()
+
+func _refresh_after_incident() -> void:
+	# Refresh current facts without another monthly occupancy decay or water commit.
+	_parcel_rebuild()
+	_utility_update()
+	_service_update()
+	_population_update(false)
+	_traffic_prepare()
+	_environment_update()
+	_demand_update()
+
+func _feedback_update() -> void:
+	var report:Dictionary=Report.evaluate(self)
+	stats.approval=report.approval
+	stats.residentCrime=report.summary.crime
+	stats.residentPollution=report.summary.pollution
+
+func _record_month() -> void:
+	cityHistory=Chronicle.record(cityHistory,Chronicle.sample(self))
+
+func city_report(index:int=-1) -> Dictionary:
+	return Report.evaluate(self,index)
+
+func challenge_definitions() -> Array:
+	var choices:Array=Scenarios.definitions()
+	for choice in choices:choice.available=int(stats.get("population",0))>=int(choice.minimum_population)
+	return choices
+
+func challenge_progress() -> Dictionary:
+	var state:Dictionary=scenario.duplicate(true)
+	if not state.is_empty():state.progress=Scenarios.progress(self,scenario)
+	return state
+
+func start_challenge(id:String) -> bool:
+	if scenario.get("status","")=="active":return false
+	var next:Dictionary=Scenarios.start(self,id)
+	if next.is_empty():return false
+	scenario=next
+	notify("Challenge started. Meet all goals for three consecutive months.")
+	return true
+
+func abandon_challenge() -> void:
+	if scenario.is_empty():return
+	scenario={}
+	notify("Challenge ended. Sandbox continues.")
 
 func _conduct(i: int, kind: String) -> bool:
 	var t = tiles[i]
@@ -712,20 +786,66 @@ func _utility_update(commit: bool = false) -> void:
 	stats.merge({"powerGenerated":power.production,"powerUsed":power.usage,"waterCapacity":water.production,"waterUsed":water.usage,"waterPumped":water.pumped,"waterStored":water.stored,"unpowered":unpowered,"unwatered":unwatered},true)
 
 func _service_update() -> void:
+	var graph = Commute.road_graph(self)
+	var properties: Dictionary = {}
+	for i in range(COUNT):
+		if not tiles[i].zone: continue
+		var key = -int(tiles[i].parcel) if tiles[i].parcel else i
+		if not properties.has(key): properties[key] = []
+		properties[key].append(i)
 	for type in SERVICES:
 		var values = PackedFloat32Array()
 		values.resize(COUNT)
-		var radius = CONFIG.serviceRadius[type]*pow(maxf(0.0,funding[type]/100.0),0.7)
-		for i in range(COUNT):
-			if tiles[i].civic != type or not fields.power[i] or not fields.water[i]: continue
-			var x = i%N
-			var y = int(i/N)
-			var r = ceili(radius)
-			for yy in range(maxi(0,y-r),mini(N-1,y+r)+1):
-				for xx in range(maxi(0,x-r),mini(N-1,x+r)+1):
-					var distance = Vector2(x-xx,y-yy).length()
-					var value = clampf(1-distance/(radius+1),0.0,1.0)*(funding[type]/100.0)
-					values[yy*N+xx] = maxf(values[yy*N+xx],value)
+		var reached = PackedByteArray()
+		reached.resize(COUNT)
+		var strength = maxf(0.0,funding[type]/100.0)
+		var radius = CONFIG.serviceRadius[type]*pow(strength,0.7)
+		if strength > 0:
+			for i in range(COUNT):
+				if tiles[i].civic != type or not fields.power[i] or not fields.water[i]: continue
+				var queue: Array = []
+				var distance: Dictionary = {}
+				for j in neighbors(i):
+					if not graph.edges.has(j): continue
+					queue.append(j)
+					distance[j] = 1
+				if queue.is_empty(): continue
+				values[i] = maxf(values[i],strength)
+				var head = 0
+				while head < queue.size():
+					var road = queue[head]
+					var steps: int = distance[road]
+					var value = maxf(0.0,1.0-steps/(radius+1.0))*strength
+					values[road] = maxf(values[road],value)
+					if value > 0: reached[road] = 1
+					# Short dry-land spill never enters a second road component or water.
+					for j in neighbors(road):
+						if tiles[j].road or tiles[j].terrain == "water" or tiles[j].channel: continue
+						var spill = maxf(0.0,1.0-(steps+1)/(radius+1.0))*strength
+						values[j] = maxf(values[j],spill)
+						# A second dry cell covers parcel interiors and corner campuses.
+						for k in neighbors(j):
+							if tiles[k].road or tiles[k].terrain == "water" or tiles[k].channel: continue
+							spill = maxf(0.0,1.0-(steps+2)/(radius+1.0))*strength
+							values[k] = maxf(values[k],spill)
+					if steps < floori(radius):
+						for next in graph.edges[road]:
+							if distance.has(next): continue
+							distance[next] = steps+1
+							queue.append(next)
+					head += 1
+		# A parcel must enter the served network. Spill cannot jump to an isolated
+		# neighborhood just because one of its buildings is geometrically close.
+		for members in properties.values():
+			var accessible = false
+			for member in members:
+				for entrance in neighbors(member):
+					if reached[entrance]:
+						accessible = true
+						break
+				if accessible: break
+			if not accessible:
+				for member in members: values[member] = 0.0
 		fields[type] = values
 
 func _environment_update() -> void:
@@ -848,44 +968,12 @@ func _population_update(update_occupancy: bool = true) -> void:
 		var quality = clampf(0.88+(fields.landValue[i]-50)*0.004-fields.pollution[i]*0.002-fields.crime[i]*0.0015,0.35,1.0)
 		if update_occupancy: t.occupancy = _js_round(units*quality) if viable else _js_round(t.occupancy*0.65)
 		occupied[t.zone] += t.occupancy
-	var group = PackedInt32Array()
-	group.resize(COUNT)
-	group.fill(-1)
-	var parts: Array = []
-	for i in range(COUNT):
-		if not tiles[i].road or group[i] >= 0: continue
-		var id = parts.size()
-		var queue: Array = [i]
-		parts.append({"res":0,"jobs":0})
-		group[i] = id
-		var head = 0
-		while head < queue.size():
-			for j in neighbors(queue[head]):
-				if tiles[j].road and group[j] < 0:
-					group[j] = id
-					queue.append(j)
-			head += 1
-	var counted: Dictionary = {}
-	for i in range(COUNT):
-		var t = tiles[i]
-		var p = parcel_info(i) if t.parcel else {}
-		if not p.is_empty():
-			if counted.has(p.id) or i != p.root: continue
-			counted[p.id] = true
-		if not t.zone or not t.occupancy: continue
-		var roads: Array = _parcel_roads(p) if not p.is_empty() else []
-		if p.is_empty():
-			for k in neighbors(i):
-				if tiles[k].road: roads.append(k)
-		if roads.is_empty(): continue
-		var id = group[roads[0]]
-		if id < 0: continue
-		parts[id]["res" if t.zone == "res" else "jobs"] += t.occupancy
 	var jobs = occupied.com+occupied.ind
 	var population = occupied.res
-	var employed = 0
-	for p in parts: employed += mini(p.res,p.jobs)
+	_commute_result = Commute.calculate(self)
+	var employed = _commute_result.employed
 	var unemployment = _js_round(100.0*(population-employed)/population) if population else 0
+	stats.merge({"commuters":_commute_result.commuters,"commuteUnserved":_commute_result.commuteUnserved,"avgCommute":_commute_result.avgCommute},true)
 	stats.merge({"population":population,"resCapacity":capacity.res,"commercialCapacity":capacity.com,"industrialCapacity":capacity.ind,"jobs":jobs,"commercialJobs":occupied.com,"industrialJobs":occupied.ind,"employed":employed,"unemployment":unemployment,"developed":developed,"abandoned":abandoned,"capacity":capacity,"occupied":occupied},true)
 
 func _growth_score(i: int) -> float:
@@ -1074,7 +1162,8 @@ func _economy_update() -> void:
 		bondMonths -= 1
 		if bondMonths == 0: _economy_calculate()
 
-func _infrastructure_update() -> void:
+func _infrastructure_update() -> bool:
+	var changed:bool=false
 	var fund = funding.road/100.0
 	for i in range(COUNT):
 		var t = tiles[i]
@@ -1082,7 +1171,10 @@ func _infrastructure_update() -> void:
 		var usage = (trafficHeat[i] if trafficHeat.size() == COUNT else 0.0)/100.0
 		var delta = (fund-0.73)*0.016-usage*0.016
 		t.condition = clampf(t.condition+delta,0.1,1.0)
-		if t.condition < 0.23 and _hash(i,tick,seed) > 0.995: t.road = false
+		if t.condition < 0.23 and _hash(i,tick,seed) > 0.995:
+			t.road = false
+			changed = true
+	return changed
 
 func _alerts() -> void:
 	if tick%7 == 1:
@@ -1158,10 +1250,12 @@ func _disaster_impact(type: String, i: int) -> void:
 	notify("%s damaged %d structures." % [type.capitalize(),hits],"warn")
 	events.append({"type":type,"i":i,"age":0})
 
-func _disaster_update() -> void:
+func _disaster_update() -> bool:
+	var changed:bool=false
 	for i in range(COUNT):
 		var t = tiles[i]
 		if not t.fire: continue
+		changed=true
 		var response = fields.fire[i]*(funding.fire/100.0)
 		if response > 0.28:
 			t.fire = maxf(0.0,t.fire-1.4*response)
@@ -1189,14 +1283,17 @@ func _disaster_update() -> void:
 			var i = buildings[mini(buildings.size()-1,int(_hash(tick,4,seed)*buildings.size()))]
 			var t = tiles[i]
 			var risk = (0.022 if t.zone == "ind" else 0.009)*t.level*(1-fields.fire[i]*0.85)*(1-funding.fire/450.0)*(0.35 if stats.population < 100 else 1.0)
-			if _hash(tick,3,seed+9) < risk: _ignite(i)
+			if _hash(tick,3,seed+9) < risk:
+				_ignite(i)
+				changed=true
 	if randomDisasters and tick%18 == 0 and _hash(tick,11,seed) > 0.88:
-		trigger_disaster(["tornado","quake","flood"][int(tick/18)%3])
+		changed=trigger_disaster(["tornado","quake","flood"][int(tick/18)%3]) or changed
 	var active_events: Array = []
 	for event in events:
 		event.age = event.get("age",0)+1
 		if event.age < 9: active_events.append(event)
 	events = active_events
+	return changed
 
 func _road_entrances(i: int) -> Array:
 	var t = tiles[i]
@@ -1253,55 +1350,43 @@ func _traffic_prepare() -> void:
 			var path = route(stations[a],stations[b],"rail")
 			if path.size() >= 8: rail_routes.append(path)
 	network = {"roads":roads,"homes":homes,"work":work,"rails":rails,"stations":stations,"railRoutes":rail_routes}
+	_commute_result = Commute.calculate(self)
 	var valid_cars: Array = []
 	for agent in cars:
 		var valid = true
-		for i in agent.path:
-			if not tiles[i].road: valid = false
-		if valid: valid_cars.append(agent)
+		for k in range(agent.path.size()):
+			var i = agent.path[k]
+			if not tiles[i].road or (k > 0 and not _commute_result._edges.get(agent.path[k-1],[]).has(i)): valid = false
+		if valid and valid_cars.size() < CONFIG.maxCars: valid_cars.append(agent)
 	cars = valid_cars
 	var valid_trains: Array = []
 	for agent in trains:
 		var valid = true
 		for i in agent.path:
 			if not tiles[i].rail: valid = false
-		if valid: valid_trains.append(agent)
+		if valid and valid_trains.size() < CONFIG.maxTrains: valid_trains.append(agent)
 	trains = valid_trains
-	var heat = PackedFloat32Array()
-	heat.resize(COUNT)
-	for agent in cars:
-		var unique: Dictionary = {}
-		for j in agent.path: unique[j] = true
-		for j in unique: heat[j] += 2
-	if not rail_routes.is_empty():
-		for i in roads:
-			for j in stations:
-				if _man(i,j) <= 5:
-					heat[i] *= 0.65
-					break
-	trafficHeat = heat
-	var total = 0.0
-	for i in roads: total += heat[i]
-	stats.congestion = _js_round(clampf(total/roads.size()*8 if not roads.is_empty() else 0.0,0.0,100.0))
+	trafficHeat = _commute_result.heat
+	for key in ["employed","commuters","commuteUnserved","avgCommute","congestion"]: stats[key] = _commute_result[key]
+	stats.unemployment = _js_round(100.0*stats.commuteUnserved/stats.get("population",0)) if stats.get("population",0) else 0
 	stats.railRidership = mini(stats.get("employed",0),stations.size()*45) if not rail_routes.is_empty() else 0
 
 func _traffic_spawn() -> void:
 	if network.is_empty(): return
 	var target = mini(CONFIG.maxCars,floori(minf(stats.employed/25.0,network.roads.size()/3.0)))
-	if cars.size() < target and not network.homes.is_empty() and not network.work.is_empty():
-		for trial in range(6):
-			var a = network.homes[_rng.randi_range(0,network.homes.size()-1)]
-			var b = network.work[_rng.randi_range(0,network.work.size()-1)]
-			var starts = _road_entrances(a)
-			var ends = _road_entrances(b)
-			if starts.is_empty() or ends.is_empty(): continue
-			var path = route(starts[0],ends[0])
+	if cars.size() < target and not _commute_result.get("routes",[]).is_empty():
+		# Sample assigned flows, so visual cars use the same legal parcel entrances.
+		var ticket = _agent_rng.randi_range(1,maxi(1,int(stats.employed)))
+		for trip in _commute_result.routes:
+			ticket -= trip.flow
+			if ticket > 0: continue
+			var path = trip.path.duplicate()
 			if path.size() > 2:
 				var back = path.slice(1,path.size()-1)
 				back.reverse()
 				path.append_array(back)
-				cars.append({"path":path,"p":0.0,"speed":0.55+_rng.randf()*0.35})
-				break
+				cars.append({"path":path,"p":0.0,"speed":0.55+_agent_rng.randf()*0.35})
+			break
 	var train_target = mini(mini(CONFIG.maxTrains,network.railRoutes.size()),floori(network.rails.size()/20.0))
 	if trains.size() < train_target:
 		var path = network.railRoutes[trains.size()%network.railRoutes.size()].duplicate()

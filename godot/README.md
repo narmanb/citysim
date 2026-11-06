@@ -2,6 +2,12 @@
 
 Open `project.godot` with **Godot 4.6.3 standard edition** and press Play. This project runs the city simulation and renders its scene natively with GDScript and Godot 2D. The earlier browser/WebView game is retained separately in the repository.
 
+## Changes in 0.3.19 City Systems
+
+Traffic and job allocation are independent of animated cars, services follow roads,
+and Report offers approval, growth explanations, monthly graphs and optional
+challenges. Existing cities import into save14. See [behavior, tests and limits](docs/city-systems-0.3.19.md).
+
 ## Changes in 0.3.18 Services, Utilities and Building Variety
 
 Police/fire/school/hospital and power/pump/tower placeholders now use grounded

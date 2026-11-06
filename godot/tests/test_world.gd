@@ -127,7 +127,7 @@ func run():
 	var legacy_world = WorldModel.from_dict(legacy_data)
 	check(legacy_world != null and legacy_world.cash == 23456 and legacy_world.tiles[1325].elev == 3, "genuine legacy fixture preserves treasury and elevation")
 
-	# Values obtained by executing the original JavaScript simulation for the same district.
+	# District integration: analytical commuting and road-aware funded services.
 	w = empty_world()
 	w.seed = 4242
 	w.tiles[19*52+3].terrain = "water"
@@ -143,25 +143,30 @@ func run():
 		for x in range(section[0],section[1]+1): w.place(21*52+x,section[2],false,section[3])
 	for service in [[20,"hospital"],[18,"school"],[16,"police"],[14,"fire"]]: w.place(19*52+service[0],service[1])
 	w.recalculate()
-	# JavaScript reference rerun with ordinary industry in the former logistics block.
-	var expected = {
-		1:{"cash":23900,"population":79,"jobs":33,"powerUsed":65,"waterUsed":55,"net":-465,"demand":{"res":8,"com":45,"ind":37},"levels":[0,0,0,1,0,1,0,0,0]},
-		6:{"cash":23158,"population":193,"jobs":194,"powerUsed":112,"waterUsed":102,"net":33,"demand":{"res":52,"com":39,"ind":56},"levels":[0,1,2,3,2,2,0,1,1]},
-		12:{"cash":24060,"population":270,"jobs":215,"powerUsed":135,"waterUsed":125,"net":172,"demand":{"res":34,"com":44,"ind":52},"levels":[1,1,2,3,3,2,1,2,1]}}
-
+	# The road-network service model requires real access for each department.
+	# Utility corridors can carry roads; join both streets around the district edge.
+	for x in range(3,35): w.place(20*52+x,"road")
+	for y in range(21,23): w.place(y*52+3,"road")
+	w.recalculate()
+	# Import normalizes missing historical accounting to zero.
+	w.stats.lastYearNet = w.stats.get("lastYearNet",0)
+	var replay = WorldModel.from_dict(w.serialize())
+	check(replay != null,"Serviced district imports for independent deterministic replay")
+	var previous_cash: float = w.cash
+	var year_net = 0.0
 	for step in range(1,13):
 		w.step()
-		if not expected.has(step): continue
-		var baseline = expected[step]
-		check(w.cash == baseline.cash and w.stats.net == baseline.net, "JavaScript economy parity month %d" % step)
-		check(w.stats.population == baseline.population and w.stats.jobs == baseline.jobs, "JavaScript population/jobs parity month %d" % step)
-		check(w.stats.powerUsed == baseline.powerUsed and w.stats.waterUsed == baseline.waterUsed, "JavaScript utility usage parity month %d" % step)
-		check(w.demand == baseline.demand, "JavaScript demand parity month %d" % step)
-		var levels: Array = []
-		for section in sections: levels.append(w.tiles[21*52+section[0]].level)
-		check(levels == baseline.levels, "JavaScript parcel growth parity month %d" % step)
-	check(w.year == 2001 and w.month == 1 and w.stats.lastYearNet == -477, "JavaScript year rollover accounting parity")
-	check(w.fields.school[21*52+18] > 0 and w.fields.police[21*52+16] > 0, "powered and watered departments provide services")
+		replay.step()
+		check(is_equal_approx(w.cash-previous_cash,float(w.stats.net)),"Monthly treasury changes by the actual net month %d" % step)
+		check(w.stats.employed <= mini(w.stats.population,w.stats.jobs) and w.stats.commuters == w.stats.employed,"Monthly employment conserves residents and jobs month %d" % step)
+		check(w.stats.commuteUnserved == w.stats.population-w.stats.employed,"Monthly unserved commuters match unemployment month %d" % step)
+		check(w.stats.powerUsed <= w.stats.powerGenerated and w.stats.waterUsed <= w.stats.waterCapacity,"Monthly utility usage respects supplied capacity month %d" % step)
+		check(w.tiles == replay.tiles and w.stats == replay.stats and w.demand == replay.demand and w.cash == replay.cash,"Independent replay matches growth, demand, finances and transport month %d" % step)
+		previous_cash = w.cash
+		if step < 12: year_net += w.stats.net
+	check(w.year == 2001 and w.month == 1 and w.stats.lastYearNet == year_net,"Year rollover records the actual preceding eleven monthly balances")
+	check(w.stats.population > 0 and w.stats.jobs > 0,"Road-served district grows occupied homes and workplaces")
+	check(w.fields.school[21*52+18] > 0 and w.fields.police[21*52+16] > 0,"Road-connected powered and watered departments provide services")
 	var bond_cash = w.cash
 	check(w.take_bond() and w.cash == bond_cash+10000 and w.bondMonths == 80, "bond adds capital and repayment term")
 	check(not w.take_bond() and w.cash == bond_cash+10000, "only one outstanding bond")

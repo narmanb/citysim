@@ -70,6 +70,9 @@ func mature_network_world():
 		world.place(9*world.N+x,"pipe")
 	world.place(8*world.N+17,"school")
 	world.place(8*world.N+19,"hospital")
+	# Departments require adjacent streets; join this utility corridor to the district.
+	for x in range(16,21): world.place(9*world.N+x,"road")
+	for y in range(10,14): world.place(y*world.N+16,"road")
 	world.place(8*world.N+16,"park")
 	world.place(8*world.N+18,"park")
 	var parcel_id = 1
